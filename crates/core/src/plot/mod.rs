@@ -19,13 +19,13 @@ use crate::config::CONFIG;
 use crate::interaction;
 use crate::interaction::UseOnBlockContext;
 use crate::player::{EntityId, Gamemode, PacketSender, Player, PlayerPos};
-use crate::server::{BroadcastMessage, Message, PrivMessage};
+use crate::server::{BroadcastMessage, EditPermissions, ForwardedEdit, Message, PrivMessage};
 use crate::utils::HyphenatedUUID;
 use anyhow::Error;
 use bus::BusReader;
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
-use mchprs_blocks::items::Item;
+use mchprs_blocks::items::{Item, ItemStack};
 use mchprs_blocks::{BlockFace, BlockPos};
 use mchprs_network::packets::clientbound::*;
 use mchprs_network::packets::serverbound::SUseItemOn;
@@ -80,6 +80,36 @@ const ERROR_IO_ONLY: &str = "This plot cannot be interacted with while redpiler 
 
 const MAX_BATCH_SIZE: u32 = 50_000;
 const MAX_PENDING_GAME_EVENTS: usize = 4096;
+
+const OUTSIDE_PLOT_MESSAGE: &str = "Can't interact with blocks outside of plot";
+const TOO_FAR_MESSAGE: &str = "That block is too far away to edit from here";
+/// How far, in blocks, a player can edit a block in a neighbouring plot.
+const FORWARD_EDIT_REACH: f64 = 8.0;
+
+/// Returns the plot owning `pos` if that plot is directly next to `(plot_x, plot_z)`. Blocks
+/// in the plot itself or further away return `None`.
+fn adjacent_plot_of_block(plot_x: i32, plot_z: i32, pos: BlockPos) -> Option<(i32, i32)> {
+    let target = Plot::plot_of_block(pos.x, pos.z);
+    let (dx, dz) = (target.0 - plot_x, target.1 - plot_z);
+    let is_neighbour = dx.abs() <= 1 && dz.abs() <= 1 && (dx, dz) != (0, 0);
+    is_neighbour.then_some(target)
+}
+
+fn within_edit_reach(player: PlayerPos, pos: BlockPos) -> bool {
+    let dx = f64::from(pos.x) + 0.5 - player.x;
+    let dy = f64::from(pos.y) + 0.5 - player.y;
+    let dz = f64::from(pos.z) + 0.5 - player.z;
+    dx * dx + dy * dy + dz * dz <= FORWARD_EDIT_REACH * FORWARD_EDIT_REACH
+}
+
+/// The rule for editing a plot: the owner always may, anyone else needs the admin permission.
+/// Unowned plots need the unowned permission.
+fn may_edit_plot(owner: Option<u128>, editor: u128, permissions: EditPermissions) -> bool {
+    match owner {
+        Some(owner) => owner == editor || permissions.interact_other,
+        None => permissions.interact_unowned,
+    }
+}
 
 pub struct Plot {
     pub world: PlotWorld,
@@ -819,8 +849,26 @@ impl Plot {
         };
 
         if !Plot::in_plot_bounds(self.world.x, self.world.z, block_pos.x, block_pos.z) {
-            self.send_outside_plot_message(player, block_pos, "interact with");
-            cancel(self);
+            // Only placing against a block of a neighbouring plot is forwarded to that plot.
+            let result = match &item_in_hand {
+                Some(item) if !CONFIG.plot_borders => self.forward_placement(
+                    player,
+                    item,
+                    block_pos,
+                    block_face,
+                    (
+                        use_item_on.cursor_x,
+                        use_item_on.cursor_y,
+                        use_item_on.cursor_z,
+                    ),
+                    block_pos.offset(block_face),
+                ),
+                _ => Err(OUTSIDE_PLOT_MESSAGE),
+            };
+            if let Err(message) = result {
+                self.send_forward_rejection(player, block_pos, "interact with", message);
+                cancel(self);
+            }
             return;
         }
 
@@ -846,14 +894,11 @@ impl Plot {
             return;
         }
 
-        if let Some(owner) = self.owner {
-            let player = &mut self.players[player];
-            if owner != player.uuid && !player.has_permission("plots.admin.interact.other") {
-                player.send_no_permission_message();
-                cancel(self);
-                return;
-            }
-        } else if !self.players[player].has_permission("plots.admin.interact.unowned") {
+        if !may_edit_plot(
+            self.owner,
+            self.players[player].uuid,
+            self.edit_permissions(player),
+        ) {
             self.players[player].send_no_permission_message();
             cancel(self);
             return;
@@ -877,6 +922,54 @@ impl Plot {
                 }
                 self.reset_redpiler();
             }
+        }
+
+        let place_pos = block_pos.offset(block_face);
+        if let Some(item) = &item_in_hand
+            && item.item_type.is_block()
+            && !CONFIG.plot_borders
+            && adjacent_plot_of_block(self.world.x, self.world.z, place_pos).is_some()
+        {
+            // The block goes into a neighbouring plot. Interacting with the clicked block still
+            // comes first, like it does for a local placement.
+            let block = self.world.get_block(block_pos);
+            if !self.players[player].crouching
+                && interaction::on_use(
+                    block,
+                    &mut self.world,
+                    &mut self.players[player],
+                    block_pos,
+                    Some(item.item_type),
+                    interaction::BlockHit {
+                        face: block_face,
+                        cursor: (
+                            use_item_on.cursor_x,
+                            use_item_on.cursor_y,
+                            use_item_on.cursor_z,
+                        ),
+                    },
+                )
+                .is_success()
+            {
+                self.world.flush_block_changes();
+                return;
+            }
+            if let Err(message) = self.forward_placement(
+                player,
+                item,
+                block_pos,
+                block_face,
+                (
+                    use_item_on.cursor_x,
+                    use_item_on.cursor_y,
+                    use_item_on.cursor_z,
+                ),
+                place_pos,
+            ) {
+                self.players[player].send_system_message(message);
+                cancel(self);
+            }
+            return;
         }
 
         if let Some(item) = item_in_hand {
@@ -927,19 +1020,210 @@ impl Plot {
         }
     }
 
-    fn handle_player_digging(&mut self, block_pos: BlockPos, player: usize) {
-        let block = self.world.get_block(block_pos);
+    /// Tells the player why an edit in a neighbouring plot was not forwarded. With plot borders
+    /// the plot edge is a wall, so the usual message applies.
+    fn send_forward_rejection(
+        &mut self,
+        player: usize,
+        pos: BlockPos,
+        action: &str,
+        message: &str,
+    ) {
+        if CONFIG.plot_borders {
+            self.send_outside_plot_message(player, pos, action);
+        } else {
+            self.players[player].send_system_message(message);
+        }
+    }
 
-        if !Plot::in_plot_bounds(self.world.x, self.world.z, block_pos.x, block_pos.z) {
-            self.send_outside_plot_message(player, block_pos, "break");
+    fn edit_permissions(&self, player: usize) -> EditPermissions {
+        let player = &self.players[player];
+        EditPermissions {
+            interact_other: player.has_permission("plots.admin.interact.other"),
+            interact_unowned: player.has_permission("plots.admin.interact.unowned"),
+        }
+    }
+
+    /// Forwards placing `item` against `clicked` into `target`, a block of a neighbouring plot.
+    /// The placed state is computed without neighbours, because they are not readable from here.
+    /// Shapes that depend on neighbours (stairs, fences, redstone wire) get their default state.
+    fn forward_placement(
+        &mut self,
+        player: usize,
+        item: &ItemStack,
+        clicked: BlockPos,
+        face: BlockFace,
+        cursor: (f32, f32, f32),
+        target: BlockPos,
+    ) -> Result<(), &'static str> {
+        let (owner_x, owner_z) = adjacent_plot_of_block(self.world.x, self.world.z, target)
+            .ok_or(OUTSIDE_PLOT_MESSAGE)?;
+        if !item.item_type.is_block() {
+            return Err(OUTSIDE_PLOT_MESSAGE);
+        }
+        if !within_edit_reach(self.players[player].pos, target) {
+            return Err(TOO_FAR_MESSAGE);
+        }
+        let player_pos = self.players[player].pos.block_pos();
+        let mut head_pos = player_pos;
+        head_pos.y += 1;
+        let in_hitbox = target == player_pos || target == head_pos;
+        if !(0..PLOT_BLOCK_HEIGHT).contains(&target.y) || (in_hitbox && !CONFIG.block_in_hitbox) {
+            // Same as a local placement, which does nothing here.
+            return Ok(());
+        }
+
+        let state = {
+            let ctx = UseOnBlockContext {
+                block_pos: clicked,
+                block_face: face,
+                player: &mut self.players[player],
+                cursor_x: cursor.0,
+                cursor_y: cursor.1,
+                cursor_z: cursor.2,
+                other_players: Vec::new(),
+            };
+            interaction::get_state_for_placement(
+                &interaction::NoBlocks::default(),
+                target,
+                item.item_type,
+                &ctx,
+            )
+        };
+        let block_id = Block::get_id(state);
+        let sender = &self.players[player];
+        let message = Message::ForwardEdit {
+            plot_x: owner_x,
+            plot_z: owner_z,
+            edit: ForwardedEdit::Place {
+                pos: target,
+                block_id,
+            },
+            player_uuid: sender.uuid,
+            username: sender.username.clone(),
+            permissions: self.edit_permissions(player),
+        };
+        self.message_sender.send(message).unwrap();
+        self.show_forwarded_edit(player, target, block_id);
+        Ok(())
+    }
+
+    /// Forwards breaking the block at `pos`, which belongs to a neighbouring plot.
+    fn forward_break(&mut self, player: usize, pos: BlockPos) -> Result<(), &'static str> {
+        let (owner_x, owner_z) =
+            adjacent_plot_of_block(self.world.x, self.world.z, pos).ok_or(OUTSIDE_PLOT_MESSAGE)?;
+        if !within_edit_reach(self.players[player].pos, pos) {
+            return Err(TOO_FAR_MESSAGE);
+        }
+        if !(0..PLOT_BLOCK_HEIGHT).contains(&pos.y) {
+            return Ok(());
+        }
+
+        let sender = &self.players[player];
+        let message = Message::ForwardEdit {
+            plot_x: owner_x,
+            plot_z: owner_z,
+            edit: ForwardedEdit::Break { pos },
+            player_uuid: sender.uuid,
+            username: sender.username.clone(),
+            permissions: self.edit_permissions(player),
+        };
+        self.message_sender.send(message).unwrap();
+        self.show_forwarded_edit(player, pos, Block::Air.get_id());
+        Ok(())
+    }
+
+    /// Shows the player the result of a forwarded edit. The owning plot applies the edit
+    /// without reporting back, so this is optimistic and may differ if the owner rejects it.
+    fn show_forwarded_edit(&mut self, player: usize, pos: BlockPos, block_id: u32) {
+        let block_change = CBlockUpdate {
+            block_id: block_id as i32,
+            x: pos.x,
+            y: pos.y,
+            z: pos.z,
+        }
+        .encode();
+        self.players[player].send_packet(&block_change);
+    }
+
+    /// Applies an edit forwarded from a neighbouring plot. Nobody is told when it is rejected,
+    /// the forwarding player is not in this plot, so rejections are only logged.
+    fn apply_forwarded_edit(
+        &mut self,
+        edit: ForwardedEdit,
+        player_uuid: u128,
+        username: &str,
+        permissions: EditPermissions,
+    ) {
+        let pos = match edit {
+            ForwardedEdit::Place { pos, .. } | ForwardedEdit::Break { pos } => pos,
+        };
+        if !may_edit_plot(self.owner, player_uuid, permissions) {
+            debug!(
+                "{username} may not edit plot {},{} from a neighbouring plot",
+                self.world.x, self.world.z
+            );
             return;
         }
+        if !Plot::in_plot_bounds(self.world.x, self.world.z, pos.x, pos.z)
+            || !(0..PLOT_BLOCK_HEIGHT).contains(&pos.y)
+        {
+            debug!(
+                "{username} edited {pos:?}, which is not in plot {},{}",
+                self.world.x, self.world.z
+            );
+            return;
+        }
+        if let Some(flags) = self.redpiler.current_flags()
+            && flags.io_only
+        {
+            debug!("Dropped an edit from {username} because redpiler is running with io-only");
+            return;
+        }
+
+        match edit {
+            ForwardedEdit::Place { block_id, .. } => {
+                if !self.world.get_block(pos).can_place_block_in() {
+                    return;
+                }
+                self.reset_redpiler();
+                interaction::place_in_world(Block::from_id(block_id), &mut self.world, pos, &None);
+            }
+            ForwardedEdit::Break { .. } => {
+                self.reset_redpiler();
+                let block = self.world.get_block(pos);
+                interaction::destroy(block, &mut self.world, pos);
+            }
+        }
+        self.world.flush_block_changes();
+    }
+
+    fn handle_player_digging(&mut self, block_pos: BlockPos, player: usize) {
+        let block = self.world.get_block(block_pos);
 
         // This worldedit wand stuff should probably be done in another file. It's good enough for
         // now.
         let item_in_hand = self.players[player].inventory
             [self.players[player].selected_slot as usize + 36]
             .clone();
+        let holding_wand = item_in_hand.as_ref().is_some_and(|item| {
+            item.item_type == Item::WoodenAxe
+                && self.players[player].has_permission("worldedit.selection.pos")
+        });
+
+        if !Plot::in_plot_bounds(self.world.x, self.world.z, block_pos.x, block_pos.z) {
+            // The wand selects positions, it must never break a block in a neighbouring plot.
+            let result = if holding_wand || CONFIG.plot_borders {
+                Err(OUTSIDE_PLOT_MESSAGE)
+            } else {
+                self.forward_break(player, block_pos)
+            };
+            if let Err(message) = result {
+                self.send_forward_rejection(player, block_pos, "break", message);
+            }
+            return;
+        }
+
         if let Some(item) = item_in_hand {
             let has_permission = self.players[player].has_permission("worldedit.selection.pos");
             if item.item_type == (Item::WoodenAxe) && has_permission {
@@ -954,14 +1238,11 @@ impl Plot {
             }
         }
 
-        if let Some(owner) = self.owner {
-            let player = &mut self.players[player];
-            if owner != player.uuid && !player.has_permission("plots.admin.interact.other") {
-                player.send_no_permission_message();
-                self.send_block_corrections(&[block_pos]);
-                return;
-            }
-        } else if !self.players[player].has_permission("plots.admin.interact.unowned") {
+        if !may_edit_plot(
+            self.owner,
+            self.players[player].uuid,
+            self.edit_permissions(player),
+        ) {
             self.players[player].send_no_permission_message();
             self.send_block_corrections(&[block_pos]);
             return;
@@ -1327,6 +1608,12 @@ impl Plot {
                     }
                     self.enter_plot(player);
                 }
+                PrivMessage::ForwardedEdit {
+                    edit,
+                    player_uuid,
+                    username,
+                    permissions,
+                } => self.apply_forwarded_edit(edit, player_uuid, &username, permissions),
             }
         }
     }
@@ -1857,5 +2144,100 @@ mod bounds_tests {
             pos.plot_pos(),
             Plot::plot_of_block(pos.x.floor() as i32, pos.z.floor() as i32)
         );
+    }
+}
+
+#[cfg(test)]
+mod forwarded_edit_tests {
+    use super::*;
+
+    const NO_PERMISSIONS: EditPermissions = EditPermissions {
+        interact_other: false,
+        interact_unowned: false,
+    };
+
+    #[test]
+    fn neighbouring_plot_of_block() {
+        let edge = PLOT_BLOCK_WIDTH;
+        // East and west neighbours, including the block just across the edge.
+        assert_eq!(
+            adjacent_plot_of_block(0, 0, BlockPos::new(edge, 64, 0)),
+            Some((1, 0))
+        );
+        assert_eq!(
+            adjacent_plot_of_block(0, 0, BlockPos::new(-1, 64, 0)),
+            Some((-1, 0))
+        );
+        // Diagonal neighbour.
+        assert_eq!(
+            adjacent_plot_of_block(0, 0, BlockPos::new(edge, 64, -edge)),
+            Some((1, -1))
+        );
+        // Inside the plot itself.
+        assert_eq!(
+            adjacent_plot_of_block(0, 0, BlockPos::new(edge - 1, 64, 0)),
+            None
+        );
+        // Two plots away.
+        assert_eq!(
+            adjacent_plot_of_block(0, 0, BlockPos::new(2 * edge, 64, 0)),
+            None
+        );
+        assert_eq!(
+            adjacent_plot_of_block(0, 0, BlockPos::new(-edge - 1, 64, 0)),
+            None
+        );
+    }
+
+    #[test]
+    fn edit_reach() {
+        // Eye level at the centre of a block, so the distances below are exact.
+        let player = PlayerPos::new(0.5, 64.5, 0.5);
+        assert!(within_edit_reach(player, BlockPos::new(8, 64, 0)));
+        assert!(!within_edit_reach(player, BlockPos::new(9, 64, 0)));
+        assert!(!within_edit_reach(player, BlockPos::new(6, 64, 6)));
+    }
+
+    #[test]
+    fn owned_plot_permissions() {
+        let owner = 1;
+        let other = 2;
+        let admin_other = EditPermissions {
+            interact_other: true,
+            ..NO_PERMISSIONS
+        };
+        let admin_unowned = EditPermissions {
+            interact_unowned: true,
+            ..NO_PERMISSIONS
+        };
+
+        assert!(may_edit_plot(Some(owner), owner, NO_PERMISSIONS));
+        assert!(!may_edit_plot(Some(owner), other, NO_PERMISSIONS));
+        assert!(may_edit_plot(Some(owner), other, admin_other));
+        // The unowned permission does not allow editing somebody else's plot.
+        assert!(!may_edit_plot(Some(owner), other, admin_unowned));
+    }
+
+    #[test]
+    fn unowned_plot_permissions() {
+        let editor = 2;
+        assert!(!may_edit_plot(None, editor, NO_PERMISSIONS));
+        assert!(may_edit_plot(
+            None,
+            editor,
+            EditPermissions {
+                interact_unowned: true,
+                ..NO_PERMISSIONS
+            }
+        ));
+        // Other-plot admin permission does not cover unowned plots.
+        assert!(!may_edit_plot(
+            None,
+            editor,
+            EditPermissions {
+                interact_other: true,
+                ..NO_PERMISSIONS
+            }
+        ));
     }
 }

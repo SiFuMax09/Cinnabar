@@ -11,7 +11,50 @@ use mchprs_network::packets::clientbound::{COpenSignEditor, ClientBoundPacket};
 use mchprs_redstone as redstone;
 use mchprs_utils::nbt_unwrap_val;
 use mchprs_world::game_event::{block_center, dampens_vibrations, EventContext, GameEvent};
-use mchprs_world::World;
+use mchprs_world::{storage::Chunk, PistonQueue, TickPriority, World};
+
+/// A world where every block is air. Placement state computed against it ignores neighbours,
+/// which is what a plot needs when the neighbouring blocks belong to another plot's thread.
+#[derive(Default)]
+pub struct NoBlocks {
+    piston_queue: PistonQueue,
+}
+
+impl World for NoBlocks {
+    fn get_block_raw(&self, _pos: BlockPos) -> u32 {
+        0
+    }
+
+    fn set_block_raw(&mut self, _pos: BlockPos, _block: u32) -> bool {
+        false
+    }
+
+    fn delete_block_entity(&mut self, _pos: BlockPos) {}
+
+    fn get_block_entity(&self, _pos: BlockPos) -> Option<&BlockEntity> {
+        None
+    }
+
+    fn set_block_entity(&mut self, _pos: BlockPos, _block_entity: BlockEntity) {}
+
+    fn get_chunk(&self, _x: i32, _z: i32) -> Option<&Chunk> {
+        None
+    }
+
+    fn get_chunk_mut(&mut self, _x: i32, _z: i32) -> Option<&mut Chunk> {
+        None
+    }
+
+    fn schedule_tick(&mut self, _pos: BlockPos, _delay: u32, _priority: TickPriority) {}
+
+    fn pending_tick_at(&mut self, _pos: BlockPos) -> bool {
+        false
+    }
+
+    fn piston_queue(&mut self) -> &mut PistonQueue {
+        &mut self.piston_queue
+    }
+}
 
 /// Where a block was clicked
 #[derive(Clone, Copy)]
@@ -512,7 +555,7 @@ pub enum ActionResult {
 }
 
 impl ActionResult {
-    fn is_success(self) -> bool {
+    pub fn is_success(self) -> bool {
         self == ActionResult::Success
     }
 }

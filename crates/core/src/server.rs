@@ -8,6 +8,7 @@ use crate::{permissions, utils};
 use backtrace::Backtrace;
 use bus::Bus;
 use hmac::{Hmac, Mac};
+use mchprs_blocks::BlockPos;
 use mchprs_network::packets::clientbound::{
     CConfigurationPluginMessage, CDisconnectLogin, CFinishConfiguration, CGameEvent,
     CGameEventType, CLogin, CLoginPluginRequest, CLoginSuccess, CPlayerInfoActions,
@@ -60,6 +61,16 @@ pub enum Message {
     WhitelistAdd(u128, String, PlayerPacketSender),
     /// This message is sent to the server thread when a player runs /whitelist remove.
     WhitelistRemove(u128, PlayerPacketSender),
+    /// This message is sent to the server thread when a player edits a block in a directly
+    /// neighbouring plot. The server routes it to the plot that owns the block.
+    ForwardEdit {
+        plot_x: i32,
+        plot_z: i32,
+        edit: ForwardedEdit,
+        player_uuid: u128,
+        username: String,
+        permissions: EditPermissions,
+    },
     /// This message is sent to the server thread when a player runs /stop.
     Shutdown,
     /// This message is sent to the server thread when the edge chunks of a plot change (or
@@ -75,6 +86,24 @@ pub enum Message {
         from_plot: (i32, i32),
         to_plot: (i32, i32),
     },
+}
+
+/// A block edit made in one plot that has to be applied by the plot owning the block.
+#[derive(Debug, Clone, Copy)]
+pub enum ForwardedEdit {
+    /// Place a block. `block_id` is the state computed on the sending plot, so the owner does
+    /// not need the item or its NBT.
+    Place { pos: BlockPos, block_id: u32 },
+    /// Break the block at `pos`.
+    Break { pos: BlockPos },
+}
+
+/// The plot interaction permissions of the player making a forwarded edit. Permissions are
+/// only available on the sending plot's thread, so they travel with the edit.
+#[derive(Debug, Clone, Copy)]
+pub struct EditPermissions {
+    pub interact_other: bool,
+    pub interact_unowned: bool,
 }
 
 /// `BroadcastMessage` gets broadcasted from the server thread to all the plot threads.
@@ -113,6 +142,13 @@ pub enum PrivMessage {
     PlayerTeleportOther(Player, String),
     /// A neighbouring plot asked for the edge chunks of this plot
     SendEdgeChunks,
+    /// An edit forwarded from a neighbouring plot, see `Message::ForwardEdit`.
+    ForwardedEdit {
+        edit: ForwardedEdit,
+        player_uuid: u128,
+        username: String,
+        permissions: EditPermissions,
+    },
 }
 
 /// This is the data that gets sent in the `PlayerJoinedInfo` broadcast message.
@@ -318,6 +354,37 @@ impl MinecraftServer {
         }
 
         std::process::exit(0);
+    }
+
+    /// Delivers a forwarded edit to the plot owning the block, loading that plot first if it is
+    /// not running. A plot loaded this way has no players and unloads after the usual timeout.
+    fn handle_forward_edit(&mut self, plot_x: i32, plot_z: i32, message: PrivMessage) {
+        if let Some(entry) = self
+            .running_plots
+            .iter()
+            .find(|p| p.plot_x == plot_x && p.plot_z == plot_z)
+        {
+            let _ = entry.priv_message_sender.send(message);
+            return;
+        }
+
+        let (priv_tx, priv_rx) = mpsc::channel();
+        Plot::load_and_run(
+            plot_x,
+            plot_z,
+            self.broadcaster.add_rx(),
+            self.plot_sender.clone(),
+            priv_rx,
+            false,
+            None,
+        );
+        // The channel buffers the edit until the new plot thread starts handling messages.
+        let _ = priv_tx.send(message);
+        self.running_plots.push(PlotListEntry {
+            plot_x,
+            plot_z,
+            priv_message_sender: priv_tx,
+        });
     }
 
     fn send_player_to_plot(&mut self, player: Player, new_entry: bool) {
@@ -660,6 +727,25 @@ impl MinecraftServer {
                     player.send_system_message("Player not found!");
                     self.send_player_to_plot(player, false);
                 }
+            }
+            Message::ForwardEdit {
+                plot_x,
+                plot_z,
+                edit,
+                player_uuid,
+                username,
+                permissions,
+            } => {
+                self.handle_forward_edit(
+                    plot_x,
+                    plot_z,
+                    PrivMessage::ForwardedEdit {
+                        edit,
+                        player_uuid,
+                        username,
+                        permissions,
+                    },
+                );
             }
             Message::PlayerUpdateGamemode(uuid, gamemode) => {
                 if let Some(player) = self.online_players.get_mut(&uuid) {
