@@ -91,6 +91,9 @@ const COLLISION_OFFSET: i32 = 16;
 /// Two bytes per block state, see `explosion_resistance`
 static RESISTANCE: &[u8] = include_bytes!("../../../mc_data/block_resistance.bin");
 
+/// One byte per block state, see `push_reaction`
+static PISTON: &[u8] = include_bytes!("../../../mc_data/block_piston.bin");
+
 const FLAG_SOLID: u8 = 1;
 const FLAG_STURDY_TOP: u8 = 2;
 
@@ -200,6 +203,43 @@ pub fn explosion_resistance(id: u32) -> f32 {
         u16::MAX => f32::INFINITY,
         tenths => tenths as f32 / 10.0,
     }
+}
+
+/// What a piston does with a block it tries to move
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PushReaction {
+    Normal,
+    /// The block breaks when it is pushed
+    Destroy,
+    /// The block can't be moved
+    Block,
+    /// The block can only be pushed by the piston that is directly attached to it, not by others
+    /// in the same line
+    PushOnly,
+}
+
+fn piston_attrs(id: u32) -> u8 {
+    PISTON.get(id as usize).copied().unwrap_or(0)
+}
+
+pub fn push_reaction(id: u32) -> PushReaction {
+    match piston_attrs(id) & 3 {
+        0 => PushReaction::Normal,
+        1 => PushReaction::Destroy,
+        2 => PushReaction::Block,
+        _ => PushReaction::PushOnly,
+    }
+}
+
+/// Whether the block can't be broken, like bedrock
+pub fn is_indestructible(id: u32) -> bool {
+    piston_attrs(id) & 4 != 0
+}
+
+/// Whether the block state belongs to a block that has a block entity in Minecraft. Pistons
+/// refuse to move those.
+pub fn has_block_entity(id: u32) -> bool {
+    piston_attrs(id) & 8 != 0
 }
 
 /// Whether redstone power can pass through the block

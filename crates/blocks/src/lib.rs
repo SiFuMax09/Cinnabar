@@ -152,6 +152,18 @@ impl BlockFace {
         matches!(self, North | South | East | West)
     }
 
+    pub fn opposite(self) -> BlockFace {
+        use BlockFace::*;
+        match self {
+            Bottom => Top,
+            Top => Bottom,
+            North => South,
+            South => North,
+            West => East,
+            East => West,
+        }
+    }
+
     pub fn unwrap_direction(self) -> BlockDirection {
         match self {
             BlockFace::North => BlockDirection::North,
