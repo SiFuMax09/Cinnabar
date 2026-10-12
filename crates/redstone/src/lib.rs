@@ -2,6 +2,7 @@
 //! This is the implementation that is used by default in low-performance
 //! scenerio (i.e. regular buiding)
 
+pub mod button;
 pub mod comparator;
 pub mod noteblock;
 pub mod piston;
@@ -48,6 +49,7 @@ fn get_weak_power(
         Block::RedstoneBlock => 15,
         Block::Lever { powered, .. } if powered => 15,
         Block::StoneButton { powered, .. } if powered => 15,
+        Block::Generic(id) if button::is_button(id) => button::weak_power(id),
         Block::Repeater(repeater) if repeater.facing.block_face() == side && repeater.powered => 15,
         Block::Comparator(comparator) if comparator.facing.block_face() == side => {
             if let Some(BlockEntity::Comparator { output_strength }) = world.get_block_entity(pos) {
@@ -120,6 +122,7 @@ fn get_strong_power(
             } && powered,
         ),
         Block::Generic(id) if sculk::is_sensor(id) => sculk::strong_power(id, side),
+        Block::Generic(id) if button::is_button(id) => button::strong_power(id, side),
         Block::RedstoneWire { .. } => get_weak_power(block, world, pos, side, dust_power),
         Block::Repeater(_) => get_weak_power(block, world, pos, side, dust_power),
         Block::Comparator(_) => get_weak_power(block, world, pos, side, dust_power),
@@ -370,6 +373,7 @@ pub fn tick(block: Block, world: &mut impl World, pos: BlockPos) {
             ) {
                 transport::dispense(world, pos);
             }
+            button::release(world, pos, id);
         }
         Block::Repeater(repeater) => {
             repeater::tick(repeater, world, pos);
@@ -474,6 +478,7 @@ pub fn is_diode(block: Block) -> bool {
 /// Returns true if the action was handled
 pub fn on_use(block: Block, world: &mut impl World, pos: BlockPos) -> bool {
     match block {
+        Block::Generic(id) if button::press(world, pos, id) => true,
         Block::Repeater(mut repeater) => {
             repeater.delay += 1;
             if repeater.delay > 4 {
