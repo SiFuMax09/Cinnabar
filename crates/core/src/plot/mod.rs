@@ -591,8 +591,17 @@ impl Plot {
                 UseOnBlockContext {
                     block_face,
                     block_pos,
+                    other_players: self
+                        .players
+                        .iter()
+                        .enumerate()
+                        .filter(|(idx, _)| *idx != player)
+                        .map(|(_, other)| other.pos)
+                        .collect(),
                     player: &mut self.players[player],
+                    cursor_x: use_item_on.cursor_x,
                     cursor_y: use_item_on.cursor_y,
+                    cursor_z: use_item_on.cursor_z,
                 },
             );
             if cancelled {
@@ -610,6 +619,10 @@ impl Plot {
                 &mut self.players[player],
                 block_pos,
                 None,
+                interaction::BlockHit {
+                    face: block_face,
+                    cursor: (use_item_on.cursor_x, use_item_on.cursor_y, use_item_on.cursor_z),
+                },
             );
             self.world.flush_block_changes();
         }

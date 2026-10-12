@@ -12,11 +12,17 @@ Outputs:
   generic_blocks.txt  one line per block: `name first_id default_id prop=v1,v2;prop=v1,v2`
   block_attrs.bin     two bytes per block state: flags (1 = redstone conductor, 2 = sturdy top face,
                       4 = full collision cube) and the note block instrument index
+  block_collision.bin six bytes per block state: the bounding box of the collision shape as
+                      min x, y, z and max x, y, z in sixteenths of a block plus 16, or all 0xFF without
+                      collision
   item_names.txt      the names of all items in protocol id order
 """
 import json
 import sys
 from itertools import product
+
+# Collision bounds can be slightly negative, so they are stored with this offset
+COLLISION_OFFSET = 16
 
 # Must match the `Instrument` enum in crates/blocks/src/blocks/props.rs
 INSTRUMENTS = [
@@ -61,15 +67,19 @@ def main():
     open(f"{out_dir}/generic_blocks.txt", "w").write("\n".join(lines) + "\n")
 
     attrs = bytearray(num_states * 2)
+    collision = bytearray(b"\xff" * (num_states * 6))
     seen = 0
     for line in open(attrs_path):
-        state_id, solid, sturdy, full, instrument = line.split()
+        state_id, solid, sturdy, full, instrument, bounds = line.split()
+        if bounds != "none":
+            collision[int(state_id) * 6:int(state_id) * 6 + 6] = bytes(int(v) + COLLISION_OFFSET for v in bounds.split(","))
         state_id = int(state_id)
         attrs[state_id * 2] = int(solid) | int(sturdy) << 1 | int(full) << 2
         attrs[state_id * 2 + 1] = INSTRUMENTS.index(instrument)
         seen += 1
     assert seen == num_states, (seen, num_states)
     open(f"{out_dir}/block_attrs.bin", "wb").write(attrs)
+    open(f"{out_dir}/block_collision.bin", "wb").write(collision)
 
     items = sorted(registries["minecraft:item"]["entries"].items(), key=lambda kv: kv[1]["protocol_id"])
     assert [e["protocol_id"] for _, e in items] == list(range(len(items)))

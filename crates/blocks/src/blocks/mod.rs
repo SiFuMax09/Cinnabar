@@ -132,6 +132,11 @@ impl Block {
                     | Block::Furnace { .. }
                     | Block::Hopper { .. }
             )
+            || self.is_chiseled_bookshelf()
+    }
+
+    pub fn is_chiseled_bookshelf(self) -> bool {
+        matches!(self, Block::Generic(id) if crate::generic::state_name(id) == "minecraft:chiseled_bookshelf")
     }
 
     /// Whether placing a block at the position of this block replaces it

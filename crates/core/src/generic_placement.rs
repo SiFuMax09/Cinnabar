@@ -2,7 +2,8 @@
 //! except for the redstone components and a few more. The state for the block is derived from the
 //! properties it has, in the same way the matching vanilla block classes do it.
 
-use crate::interaction::UseOnBlockContext;
+use crate::interaction::{BlockHit, UseOnBlockContext};
+use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
 use mchprs_blocks::generic;
 use mchprs_blocks::items::Item;
@@ -69,6 +70,15 @@ fn opposite(dir: &str) -> &'static str {
         "west" => "east",
         "up" => "down",
         _ => "up",
+    }
+}
+
+fn clockwise_name(dir: &str) -> &'static str {
+    match dir {
+        "north" => "east",
+        "east" => "south",
+        "south" => "west",
+        _ => "north",
     }
 }
 
@@ -274,6 +284,118 @@ fn generic_id(world: &impl World, pos: BlockPos) -> Option<u32> {
     }
 }
 
+/// Opens or closes doors, trapdoors and fence gates. Returns true if the block was used.
+pub fn use_block(
+    world: &mut impl World,
+    pos: BlockPos,
+    id: u32,
+    item_in_hand: Option<Item>,
+    hit: BlockHit,
+) -> bool {
+    let name = generic::state_name(id);
+    if name == "minecraft:chiseled_bookshelf" {
+        return use_chiseled_bookshelf(world, pos, id, item_in_hand, hit);
+    }
+    let openable = name.ends_with("_door") || name.ends_with("_trapdoor") || is_fence_gate(name);
+    // Iron doors and trapdoors can only be opened with redstone
+    if !openable || name.contains("iron") {
+        return false;
+    }
+    let state = State(id);
+    let Some(open) = state.get("open") else {
+        return false;
+    };
+    let new_open = if open == "true" { "false" } else { "true" };
+    world.set_block(
+        pos,
+        Block::Generic(generic::with_property(id, "open", new_open)),
+    );
+
+    // The other half of a door opens as well
+    let partner_pos = match state.get("half") {
+        Some("lower") if name.ends_with("_door") => Some(pos.offset(BlockFace::Top)),
+        Some("upper") if name.ends_with("_door") => Some(pos.offset(BlockFace::Bottom)),
+        _ => None,
+    };
+    if let Some(partner_pos) = partner_pos
+        && let Some(partner) = generic_id(world, partner_pos)
+        && generic::state_name(partner) == name
+    {
+        world.set_block(
+            partner_pos,
+            Block::Generic(generic::with_property(partner, "open", new_open)),
+        );
+    }
+    true
+}
+
+/// The slot of the bookshelf that is at the position of the click, as a number from 0 to 5
+fn bookshelf_slot(facing: &str, hit: BlockHit) -> Option<usize> {
+    if face_name(hit.face) != facing {
+        return None;
+    }
+    let (x, y, z) = hit.cursor;
+    let horizontal = match facing {
+        "north" => 1.0 - x,
+        "south" => x,
+        "west" => z,
+        "east" => 1.0 - z,
+        _ => return None,
+    };
+    let column = if horizontal < 0.375 {
+        0
+    } else if horizontal < 0.6875 {
+        1
+    } else {
+        2
+    };
+    let row = if y >= 0.5 { 0 } else { 1 };
+    Some(column + row * 3)
+}
+
+fn is_bookshelf_book(item: Item) -> bool {
+    matches!(
+        item.get_name(),
+        "minecraft:book"
+            | "minecraft:written_book"
+            | "minecraft:writable_book"
+            | "minecraft:enchanted_book"
+            | "minecraft:knowledge_book"
+    )
+}
+
+/// Puts a book into or takes one out of the slot of a chiseled bookshelf that was clicked
+fn use_chiseled_bookshelf(
+    world: &mut impl World,
+    pos: BlockPos,
+    id: u32,
+    item_in_hand: Option<Item>,
+    hit: BlockHit,
+) -> bool {
+    let Some(slot) = State(id)
+        .get("facing")
+        .and_then(|facing| bookshelf_slot(facing, hit))
+    else {
+        return false;
+    };
+    let property = format!("slot_{slot}_occupied");
+    let occupied = generic::get_property(id, &property) == Some("true");
+    if !occupied && !item_in_hand.is_some_and(is_bookshelf_book) {
+        return false;
+    }
+
+    let new_id = generic::with_property(id, &property, if occupied { "false" } else { "true" });
+    world.set_block(pos, Block::Generic(new_id));
+    world.set_block_entity(
+        pos,
+        BlockEntity::ChiseledBookshelf {
+            last_interacted_slot: slot as i8,
+        },
+    );
+    mchprs_redstone::update_surrounding_blocks(world, pos);
+    true
+}
+
 /// Places the other parts of blocks that consist of multiple blocks, and updates the shape of
 /// the blocks that connect to their neighbors.
 pub fn after_place(world: &mut impl World, pos: BlockPos) {
@@ -303,6 +425,20 @@ pub fn after_place(world: &mut impl World, pos: BlockPos) {
         if world.get_block(head_pos).can_place_block_in() {
             world.set_block(head_pos, Block::Generic(head.0));
         }
+    }
+
+    // Fence gates lower into walls next to them
+    if is_fence_gate(name)
+        && let Some(facing) = state.get("facing")
+    {
+        let sides = [clockwise_name(facing), counter_clockwise(facing)];
+        let in_wall = sides.iter().any(|side| {
+            let neighbor = world.get_block(pos.offset(dir_from_name(side).unwrap()));
+            is_wall(neighbor.get_name())
+        });
+        let mut gate = State(id);
+        gate.set("in_wall", if in_wall { "true" } else { "false" });
+        world.set_block(pos, Block::Generic(gate.0));
     }
 
     if is_stairs(name) || is_pane(name) || is_fence(name) || is_wall(name) {

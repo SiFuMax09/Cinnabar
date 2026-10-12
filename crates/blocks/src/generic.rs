@@ -83,6 +83,11 @@ static BY_NAME: LazyLock<HashMap<&'static str, usize>> = LazyLock::new(|| {
 /// Two bytes per block state: flags and the note block instrument
 static ATTRS: &[u8] = include_bytes!("../../../mc_data/block_attrs.bin");
 
+/// Six bytes per block state, see `collision_box`
+static COLLISION: &[u8] = include_bytes!("../../../mc_data/block_collision.bin");
+
+const COLLISION_OFFSET: i32 = 16;
+
 const FLAG_SOLID: u8 = 1;
 const FLAG_STURDY_TOP: u8 = 2;
 
@@ -165,6 +170,21 @@ pub fn set_properties(mut id: u32, props: &HashMap<&str, &str>) -> u32 {
 
 fn flags(id: u32) -> u8 {
     ATTRS.get(id as usize * 2).copied().unwrap_or(0)
+}
+
+/// The bounding box of the collision shape of the block state, as
+/// `[min_x, min_y, min_z, max_x, max_y, max_z]` relative to the block. It is `None` for blocks
+/// that entities can walk through.
+pub fn collision_box(id: u32) -> Option<[f64; 6]> {
+    let bytes = COLLISION.get(id as usize * 6..id as usize * 6 + 6)?;
+    if bytes[0] == 0xFF {
+        return None;
+    }
+    let mut result = [0.0; 6];
+    for (value, byte) in result.iter_mut().zip(bytes) {
+        *value = (*byte as i32 - COLLISION_OFFSET) as f64 / 16.0;
+    }
+    Some(result)
 }
 
 /// Whether redstone power can pass through the block
@@ -359,5 +379,27 @@ mod tests {
         assert!(!is_solid(id));
         assert!(is_cube(id));
         assert!(is_transparent(id));
+    }
+}
+
+#[cfg(test)]
+mod item_tests {
+    use super::*;
+    use crate::items::Item;
+
+    #[test]
+    fn block_items_are_placeable() {
+        for name in [
+            "minecraft:oak_fence_gate",
+            "minecraft:chiseled_bookshelf",
+            "minecraft:oak_log",
+            "minecraft:oak_stairs",
+        ] {
+            let id = item_id(name).unwrap();
+            let item = Item::from_id(id);
+            assert!(item.is_block(), "{name} {item:?}");
+            assert_eq!(item.get_name(), name);
+            assert!(default_state(name).is_some());
+        }
     }
 }
