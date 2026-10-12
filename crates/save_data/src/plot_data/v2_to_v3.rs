@@ -56,6 +56,7 @@ pub fn convert_v2_to_v3(path: impl AsRef<Path>) -> Result<Option<PlotData>, Plot
         world_send_rate: new_world_send_rate,
         chunk_data: old_data.chunk_data,
         pending_ticks: old_data.pending_ticks,
+        environment: Default::default(),
     };
 
     debug!("Successfully converted plot data from version 2 to version 3");
