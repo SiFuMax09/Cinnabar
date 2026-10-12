@@ -183,6 +183,10 @@ pub enum Instrument {
     Bit,
     Banjo,
     Pling,
+    Trumpet,
+    TrumpetExposed,
+    TrumpetOxidized,
+    TrumpetWeathered,
     Zombie,
     Skeleton,
     Creeper,
@@ -241,6 +245,14 @@ impl Instrument {
             Instrument::Bit => sound_id!("minecraft:block.note_block.bit"),
             Instrument::Banjo => sound_id!("minecraft:block.note_block.banjo"),
             Instrument::Pling => sound_id!("minecraft:block.note_block.pling"),
+            Instrument::Trumpet => sound_id!("minecraft:block.note_block.trumpet"),
+            Instrument::TrumpetExposed => sound_id!("minecraft:block.note_block.trumpet_exposed"),
+            Instrument::TrumpetOxidized => {
+                sound_id!("minecraft:block.note_block.trumpet_oxidized")
+            }
+            Instrument::TrumpetWeathered => {
+                sound_id!("minecraft:block.note_block.trumpet_weathered")
+            }
             Instrument::Zombie => sound_id!("minecraft:block.note_block.imitate.zombie"),
             Instrument::Skeleton => sound_id!("minecraft:block.note_block.imitate.skeleton"),
             Instrument::Creeper => sound_id!("minecraft:block.note_block.imitate.creeper"),

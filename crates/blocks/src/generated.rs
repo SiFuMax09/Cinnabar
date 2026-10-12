@@ -516,47 +516,47 @@ impl Block {
                 waterlogged: false,
             },
             "minecraft:oak_sign" => Block::OakSign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:spruce_sign" => Block::SpruceSign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:birch_sign" => Block::BirchSign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:acacia_sign" => Block::AcaciaSign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:jungle_sign" => Block::JungleSign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:dark_oak_sign" => Block::DarkOakSign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:crimson_sign" => Block::CrimsonSign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:warped_sign" => Block::WarpedSign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:bamboo_sign" => Block::BambooSign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:cherry_sign" => Block::CherrySign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:mangrove_sign" => Block::MangroveSign {
-                rotation: 0,
+                rotation: 8,
                 waterlogged: false,
             },
             "minecraft:lever" => Block::Lever {
@@ -2646,8 +2646,8 @@ impl Block {
         match self {
             Block::Air => 0,
             Block::Stone => 1,
-            Block::Glass => 519,
-            Block::Glowstone => 5863,
+            Block::Glass => 562,
+            Block::Glowstone => 7016,
             Block::RedstoneWire(RedstoneWire {
                 east,
                 north,
@@ -2655,7 +2655,7 @@ impl Block {
                 south,
                 west,
             }) => {
-                2978 + (east.get_id()) * 432
+                4011 + (east.get_id()) * 432
                     + (north.get_id()) * 144
                     + (power as u32 - 0) * 9
                     + (south.get_id()) * 3
@@ -2664,104 +2664,104 @@ impl Block {
             Block::OakWallSign {
                 facing,
                 waterlogged,
-            } => 4762 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 5827 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::SpruceWallSign {
                 facing,
                 waterlogged,
-            } => 4770 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 5835 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::BirchWallSign {
                 facing,
                 waterlogged,
-            } => 4778 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 5843 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::AcaciaWallSign {
                 facing,
                 waterlogged,
-            } => 4786 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 5851 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::JungleWallSign {
                 facing,
                 waterlogged,
-            } => 4802 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 5867 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::DarkOakWallSign {
                 facing,
                 waterlogged,
-            } => 4810 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 5875 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::CrimsonWallSign {
                 facing,
                 waterlogged,
-            } => 19340 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 21706 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::WarpedWallSign {
                 facing,
                 waterlogged,
-            } => 19348 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 21714 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::BambooWallSign {
                 facing,
                 waterlogged,
-            } => 4826 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 5899 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::CherryWallSign {
                 facing,
                 waterlogged,
-            } => 4794 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 5859 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::MangroveWallSign {
                 facing,
                 waterlogged,
-            } => 4818 + (facing.get_id()) * 2 + (!waterlogged as u32),
+            } => 5891 + (facing.get_id()) * 2 + (!waterlogged as u32),
             Block::OakSign {
                 rotation,
                 waterlogged,
-            } => 4302 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 5335 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::SpruceSign {
                 rotation,
                 waterlogged,
-            } => 4334 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 5367 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::BirchSign {
                 rotation,
                 waterlogged,
-            } => 4366 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 5399 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::AcaciaSign {
                 rotation,
                 waterlogged,
-            } => 4398 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 5431 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::JungleSign {
                 rotation,
                 waterlogged,
-            } => 4462 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 5495 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::DarkOakSign {
                 rotation,
                 waterlogged,
-            } => 4494 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 5527 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::CrimsonSign {
                 rotation,
                 waterlogged,
-            } => 19276 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 21642 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::WarpedSign {
                 rotation,
                 waterlogged,
-            } => 19308 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 21674 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::BambooSign {
                 rotation,
                 waterlogged,
-            } => 4558 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 5623 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::CherrySign {
                 rotation,
                 waterlogged,
-            } => 4430 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 5463 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::MangroveSign {
                 rotation,
                 waterlogged,
-            } => 4526 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
+            } => 5591 + (rotation as u32 - 0) * 2 + (!waterlogged as u32),
             Block::Lever {
                 face,
                 facing,
                 powered,
-            } => 5626 + (face.get_id()) * 8 + (facing.get_id()) * 2 + (!powered as u32),
+            } => 6771 + (face.get_id()) * 8 + (facing.get_id()) * 2 + (!powered as u32),
             Block::StoneButton {
                 face,
                 facing,
                 powered,
-            } => 5748 + (face.get_id()) * 8 + (facing.get_id()) * 2 + (!powered as u32),
-            Block::RedstoneTorch { lit } => 5738 + (!lit as u32),
+            } => 6895 + (face.get_id()) * 8 + (facing.get_id()) * 2 + (!powered as u32),
+            Block::RedstoneTorch { lit } => 6885 + (!lit as u32),
             Block::RedstoneWallTorch { facing, lit } => {
-                5740 + (facing.get_id()) * 2 + (!lit as u32)
+                6887 + (facing.get_id()) * 2 + (!lit as u32)
             }
             Block::Repeater(Repeater {
                 delay,
@@ -2769,126 +2769,126 @@ impl Block {
                 locked,
                 powered,
             }) => {
-                5881 + (delay as u32 - 1) * 16
+                7034 + (delay as u32 - 1) * 16
                     + (facing.get_id()) * 4
                     + (!locked as u32) * 2
                     + (!powered as u32)
             }
-            Block::RedstoneLamp { lit } => 7417 + (!lit as u32),
+            Block::RedstoneLamp { lit } => 9479 + (!lit as u32),
             Block::TripwireHook {
                 attached,
                 facing,
                 powered,
-            } => 7521 + (!attached as u32) * 8 + (facing.get_id()) * 2 + (!powered as u32),
+            } => 9583 + (!attached as u32) * 8 + (facing.get_id()) * 2 + (!powered as u32),
             Block::Comparator(Comparator {
                 facing,
                 mode,
                 powered,
-            }) => 9175 + (facing.get_id()) * 4 + (mode.get_id()) * 2 + (!powered as u32),
-            Block::RedstoneBlock => 9223,
+            }) => 11263 + (facing.get_id()) * 4 + (mode.get_id()) * 2 + (!powered as u32),
+            Block::RedstoneBlock => 11311,
             Block::Observer { facing, powered } => {
-                12550 + (facing.get_id()) * 2 + (!powered as u32)
+                14852 + (facing.get_id()) * 2 + (!powered as u32)
             }
             Block::SeaPickle {
                 pickles,
                 waterlogged,
-            } => 12933 + (pickles as u32 - 1) * 2 + (!waterlogged as u32),
-            Block::Target { power } => 19381 + (power as u32 - 0),
-            Block::OakPressurePlate { powered } => 5716 + (!powered as u32),
-            Block::SprucePressurePlate { powered } => 5718 + (!powered as u32),
-            Block::BirchPressurePlate { powered } => 5720 + (!powered as u32),
-            Block::JunglePressurePlate { powered } => 5722 + (!powered as u32),
-            Block::AcaciaPressurePlate { powered } => 5724 + (!powered as u32),
-            Block::DarkOakPressurePlate { powered } => 5728 + (!powered as u32),
-            Block::MangrovePressurePlate { powered } => 5730 + (!powered as u32),
-            Block::CherryPressurePlate { powered } => 5726 + (!powered as u32),
-            Block::BambooPressurePlate { powered } => 5732 + (!powered as u32),
-            Block::CrimsonPressurePlate { powered } => 18680 + (!powered as u32),
-            Block::WarpedPressurePlate { powered } => 18682 + (!powered as u32),
-            Block::PolishedBlackstonePressurePlate { powered } => 20372 + (!powered as u32),
-            Block::StonePressurePlate { powered } => 5650 + (!powered as u32),
-            Block::Cake { bites } => 5874 + (bites as u32 - 0),
-            Block::Barrel { facing, open } => 18408 + (facing.get_id()) * 2 + (!open as u32),
-            Block::Hopper { enabled, facing } => 9225 + (!enabled as u32) * 5 + (facing.get_id()),
-            Block::Sandstone => 535,
-            Block::CoalBlock => 10745,
-            Block::Furnace { facing, lit } => 4294 + (facing.get_id()) * 2 + (!lit as u32),
-            Block::QuartzBlock => 9235,
-            Block::SmoothQuartz => 11308,
+            } => 15267 + (pickles as u32 - 1) * 2 + (!waterlogged as u32),
+            Block::Target { power } => 21752 + (power as u32 - 0),
+            Block::OakPressurePlate { powered } => 6861 + (!powered as u32),
+            Block::SprucePressurePlate { powered } => 6863 + (!powered as u32),
+            Block::BirchPressurePlate { powered } => 6865 + (!powered as u32),
+            Block::JunglePressurePlate { powered } => 6867 + (!powered as u32),
+            Block::AcaciaPressurePlate { powered } => 6869 + (!powered as u32),
+            Block::DarkOakPressurePlate { powered } => 6873 + (!powered as u32),
+            Block::MangrovePressurePlate { powered } => 6877 + (!powered as u32),
+            Block::CherryPressurePlate { powered } => 6871 + (!powered as u32),
+            Block::BambooPressurePlate { powered } => 6879 + (!powered as u32),
+            Block::CrimsonPressurePlate { powered } => 21046 + (!powered as u32),
+            Block::WarpedPressurePlate { powered } => 21048 + (!powered as u32),
+            Block::PolishedBlackstonePressurePlate { powered } => 22743 + (!powered as u32),
+            Block::StonePressurePlate { powered } => 6795 + (!powered as u32),
+            Block::Cake { bites } => 7027 + (bites as u32 - 0),
+            Block::Barrel { facing, open } => 20742 + (facing.get_id()) * 2 + (!open as u32),
+            Block::Hopper { enabled, facing } => 11313 + (!enabled as u32) * 5 + (facing.get_id()),
+            Block::Sandstone => 578,
+            Block::CoalBlock => 12913,
+            Block::Furnace { facing, lit } => 5327 + (facing.get_id()) * 2 + (!lit as u32),
+            Block::QuartzBlock => 11323,
+            Block::SmoothQuartz => 13482,
             Block::SmoothStoneSlab { ty, waterlogged } => {
-                11228 + (ty.get_id()) * 2 + (!waterlogged as u32)
+                13402 + (ty.get_id()) * 2 + (!waterlogged as u32)
             }
             Block::QuartzSlab { ty, waterlogged } => {
-                11282 + (ty.get_id()) * 2 + (!waterlogged as u32)
+                13456 + (ty.get_id()) * 2 + (!waterlogged as u32)
             }
-            Block::Cauldron => 7398,
-            Block::WaterCauldron { level } => 7399 + (level as u32 - 1),
-            Block::Composter { level } => 19372 + (level as u32 - 0),
-            Block::WhiteConcrete => 12728,
-            Block::OrangeConcrete => 12729,
-            Block::MagentaConcrete => 12730,
-            Block::LightBlueConcrete => 12731,
-            Block::YellowConcrete => 12732,
-            Block::LimeConcrete => 12733,
-            Block::PinkConcrete => 12734,
-            Block::GrayConcrete => 12735,
-            Block::LightGrayConcrete => 12736,
-            Block::CyanConcrete => 12737,
-            Block::PurpleConcrete => 12738,
-            Block::BlueConcrete => 12739,
-            Block::BrownConcrete => 12740,
-            Block::GreenConcrete => 12741,
-            Block::RedConcrete => 12742,
-            Block::BlackConcrete => 12743,
-            Block::WhiteStainedGlass => 5945,
-            Block::OrangeStainedGlass => 5946,
-            Block::MagentaStainedGlass => 5947,
-            Block::LightBlueStainedGlass => 5948,
-            Block::YellowStainedGlass => 5949,
-            Block::LimeStainedGlass => 5950,
-            Block::PinkStainedGlass => 5951,
-            Block::GrayStainedGlass => 5952,
-            Block::LightGrayStainedGlass => 5953,
-            Block::CyanStainedGlass => 5954,
-            Block::PurpleStainedGlass => 5955,
-            Block::BlueStainedGlass => 5956,
-            Block::BrownStainedGlass => 5957,
-            Block::GreenStainedGlass => 5958,
-            Block::RedStainedGlass => 5959,
-            Block::BlackStainedGlass => 5960,
-            Block::Terracotta => 10744,
-            Block::WhiteTerracotta => 9356,
-            Block::OrangeTerracotta => 9357,
-            Block::MagentaTerracotta => 9358,
-            Block::LightBlueTerracotta => 9359,
-            Block::YellowTerracotta => 9360,
-            Block::LimeTerracotta => 9361,
-            Block::PinkTerracotta => 9362,
-            Block::GrayTerracotta => 9363,
-            Block::LightGrayTerracotta => 9364,
-            Block::CyanTerracotta => 9365,
-            Block::PurpleTerracotta => 9366,
-            Block::BlueTerracotta => 9367,
-            Block::BrownTerracotta => 9368,
-            Block::GreenTerracotta => 9369,
-            Block::RedTerracotta => 9370,
-            Block::BlackTerracotta => 9371,
-            Block::WhiteWool => 2047,
-            Block::OrangeWool => 2048,
-            Block::MagentaWool => 2049,
-            Block::LightBlueWool => 2050,
-            Block::YellowWool => 2051,
-            Block::LimeWool => 2052,
-            Block::PinkWool => 2053,
-            Block::GrayWool => 2054,
-            Block::LightGrayWool => 2055,
-            Block::CyanWool => 2056,
-            Block::PurpleWool => 2057,
-            Block::BlueWool => 2058,
-            Block::BrownWool => 2059,
-            Block::GreenWool => 2060,
-            Block::RedWool => 2061,
-            Block::BlackWool => 2062,
+            Block::Cauldron => 9460,
+            Block::WaterCauldron { level } => 9461 + (level as u32 - 1),
+            Block::Composter { level } => 21743 + (level as u32 - 0),
+            Block::WhiteConcrete => 15030,
+            Block::OrangeConcrete => 15031,
+            Block::MagentaConcrete => 15032,
+            Block::LightBlueConcrete => 15033,
+            Block::YellowConcrete => 15034,
+            Block::LimeConcrete => 15035,
+            Block::PinkConcrete => 15036,
+            Block::GrayConcrete => 15037,
+            Block::LightGrayConcrete => 15038,
+            Block::CyanConcrete => 15039,
+            Block::PurpleConcrete => 15040,
+            Block::BlueConcrete => 15041,
+            Block::BrownConcrete => 15042,
+            Block::GreenConcrete => 15043,
+            Block::RedConcrete => 15044,
+            Block::BlackConcrete => 15045,
+            Block::WhiteStainedGlass => 7098,
+            Block::OrangeStainedGlass => 7099,
+            Block::MagentaStainedGlass => 7100,
+            Block::LightBlueStainedGlass => 7101,
+            Block::YellowStainedGlass => 7102,
+            Block::LimeStainedGlass => 7103,
+            Block::PinkStainedGlass => 7104,
+            Block::GrayStainedGlass => 7105,
+            Block::LightGrayStainedGlass => 7106,
+            Block::CyanStainedGlass => 7107,
+            Block::PurpleStainedGlass => 7108,
+            Block::BlueStainedGlass => 7109,
+            Block::BrownStainedGlass => 7110,
+            Block::GreenStainedGlass => 7111,
+            Block::RedStainedGlass => 7112,
+            Block::BlackStainedGlass => 7113,
+            Block::Terracotta => 12912,
+            Block::WhiteTerracotta => 11444,
+            Block::OrangeTerracotta => 11445,
+            Block::MagentaTerracotta => 11446,
+            Block::LightBlueTerracotta => 11447,
+            Block::YellowTerracotta => 11448,
+            Block::LimeTerracotta => 11449,
+            Block::PinkTerracotta => 11450,
+            Block::GrayTerracotta => 11451,
+            Block::LightGrayTerracotta => 11452,
+            Block::CyanTerracotta => 11453,
+            Block::PurpleTerracotta => 11454,
+            Block::BlueTerracotta => 11455,
+            Block::BrownTerracotta => 11456,
+            Block::GreenTerracotta => 11457,
+            Block::RedTerracotta => 11458,
+            Block::BlackTerracotta => 11459,
+            Block::WhiteWool => 2293,
+            Block::OrangeWool => 2294,
+            Block::MagentaWool => 2295,
+            Block::LightBlueWool => 2296,
+            Block::YellowWool => 2297,
+            Block::LimeWool => 2298,
+            Block::PinkWool => 2299,
+            Block::GrayWool => 2300,
+            Block::LightGrayWool => 2301,
+            Block::CyanWool => 2302,
+            Block::PurpleWool => 2303,
+            Block::BlueWool => 2304,
+            Block::BrownWool => 2305,
+            Block::GreenWool => 2306,
+            Block::RedWool => 2307,
+            Block::BlackWool => 2308,
             Block::IronTrapdoor {
                 facing,
                 half,
@@ -2896,7 +2896,7 @@ impl Block {
                 powered,
                 waterlogged,
             } => {
-                10399
+                12567
                     + (facing.get_id()) * 16
                     + (half.get_id()) * 8
                     + (!open as u32) * 4
@@ -2907,19 +2907,19 @@ impl Block {
                 instrument,
                 note,
                 powered,
-            } => 538 + (instrument.get_id()) * 50 + (note as u32 - 0) * 2 + (!powered as u32),
-            Block::Clay => 5798,
-            Block::GoldBlock => 2091,
-            Block::PackedIce => 10746,
-            Block::BoneBlock { axis } => 12546 + (axis.get_id()),
-            Block::IronBlock => 2092,
-            Block::SoulSand => 5850,
-            Block::Pumpkin => 6811,
-            Block::EmeraldBlock => 7665,
-            Block::HayBlock { axis } => 10725 + (axis.get_id()),
-            Block::Sand => 112,
-            Block::StoneBricks => 6537,
-            Block::EndPortalFrame { eye, facing } => 7407 + (!eye as u32) * 4 + (facing.get_id()),
+            } => 581 + (instrument.get_id()) * 50 + (note as u32 - 0) * 2 + (!powered as u32),
+            Block::Clay => 6946,
+            Block::GoldBlock => 2338,
+            Block::PackedIce => 12914,
+            Block::BoneBlock { axis } => 14848 + (axis.get_id()),
+            Block::IronBlock => 2339,
+            Block::SoulSand => 6998,
+            Block::Pumpkin => 8332,
+            Block::EmeraldBlock => 9727,
+            Block::HayBlock { axis } => 12893 + (axis.get_id()),
+            Block::Sand => 118,
+            Block::StoneBricks => 7754,
+            Block::EndPortalFrame { eye, facing } => 9469 + (!eye as u32) * 4 + (facing.get_id()),
         }
     }
     pub fn from_id(mut id: u32) -> Block {
@@ -2932,16 +2932,16 @@ impl Block {
                 id -= 1;
                 Block::Stone
             }
-            519..520 => {
-                id -= 519;
+            562..563 => {
+                id -= 562;
                 Block::Glass
             }
-            5863..5864 => {
-                id -= 5863;
+            7016..7017 => {
+                id -= 7016;
                 Block::Glowstone
             }
-            2978..4274 => {
-                id -= 2978;
+            4011..5307 => {
+                id -= 4011;
                 Block::RedstoneWire(RedstoneWire {
                     east: RedstoneWireSide::from_id(((id / 432) % 3)),
                     north: RedstoneWireSide::from_id(((id / 144) % 3)),
@@ -2950,191 +2950,191 @@ impl Block {
                     west: RedstoneWireSide::from_id(((id) % 3)),
                 })
             }
-            4762..4770 => {
-                id -= 4762;
+            5827..5835 => {
+                id -= 5827;
                 Block::OakWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4770..4778 => {
-                id -= 4770;
+            5835..5843 => {
+                id -= 5835;
                 Block::SpruceWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4778..4786 => {
-                id -= 4778;
+            5843..5851 => {
+                id -= 5843;
                 Block::BirchWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4786..4794 => {
-                id -= 4786;
+            5851..5859 => {
+                id -= 5851;
                 Block::AcaciaWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4802..4810 => {
-                id -= 4802;
+            5867..5875 => {
+                id -= 5867;
                 Block::JungleWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4810..4818 => {
-                id -= 4810;
+            5875..5883 => {
+                id -= 5875;
                 Block::DarkOakWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            19340..19348 => {
-                id -= 19340;
+            21706..21714 => {
+                id -= 21706;
                 Block::CrimsonWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            19348..19356 => {
-                id -= 19348;
+            21714..21722 => {
+                id -= 21714;
                 Block::WarpedWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4826..4834 => {
-                id -= 4826;
+            5899..5907 => {
+                id -= 5899;
                 Block::BambooWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4794..4802 => {
-                id -= 4794;
+            5859..5867 => {
+                id -= 5859;
                 Block::CherryWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4818..4826 => {
-                id -= 4818;
+            5891..5899 => {
+                id -= 5891;
                 Block::MangroveWallSign {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4302..4334 => {
-                id -= 4302;
+            5335..5367 => {
+                id -= 5335;
                 Block::OakSign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4334..4366 => {
-                id -= 4334;
+            5367..5399 => {
+                id -= 5367;
                 Block::SpruceSign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4366..4398 => {
-                id -= 4366;
+            5399..5431 => {
+                id -= 5399;
                 Block::BirchSign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4398..4430 => {
-                id -= 4398;
+            5431..5463 => {
+                id -= 5431;
                 Block::AcaciaSign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4462..4494 => {
-                id -= 4462;
+            5495..5527 => {
+                id -= 5495;
                 Block::JungleSign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4494..4526 => {
-                id -= 4494;
+            5527..5559 => {
+                id -= 5527;
                 Block::DarkOakSign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            19276..19308 => {
-                id -= 19276;
+            21642..21674 => {
+                id -= 21642;
                 Block::CrimsonSign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            19308..19340 => {
-                id -= 19308;
+            21674..21706 => {
+                id -= 21674;
                 Block::WarpedSign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4558..4590 => {
-                id -= 4558;
+            5623..5655 => {
+                id -= 5623;
                 Block::BambooSign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4430..4462 => {
-                id -= 4430;
+            5463..5495 => {
+                id -= 5463;
                 Block::CherrySign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            4526..4558 => {
-                id -= 4526;
+            5591..5623 => {
+                id -= 5591;
                 Block::MangroveSign {
                     rotation: ((id / 2) % 16) as u8 + 0,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            5626..5650 => {
-                id -= 5626;
+            6771..6795 => {
+                id -= 6771;
                 Block::Lever {
                     face: LeverFace::from_id(((id / 8) % 3)),
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5748..5772 => {
-                id -= 5748;
+            6895..6919 => {
+                id -= 6895;
                 Block::StoneButton {
                     face: LeverFace::from_id(((id / 8) % 3)),
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5738..5740 => {
-                id -= 5738;
+            6885..6887 => {
+                id -= 6885;
                 Block::RedstoneTorch {
                     lit: (((id) % 2) & 1) == 0,
                 }
             }
-            5740..5748 => {
-                id -= 5740;
+            6887..6895 => {
+                id -= 6887;
                 Block::RedstoneWallTorch {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     lit: (((id) % 2) & 1) == 0,
                 }
             }
-            5881..5945 => {
-                id -= 5881;
+            7034..7098 => {
+                id -= 7034;
                 Block::Repeater(Repeater {
                     delay: ((id / 16) % 4) as u8 + 1,
                     facing: BlockDirection::from_id(((id / 4) % 4)),
@@ -3142,465 +3142,465 @@ impl Block {
                     powered: (((id) % 2) & 1) == 0,
                 })
             }
-            7417..7419 => {
-                id -= 7417;
+            9479..9481 => {
+                id -= 9479;
                 Block::RedstoneLamp {
                     lit: (((id) % 2) & 1) == 0,
                 }
             }
-            7521..7537 => {
-                id -= 7521;
+            9583..9599 => {
+                id -= 9583;
                 Block::TripwireHook {
                     attached: (((id / 8) % 2) & 1) == 0,
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            9175..9191 => {
-                id -= 9175;
+            11263..11279 => {
+                id -= 11263;
                 Block::Comparator(Comparator {
                     facing: BlockDirection::from_id(((id / 4) % 4)),
                     mode: ComparatorMode::from_id(((id / 2) % 2)),
                     powered: (((id) % 2) & 1) == 0,
                 })
             }
-            9223..9224 => {
-                id -= 9223;
+            11311..11312 => {
+                id -= 11311;
                 Block::RedstoneBlock
             }
-            12550..12562 => {
-                id -= 12550;
+            14852..14864 => {
+                id -= 14852;
                 Block::Observer {
                     facing: BlockFacing::from_id(((id / 2) % 6)),
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            12933..12941 => {
-                id -= 12933;
+            15267..15275 => {
+                id -= 15267;
                 Block::SeaPickle {
                     pickles: ((id / 2) % 4) as u8 + 1,
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            19381..19397 => {
-                id -= 19381;
+            21752..21768 => {
+                id -= 21752;
                 Block::Target {
                     power: ((id) % 16) as u8 + 0,
                 }
             }
-            5716..5718 => {
-                id -= 5716;
+            6861..6863 => {
+                id -= 6861;
                 Block::OakPressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5718..5720 => {
-                id -= 5718;
+            6863..6865 => {
+                id -= 6863;
                 Block::SprucePressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5720..5722 => {
-                id -= 5720;
+            6865..6867 => {
+                id -= 6865;
                 Block::BirchPressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5722..5724 => {
-                id -= 5722;
+            6867..6869 => {
+                id -= 6867;
                 Block::JunglePressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5724..5726 => {
-                id -= 5724;
+            6869..6871 => {
+                id -= 6869;
                 Block::AcaciaPressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5728..5730 => {
-                id -= 5728;
+            6873..6875 => {
+                id -= 6873;
                 Block::DarkOakPressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5730..5732 => {
-                id -= 5730;
+            6877..6879 => {
+                id -= 6877;
                 Block::MangrovePressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5726..5728 => {
-                id -= 5726;
+            6871..6873 => {
+                id -= 6871;
                 Block::CherryPressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5732..5734 => {
-                id -= 5732;
+            6879..6881 => {
+                id -= 6879;
                 Block::BambooPressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            18680..18682 => {
-                id -= 18680;
+            21046..21048 => {
+                id -= 21046;
                 Block::CrimsonPressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            18682..18684 => {
-                id -= 18682;
+            21048..21050 => {
+                id -= 21048;
                 Block::WarpedPressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            20372..20374 => {
-                id -= 20372;
+            22743..22745 => {
+                id -= 22743;
                 Block::PolishedBlackstonePressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5650..5652 => {
-                id -= 5650;
+            6795..6797 => {
+                id -= 6795;
                 Block::StonePressurePlate {
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5874..5881 => {
-                id -= 5874;
+            7027..7034 => {
+                id -= 7027;
                 Block::Cake {
                     bites: ((id) % 7) as u8 + 0,
                 }
             }
-            18408..18420 => {
-                id -= 18408;
+            20742..20754 => {
+                id -= 20742;
                 Block::Barrel {
                     facing: BlockFacing::from_id(((id / 2) % 6)),
                     open: (((id) % 2) & 1) == 0,
                 }
             }
-            9225..9235 => {
-                id -= 9225;
+            11313..11323 => {
+                id -= 11313;
                 Block::Hopper {
                     enabled: (((id / 5) % 2) & 1) == 0,
                     facing: HopperFacing::from_id(((id) % 5)),
                 }
             }
-            535..536 => {
-                id -= 535;
+            578..579 => {
+                id -= 578;
                 Block::Sandstone
             }
-            10745..10746 => {
-                id -= 10745;
+            12913..12914 => {
+                id -= 12913;
                 Block::CoalBlock
             }
-            4294..4302 => {
-                id -= 4294;
+            5327..5335 => {
+                id -= 5327;
                 Block::Furnace {
                     facing: BlockDirection::from_id(((id / 2) % 4)),
                     lit: (((id) % 2) & 1) == 0,
                 }
             }
-            9235..9236 => {
-                id -= 9235;
+            11323..11324 => {
+                id -= 11323;
                 Block::QuartzBlock
             }
-            11308..11309 => {
-                id -= 11308;
+            13482..13483 => {
+                id -= 13482;
                 Block::SmoothQuartz
             }
-            11228..11234 => {
-                id -= 11228;
+            13402..13408 => {
+                id -= 13402;
                 Block::SmoothStoneSlab {
                     ty: SlabType::from_id(((id / 2) % 3)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            11282..11288 => {
-                id -= 11282;
+            13456..13462 => {
+                id -= 13456;
                 Block::QuartzSlab {
                     ty: SlabType::from_id(((id / 2) % 3)),
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            7398..7399 => {
-                id -= 7398;
+            9460..9461 => {
+                id -= 9460;
                 Block::Cauldron
             }
-            7399..7402 => {
-                id -= 7399;
+            9461..9464 => {
+                id -= 9461;
                 Block::WaterCauldron {
                     level: ((id) % 3) as u8 + 1,
                 }
             }
-            19372..19381 => {
-                id -= 19372;
+            21743..21752 => {
+                id -= 21743;
                 Block::Composter {
                     level: ((id) % 9) as u8 + 0,
                 }
             }
-            12728..12729 => {
-                id -= 12728;
+            15030..15031 => {
+                id -= 15030;
                 Block::WhiteConcrete
             }
-            12729..12730 => {
-                id -= 12729;
+            15031..15032 => {
+                id -= 15031;
                 Block::OrangeConcrete
             }
-            12730..12731 => {
-                id -= 12730;
+            15032..15033 => {
+                id -= 15032;
                 Block::MagentaConcrete
             }
-            12731..12732 => {
-                id -= 12731;
+            15033..15034 => {
+                id -= 15033;
                 Block::LightBlueConcrete
             }
-            12732..12733 => {
-                id -= 12732;
+            15034..15035 => {
+                id -= 15034;
                 Block::YellowConcrete
             }
-            12733..12734 => {
-                id -= 12733;
+            15035..15036 => {
+                id -= 15035;
                 Block::LimeConcrete
             }
-            12734..12735 => {
-                id -= 12734;
+            15036..15037 => {
+                id -= 15036;
                 Block::PinkConcrete
             }
-            12735..12736 => {
-                id -= 12735;
+            15037..15038 => {
+                id -= 15037;
                 Block::GrayConcrete
             }
-            12736..12737 => {
-                id -= 12736;
+            15038..15039 => {
+                id -= 15038;
                 Block::LightGrayConcrete
             }
-            12737..12738 => {
-                id -= 12737;
+            15039..15040 => {
+                id -= 15039;
                 Block::CyanConcrete
             }
-            12738..12739 => {
-                id -= 12738;
+            15040..15041 => {
+                id -= 15040;
                 Block::PurpleConcrete
             }
-            12739..12740 => {
-                id -= 12739;
+            15041..15042 => {
+                id -= 15041;
                 Block::BlueConcrete
             }
-            12740..12741 => {
-                id -= 12740;
+            15042..15043 => {
+                id -= 15042;
                 Block::BrownConcrete
             }
-            12741..12742 => {
-                id -= 12741;
+            15043..15044 => {
+                id -= 15043;
                 Block::GreenConcrete
             }
-            12742..12743 => {
-                id -= 12742;
+            15044..15045 => {
+                id -= 15044;
                 Block::RedConcrete
             }
-            12743..12744 => {
-                id -= 12743;
+            15045..15046 => {
+                id -= 15045;
                 Block::BlackConcrete
             }
-            5945..5946 => {
-                id -= 5945;
+            7098..7099 => {
+                id -= 7098;
                 Block::WhiteStainedGlass
             }
-            5946..5947 => {
-                id -= 5946;
+            7099..7100 => {
+                id -= 7099;
                 Block::OrangeStainedGlass
             }
-            5947..5948 => {
-                id -= 5947;
+            7100..7101 => {
+                id -= 7100;
                 Block::MagentaStainedGlass
             }
-            5948..5949 => {
-                id -= 5948;
+            7101..7102 => {
+                id -= 7101;
                 Block::LightBlueStainedGlass
             }
-            5949..5950 => {
-                id -= 5949;
+            7102..7103 => {
+                id -= 7102;
                 Block::YellowStainedGlass
             }
-            5950..5951 => {
-                id -= 5950;
+            7103..7104 => {
+                id -= 7103;
                 Block::LimeStainedGlass
             }
-            5951..5952 => {
-                id -= 5951;
+            7104..7105 => {
+                id -= 7104;
                 Block::PinkStainedGlass
             }
-            5952..5953 => {
-                id -= 5952;
+            7105..7106 => {
+                id -= 7105;
                 Block::GrayStainedGlass
             }
-            5953..5954 => {
-                id -= 5953;
+            7106..7107 => {
+                id -= 7106;
                 Block::LightGrayStainedGlass
             }
-            5954..5955 => {
-                id -= 5954;
+            7107..7108 => {
+                id -= 7107;
                 Block::CyanStainedGlass
             }
-            5955..5956 => {
-                id -= 5955;
+            7108..7109 => {
+                id -= 7108;
                 Block::PurpleStainedGlass
             }
-            5956..5957 => {
-                id -= 5956;
+            7109..7110 => {
+                id -= 7109;
                 Block::BlueStainedGlass
             }
-            5957..5958 => {
-                id -= 5957;
+            7110..7111 => {
+                id -= 7110;
                 Block::BrownStainedGlass
             }
-            5958..5959 => {
-                id -= 5958;
+            7111..7112 => {
+                id -= 7111;
                 Block::GreenStainedGlass
             }
-            5959..5960 => {
-                id -= 5959;
+            7112..7113 => {
+                id -= 7112;
                 Block::RedStainedGlass
             }
-            5960..5961 => {
-                id -= 5960;
+            7113..7114 => {
+                id -= 7113;
                 Block::BlackStainedGlass
             }
-            10744..10745 => {
-                id -= 10744;
+            12912..12913 => {
+                id -= 12912;
                 Block::Terracotta
             }
-            9356..9357 => {
-                id -= 9356;
+            11444..11445 => {
+                id -= 11444;
                 Block::WhiteTerracotta
             }
-            9357..9358 => {
-                id -= 9357;
+            11445..11446 => {
+                id -= 11445;
                 Block::OrangeTerracotta
             }
-            9358..9359 => {
-                id -= 9358;
+            11446..11447 => {
+                id -= 11446;
                 Block::MagentaTerracotta
             }
-            9359..9360 => {
-                id -= 9359;
+            11447..11448 => {
+                id -= 11447;
                 Block::LightBlueTerracotta
             }
-            9360..9361 => {
-                id -= 9360;
+            11448..11449 => {
+                id -= 11448;
                 Block::YellowTerracotta
             }
-            9361..9362 => {
-                id -= 9361;
+            11449..11450 => {
+                id -= 11449;
                 Block::LimeTerracotta
             }
-            9362..9363 => {
-                id -= 9362;
+            11450..11451 => {
+                id -= 11450;
                 Block::PinkTerracotta
             }
-            9363..9364 => {
-                id -= 9363;
+            11451..11452 => {
+                id -= 11451;
                 Block::GrayTerracotta
             }
-            9364..9365 => {
-                id -= 9364;
+            11452..11453 => {
+                id -= 11452;
                 Block::LightGrayTerracotta
             }
-            9365..9366 => {
-                id -= 9365;
+            11453..11454 => {
+                id -= 11453;
                 Block::CyanTerracotta
             }
-            9366..9367 => {
-                id -= 9366;
+            11454..11455 => {
+                id -= 11454;
                 Block::PurpleTerracotta
             }
-            9367..9368 => {
-                id -= 9367;
+            11455..11456 => {
+                id -= 11455;
                 Block::BlueTerracotta
             }
-            9368..9369 => {
-                id -= 9368;
+            11456..11457 => {
+                id -= 11456;
                 Block::BrownTerracotta
             }
-            9369..9370 => {
-                id -= 9369;
+            11457..11458 => {
+                id -= 11457;
                 Block::GreenTerracotta
             }
-            9370..9371 => {
-                id -= 9370;
+            11458..11459 => {
+                id -= 11458;
                 Block::RedTerracotta
             }
-            9371..9372 => {
-                id -= 9371;
+            11459..11460 => {
+                id -= 11459;
                 Block::BlackTerracotta
             }
-            2047..2048 => {
-                id -= 2047;
+            2293..2294 => {
+                id -= 2293;
                 Block::WhiteWool
             }
-            2048..2049 => {
-                id -= 2048;
+            2294..2295 => {
+                id -= 2294;
                 Block::OrangeWool
             }
-            2049..2050 => {
-                id -= 2049;
+            2295..2296 => {
+                id -= 2295;
                 Block::MagentaWool
             }
-            2050..2051 => {
-                id -= 2050;
+            2296..2297 => {
+                id -= 2296;
                 Block::LightBlueWool
             }
-            2051..2052 => {
-                id -= 2051;
+            2297..2298 => {
+                id -= 2297;
                 Block::YellowWool
             }
-            2052..2053 => {
-                id -= 2052;
+            2298..2299 => {
+                id -= 2298;
                 Block::LimeWool
             }
-            2053..2054 => {
-                id -= 2053;
+            2299..2300 => {
+                id -= 2299;
                 Block::PinkWool
             }
-            2054..2055 => {
-                id -= 2054;
+            2300..2301 => {
+                id -= 2300;
                 Block::GrayWool
             }
-            2055..2056 => {
-                id -= 2055;
+            2301..2302 => {
+                id -= 2301;
                 Block::LightGrayWool
             }
-            2056..2057 => {
-                id -= 2056;
+            2302..2303 => {
+                id -= 2302;
                 Block::CyanWool
             }
-            2057..2058 => {
-                id -= 2057;
+            2303..2304 => {
+                id -= 2303;
                 Block::PurpleWool
             }
-            2058..2059 => {
-                id -= 2058;
+            2304..2305 => {
+                id -= 2304;
                 Block::BlueWool
             }
-            2059..2060 => {
-                id -= 2059;
+            2305..2306 => {
+                id -= 2305;
                 Block::BrownWool
             }
-            2060..2061 => {
-                id -= 2060;
+            2306..2307 => {
+                id -= 2306;
                 Block::GreenWool
             }
-            2061..2062 => {
-                id -= 2061;
+            2307..2308 => {
+                id -= 2307;
                 Block::RedWool
             }
-            2062..2063 => {
-                id -= 2062;
+            2308..2309 => {
+                id -= 2308;
                 Block::BlackWool
             }
-            10399..10463 => {
-                id -= 10399;
+            12567..12631 => {
+                id -= 12567;
                 Block::IronTrapdoor {
                     facing: BlockDirection::from_id(((id / 16) % 4)),
                     half: TrapdoorHalf::from_id(((id / 8) % 2)),
@@ -3609,64 +3609,64 @@ impl Block {
                     waterlogged: (((id) % 2) & 1) == 0,
                 }
             }
-            538..1688 => {
-                id -= 538;
+            581..1931 => {
+                id -= 581;
                 Block::NoteBlock {
-                    instrument: Instrument::from_id(((id / 50) % 23)),
+                    instrument: Instrument::from_id(((id / 50) % 27)),
                     note: ((id / 2) % 25) as u8 + 0,
                     powered: (((id) % 2) & 1) == 0,
                 }
             }
-            5798..5799 => {
-                id -= 5798;
+            6946..6947 => {
+                id -= 6946;
                 Block::Clay
             }
-            2091..2092 => {
-                id -= 2091;
+            2338..2339 => {
+                id -= 2338;
                 Block::GoldBlock
             }
-            10746..10747 => {
-                id -= 10746;
+            12914..12915 => {
+                id -= 12914;
                 Block::PackedIce
             }
-            12546..12549 => {
-                id -= 12546;
+            14848..14851 => {
+                id -= 14848;
                 Block::BoneBlock {
                     axis: BlockAxis::from_id(((id) % 3)),
                 }
             }
-            2092..2093 => {
-                id -= 2092;
+            2339..2340 => {
+                id -= 2339;
                 Block::IronBlock
             }
-            5850..5851 => {
-                id -= 5850;
+            6998..6999 => {
+                id -= 6998;
                 Block::SoulSand
             }
-            6811..6812 => {
-                id -= 6811;
+            8332..8333 => {
+                id -= 8332;
                 Block::Pumpkin
             }
-            7665..7666 => {
-                id -= 7665;
+            9727..9728 => {
+                id -= 9727;
                 Block::EmeraldBlock
             }
-            10725..10728 => {
-                id -= 10725;
+            12893..12896 => {
+                id -= 12893;
                 Block::HayBlock {
                     axis: BlockAxis::from_id(((id) % 3)),
                 }
             }
-            112..113 => {
-                id -= 112;
+            118..119 => {
+                id -= 118;
                 Block::Sand
             }
-            6537..6538 => {
-                id -= 6537;
+            7754..7755 => {
+                id -= 7754;
                 Block::StoneBricks
             }
-            7407..7415 => {
-                id -= 7407;
+            9469..9477 => {
+                id -= 9469;
                 Block::EndPortalFrame {
                     eye: (((id / 4) % 2) & 1) == 0,
                     facing: BlockDirection::from_id(((id) % 4)),
@@ -3893,6 +3893,10 @@ impl FromStr for Instrument {
             "bit" => Instrument::Bit,
             "banjo" => Instrument::Banjo,
             "pling" => Instrument::Pling,
+            "trumpet" => Instrument::Trumpet,
+            "trumpet_exposed" => Instrument::TrumpetExposed,
+            "trumpet_oxidized" => Instrument::TrumpetOxidized,
+            "trumpet_weathered" => Instrument::TrumpetWeathered,
             "zombie" => Instrument::Zombie,
             "skeleton" => Instrument::Skeleton,
             "creeper" => Instrument::Creeper,
@@ -4014,6 +4018,10 @@ impl std::fmt::Display for Instrument {
             Instrument::Bit => "bit",
             Instrument::Banjo => "banjo",
             Instrument::Pling => "pling",
+            Instrument::Trumpet => "trumpet",
+            Instrument::TrumpetExposed => "trumpet_exposed",
+            Instrument::TrumpetOxidized => "trumpet_oxidized",
+            Instrument::TrumpetWeathered => "trumpet_weathered",
             Instrument::Zombie => "zombie",
             Instrument::Skeleton => "skeleton",
             Instrument::Creeper => "creeper",
@@ -4155,13 +4163,17 @@ impl Instrument {
             13 => Instrument::Bit,
             14 => Instrument::Banjo,
             15 => Instrument::Pling,
-            16 => Instrument::Zombie,
-            17 => Instrument::Skeleton,
-            18 => Instrument::Creeper,
-            19 => Instrument::Dragon,
-            20 => Instrument::WitherSkeleton,
-            21 => Instrument::Piglin,
-            22 => Instrument::CustomHead,
+            16 => Instrument::Trumpet,
+            17 => Instrument::TrumpetExposed,
+            18 => Instrument::TrumpetOxidized,
+            19 => Instrument::TrumpetWeathered,
+            20 => Instrument::Zombie,
+            21 => Instrument::Skeleton,
+            22 => Instrument::Creeper,
+            23 => Instrument::Dragon,
+            24 => Instrument::WitherSkeleton,
+            25 => Instrument::Piglin,
+            26 => Instrument::CustomHead,
             id => unreachable!(),
         }
     }
@@ -4346,280 +4358,280 @@ impl Item {
     pub fn get_id(self) -> u32 {
         match self {
             Item::Stone => 1,
-            Item::Glass => 187,
-            Item::Glowstone => 331,
-            Item::OakSign => 883,
-            Item::SpruceSign => 884,
-            Item::BirchSign => 885,
-            Item::AcaciaSign => 887,
-            Item::JungleSign => 886,
-            Item::DarkOakSign => 889,
-            Item::CrimsonSign => 892,
-            Item::WarpedSign => 893,
-            Item::BambooSign => 891,
-            Item::CherrySign => 888,
-            Item::MangroveSign => 890,
-            Item::Lever => 671,
-            Item::StoneButton => 681,
-            Item::RedstoneTorch => 657,
-            Item::Repeater => 659,
-            Item::RedstoneLamp => 679,
-            Item::TripwireHook => 676,
-            Item::Comparator => 660,
-            Item::RedstoneBlock => 658,
-            Item::Observer => 665,
-            Item::SeaPickle => 200,
-            Item::Target => 670,
-            Item::OakPressurePlate => 698,
-            Item::SprucePressurePlate => 699,
-            Item::BirchPressurePlate => 700,
-            Item::JunglePressurePlate => 701,
-            Item::AcaciaPressurePlate => 702,
-            Item::DarkOakPressurePlate => 704,
-            Item::MangrovePressurePlate => 705,
-            Item::CherryPressurePlate => 703,
-            Item::BambooPressurePlate => 706,
-            Item::CrimsonPressurePlate => 707,
-            Item::WarpedPressurePlate => 708,
-            Item::PolishedBlackstonePressurePlate => 695,
-            Item::StonePressurePlate => 694,
-            Item::Cake => 960,
-            Item::Barrel => 1193,
-            Item::Hopper => 666,
-            Item::Sandstone => 190,
-            Item::CoalBlock => 81,
-            Item::Furnace => 301,
-            Item::QuartzBlock => 422,
-            Item::SmoothQuartz => 280,
-            Item::SmoothStoneSlab => 264,
-            Item::QuartzSlab => 273,
-            Item::Cauldron => 1002,
-            Item::Composter => 1192,
-            Item::WhiteConcrete => 554,
-            Item::OrangeConcrete => 555,
-            Item::MagentaConcrete => 556,
-            Item::LightBlueConcrete => 557,
-            Item::YellowConcrete => 558,
-            Item::LimeConcrete => 559,
-            Item::PinkConcrete => 560,
-            Item::GrayConcrete => 561,
-            Item::LightGrayConcrete => 562,
-            Item::CyanConcrete => 563,
-            Item::PurpleConcrete => 564,
-            Item::BlueConcrete => 565,
-            Item::BrownConcrete => 566,
-            Item::GreenConcrete => 567,
-            Item::RedConcrete => 568,
-            Item::BlackConcrete => 569,
-            Item::WhiteStainedGlass => 470,
-            Item::OrangeStainedGlass => 471,
-            Item::MagentaStainedGlass => 472,
-            Item::LightBlueStainedGlass => 473,
-            Item::YellowStainedGlass => 474,
-            Item::LimeStainedGlass => 475,
-            Item::PinkStainedGlass => 476,
-            Item::GrayStainedGlass => 477,
-            Item::LightGrayStainedGlass => 478,
-            Item::CyanStainedGlass => 479,
-            Item::PurpleStainedGlass => 480,
-            Item::BlueStainedGlass => 481,
-            Item::BrownStainedGlass => 482,
-            Item::GreenStainedGlass => 483,
-            Item::RedStainedGlass => 484,
-            Item::BlackStainedGlass => 485,
-            Item::Terracotta => 461,
-            Item::WhiteTerracotta => 426,
-            Item::OrangeTerracotta => 427,
-            Item::MagentaTerracotta => 428,
-            Item::LightBlueTerracotta => 429,
-            Item::YellowTerracotta => 430,
-            Item::LimeTerracotta => 431,
-            Item::PinkTerracotta => 432,
-            Item::GrayTerracotta => 433,
-            Item::LightGrayTerracotta => 434,
-            Item::CyanTerracotta => 435,
-            Item::PurpleTerracotta => 436,
-            Item::BlueTerracotta => 437,
-            Item::BrownTerracotta => 438,
-            Item::GreenTerracotta => 439,
-            Item::RedTerracotta => 440,
-            Item::BlackTerracotta => 441,
-            Item::WhiteWool => 201,
-            Item::OrangeWool => 202,
-            Item::MagentaWool => 203,
-            Item::LightBlueWool => 204,
-            Item::YellowWool => 205,
-            Item::LimeWool => 206,
-            Item::PinkWool => 207,
-            Item::GrayWool => 208,
-            Item::LightGrayWool => 209,
-            Item::CyanWool => 210,
-            Item::PurpleWool => 211,
-            Item::BlueWool => 212,
-            Item::BrownWool => 213,
-            Item::GreenWool => 214,
-            Item::RedWool => 215,
-            Item::BlackWool => 216,
-            Item::IronTrapdoor => 729,
-            Item::NoteBlock => 680,
-            Item::Clay => 308,
-            Item::GoldBlock => 89,
-            Item::PackedIce => 462,
-            Item::BoneBlock => 519,
-            Item::IronBlock => 87,
-            Item::SoulSand => 325,
-            Item::Pumpkin => 321,
-            Item::EmeraldBlock => 381,
-            Item::HayBlock => 444,
-            Item::Sand => 57,
-            Item::StoneBricks => 339,
-            Item::EndPortalFrame => 375,
-            Item::WoodenAxe => 817,
-            Item::Snowball => 909,
-            Item::TotemOfUndying => 1156,
-            Item::MilkBucket => 911,
-            Item::Redstone => 656,
-            Item::EnderEye => 1003,
+            Item::Glass => 222,
+            Item::Glowstone => 395,
+            Item::OakSign => 1016,
+            Item::SpruceSign => 1017,
+            Item::BirchSign => 1018,
+            Item::AcaciaSign => 1020,
+            Item::JungleSign => 1019,
+            Item::DarkOakSign => 1022,
+            Item::CrimsonSign => 1026,
+            Item::WarpedSign => 1027,
+            Item::BambooSign => 1025,
+            Item::CherrySign => 1021,
+            Item::MangroveSign => 1024,
+            Item::Lever => 760,
+            Item::StoneButton => 777,
+            Item::RedstoneTorch => 746,
+            Item::Repeater => 748,
+            Item::RedstoneLamp => 775,
+            Item::TripwireHook => 772,
+            Item::Comparator => 749,
+            Item::RedstoneBlock => 747,
+            Item::Observer => 754,
+            Item::SeaPickle => 239,
+            Item::Target => 759,
+            Item::OakPressurePlate => 795,
+            Item::SprucePressurePlate => 796,
+            Item::BirchPressurePlate => 797,
+            Item::JunglePressurePlate => 798,
+            Item::AcaciaPressurePlate => 799,
+            Item::DarkOakPressurePlate => 801,
+            Item::MangrovePressurePlate => 803,
+            Item::CherryPressurePlate => 800,
+            Item::BambooPressurePlate => 804,
+            Item::CrimsonPressurePlate => 805,
+            Item::WarpedPressurePlate => 806,
+            Item::PolishedBlackstonePressurePlate => 792,
+            Item::StonePressurePlate => 791,
+            Item::Cake => 1114,
+            Item::Barrel => 1385,
+            Item::Hopper => 755,
+            Item::Sandstone => 225,
+            Item::CoalBlock => 110,
+            Item::Furnace => 362,
+            Item::QuartzBlock => 510,
+            Item::SmoothQuartz => 328,
+            Item::SmoothStoneSlab => 312,
+            Item::QuartzSlab => 321,
+            Item::Cauldron => 1156,
+            Item::Composter => 1384,
+            Item::WhiteConcrete => 642,
+            Item::OrangeConcrete => 643,
+            Item::MagentaConcrete => 644,
+            Item::LightBlueConcrete => 645,
+            Item::YellowConcrete => 646,
+            Item::LimeConcrete => 647,
+            Item::PinkConcrete => 648,
+            Item::GrayConcrete => 649,
+            Item::LightGrayConcrete => 650,
+            Item::CyanConcrete => 651,
+            Item::PurpleConcrete => 652,
+            Item::BlueConcrete => 653,
+            Item::BrownConcrete => 654,
+            Item::GreenConcrete => 655,
+            Item::RedConcrete => 656,
+            Item::BlackConcrete => 657,
+            Item::WhiteStainedGlass => 558,
+            Item::OrangeStainedGlass => 559,
+            Item::MagentaStainedGlass => 560,
+            Item::LightBlueStainedGlass => 561,
+            Item::YellowStainedGlass => 562,
+            Item::LimeStainedGlass => 563,
+            Item::PinkStainedGlass => 564,
+            Item::GrayStainedGlass => 565,
+            Item::LightGrayStainedGlass => 566,
+            Item::CyanStainedGlass => 567,
+            Item::PurpleStainedGlass => 568,
+            Item::BlueStainedGlass => 569,
+            Item::BrownStainedGlass => 570,
+            Item::GreenStainedGlass => 571,
+            Item::RedStainedGlass => 572,
+            Item::BlackStainedGlass => 573,
+            Item::Terracotta => 549,
+            Item::WhiteTerracotta => 514,
+            Item::OrangeTerracotta => 515,
+            Item::MagentaTerracotta => 516,
+            Item::LightBlueTerracotta => 517,
+            Item::YellowTerracotta => 518,
+            Item::LimeTerracotta => 519,
+            Item::PinkTerracotta => 520,
+            Item::GrayTerracotta => 521,
+            Item::LightGrayTerracotta => 522,
+            Item::CyanTerracotta => 523,
+            Item::PurpleTerracotta => 524,
+            Item::BlueTerracotta => 525,
+            Item::BrownTerracotta => 526,
+            Item::GreenTerracotta => 527,
+            Item::RedTerracotta => 528,
+            Item::BlackTerracotta => 529,
+            Item::WhiteWool => 240,
+            Item::OrangeWool => 241,
+            Item::MagentaWool => 242,
+            Item::LightBlueWool => 243,
+            Item::YellowWool => 244,
+            Item::LimeWool => 245,
+            Item::PinkWool => 246,
+            Item::GrayWool => 247,
+            Item::LightGrayWool => 248,
+            Item::CyanWool => 249,
+            Item::PurpleWool => 250,
+            Item::BlueWool => 251,
+            Item::BrownWool => 252,
+            Item::GreenWool => 253,
+            Item::RedWool => 254,
+            Item::BlackWool => 255,
+            Item::IronTrapdoor => 828,
+            Item::NoteBlock => 776,
+            Item::Clay => 370,
+            Item::GoldBlock => 126,
+            Item::PackedIce => 550,
+            Item::BoneBlock => 607,
+            Item::IronBlock => 117,
+            Item::SoulSand => 388,
+            Item::Pumpkin => 384,
+            Item::EmeraldBlock => 468,
+            Item::HayBlock => 532,
+            Item::Sand => 86,
+            Item::StoneBricks => 403,
+            Item::EndPortalFrame => 462,
+            Item::WoodenAxe => 942,
+            Item::Snowball => 1044,
+            Item::TotemOfUndying => 1333,
+            Item::MilkBucket => 1046,
+            Item::Redstone => 745,
+            Item::EnderEye => 1157,
             Item::Unknown(id) => id,
         }
     }
     pub fn from_id(id: u32) -> Item {
         match id {
             1 => Item::Stone,
-            187 => Item::Glass,
-            331 => Item::Glowstone,
-            883 => Item::OakSign,
-            884 => Item::SpruceSign,
-            885 => Item::BirchSign,
-            887 => Item::AcaciaSign,
-            886 => Item::JungleSign,
-            889 => Item::DarkOakSign,
-            892 => Item::CrimsonSign,
-            893 => Item::WarpedSign,
-            891 => Item::BambooSign,
-            888 => Item::CherrySign,
-            890 => Item::MangroveSign,
-            671 => Item::Lever,
-            681 => Item::StoneButton,
-            657 => Item::RedstoneTorch,
-            659 => Item::Repeater,
-            679 => Item::RedstoneLamp,
-            676 => Item::TripwireHook,
-            660 => Item::Comparator,
-            658 => Item::RedstoneBlock,
-            665 => Item::Observer,
-            200 => Item::SeaPickle,
-            670 => Item::Target,
-            698 => Item::OakPressurePlate,
-            699 => Item::SprucePressurePlate,
-            700 => Item::BirchPressurePlate,
-            701 => Item::JunglePressurePlate,
-            702 => Item::AcaciaPressurePlate,
-            704 => Item::DarkOakPressurePlate,
-            705 => Item::MangrovePressurePlate,
-            703 => Item::CherryPressurePlate,
-            706 => Item::BambooPressurePlate,
-            707 => Item::CrimsonPressurePlate,
-            708 => Item::WarpedPressurePlate,
-            695 => Item::PolishedBlackstonePressurePlate,
-            694 => Item::StonePressurePlate,
-            960 => Item::Cake,
-            1193 => Item::Barrel,
-            666 => Item::Hopper,
-            190 => Item::Sandstone,
-            81 => Item::CoalBlock,
-            301 => Item::Furnace,
-            422 => Item::QuartzBlock,
-            280 => Item::SmoothQuartz,
-            264 => Item::SmoothStoneSlab,
-            273 => Item::QuartzSlab,
-            1002 => Item::Cauldron,
-            1192 => Item::Composter,
-            554 => Item::WhiteConcrete,
-            555 => Item::OrangeConcrete,
-            556 => Item::MagentaConcrete,
-            557 => Item::LightBlueConcrete,
-            558 => Item::YellowConcrete,
-            559 => Item::LimeConcrete,
-            560 => Item::PinkConcrete,
-            561 => Item::GrayConcrete,
-            562 => Item::LightGrayConcrete,
-            563 => Item::CyanConcrete,
-            564 => Item::PurpleConcrete,
-            565 => Item::BlueConcrete,
-            566 => Item::BrownConcrete,
-            567 => Item::GreenConcrete,
-            568 => Item::RedConcrete,
-            569 => Item::BlackConcrete,
-            470 => Item::WhiteStainedGlass,
-            471 => Item::OrangeStainedGlass,
-            472 => Item::MagentaStainedGlass,
-            473 => Item::LightBlueStainedGlass,
-            474 => Item::YellowStainedGlass,
-            475 => Item::LimeStainedGlass,
-            476 => Item::PinkStainedGlass,
-            477 => Item::GrayStainedGlass,
-            478 => Item::LightGrayStainedGlass,
-            479 => Item::CyanStainedGlass,
-            480 => Item::PurpleStainedGlass,
-            481 => Item::BlueStainedGlass,
-            482 => Item::BrownStainedGlass,
-            483 => Item::GreenStainedGlass,
-            484 => Item::RedStainedGlass,
-            485 => Item::BlackStainedGlass,
-            461 => Item::Terracotta,
-            426 => Item::WhiteTerracotta,
-            427 => Item::OrangeTerracotta,
-            428 => Item::MagentaTerracotta,
-            429 => Item::LightBlueTerracotta,
-            430 => Item::YellowTerracotta,
-            431 => Item::LimeTerracotta,
-            432 => Item::PinkTerracotta,
-            433 => Item::GrayTerracotta,
-            434 => Item::LightGrayTerracotta,
-            435 => Item::CyanTerracotta,
-            436 => Item::PurpleTerracotta,
-            437 => Item::BlueTerracotta,
-            438 => Item::BrownTerracotta,
-            439 => Item::GreenTerracotta,
-            440 => Item::RedTerracotta,
-            441 => Item::BlackTerracotta,
-            201 => Item::WhiteWool,
-            202 => Item::OrangeWool,
-            203 => Item::MagentaWool,
-            204 => Item::LightBlueWool,
-            205 => Item::YellowWool,
-            206 => Item::LimeWool,
-            207 => Item::PinkWool,
-            208 => Item::GrayWool,
-            209 => Item::LightGrayWool,
-            210 => Item::CyanWool,
-            211 => Item::PurpleWool,
-            212 => Item::BlueWool,
-            213 => Item::BrownWool,
-            214 => Item::GreenWool,
-            215 => Item::RedWool,
-            216 => Item::BlackWool,
-            729 => Item::IronTrapdoor,
-            680 => Item::NoteBlock,
-            308 => Item::Clay,
-            89 => Item::GoldBlock,
-            462 => Item::PackedIce,
-            519 => Item::BoneBlock,
-            87 => Item::IronBlock,
-            325 => Item::SoulSand,
-            321 => Item::Pumpkin,
-            381 => Item::EmeraldBlock,
-            444 => Item::HayBlock,
-            57 => Item::Sand,
-            339 => Item::StoneBricks,
-            375 => Item::EndPortalFrame,
-            817 => Item::WoodenAxe,
-            909 => Item::Snowball,
-            1156 => Item::TotemOfUndying,
-            911 => Item::MilkBucket,
-            656 => Item::Redstone,
-            1003 => Item::EnderEye,
+            222 => Item::Glass,
+            395 => Item::Glowstone,
+            1016 => Item::OakSign,
+            1017 => Item::SpruceSign,
+            1018 => Item::BirchSign,
+            1020 => Item::AcaciaSign,
+            1019 => Item::JungleSign,
+            1022 => Item::DarkOakSign,
+            1026 => Item::CrimsonSign,
+            1027 => Item::WarpedSign,
+            1025 => Item::BambooSign,
+            1021 => Item::CherrySign,
+            1024 => Item::MangroveSign,
+            760 => Item::Lever,
+            777 => Item::StoneButton,
+            746 => Item::RedstoneTorch,
+            748 => Item::Repeater,
+            775 => Item::RedstoneLamp,
+            772 => Item::TripwireHook,
+            749 => Item::Comparator,
+            747 => Item::RedstoneBlock,
+            754 => Item::Observer,
+            239 => Item::SeaPickle,
+            759 => Item::Target,
+            795 => Item::OakPressurePlate,
+            796 => Item::SprucePressurePlate,
+            797 => Item::BirchPressurePlate,
+            798 => Item::JunglePressurePlate,
+            799 => Item::AcaciaPressurePlate,
+            801 => Item::DarkOakPressurePlate,
+            803 => Item::MangrovePressurePlate,
+            800 => Item::CherryPressurePlate,
+            804 => Item::BambooPressurePlate,
+            805 => Item::CrimsonPressurePlate,
+            806 => Item::WarpedPressurePlate,
+            792 => Item::PolishedBlackstonePressurePlate,
+            791 => Item::StonePressurePlate,
+            1114 => Item::Cake,
+            1385 => Item::Barrel,
+            755 => Item::Hopper,
+            225 => Item::Sandstone,
+            110 => Item::CoalBlock,
+            362 => Item::Furnace,
+            510 => Item::QuartzBlock,
+            328 => Item::SmoothQuartz,
+            312 => Item::SmoothStoneSlab,
+            321 => Item::QuartzSlab,
+            1156 => Item::Cauldron,
+            1384 => Item::Composter,
+            642 => Item::WhiteConcrete,
+            643 => Item::OrangeConcrete,
+            644 => Item::MagentaConcrete,
+            645 => Item::LightBlueConcrete,
+            646 => Item::YellowConcrete,
+            647 => Item::LimeConcrete,
+            648 => Item::PinkConcrete,
+            649 => Item::GrayConcrete,
+            650 => Item::LightGrayConcrete,
+            651 => Item::CyanConcrete,
+            652 => Item::PurpleConcrete,
+            653 => Item::BlueConcrete,
+            654 => Item::BrownConcrete,
+            655 => Item::GreenConcrete,
+            656 => Item::RedConcrete,
+            657 => Item::BlackConcrete,
+            558 => Item::WhiteStainedGlass,
+            559 => Item::OrangeStainedGlass,
+            560 => Item::MagentaStainedGlass,
+            561 => Item::LightBlueStainedGlass,
+            562 => Item::YellowStainedGlass,
+            563 => Item::LimeStainedGlass,
+            564 => Item::PinkStainedGlass,
+            565 => Item::GrayStainedGlass,
+            566 => Item::LightGrayStainedGlass,
+            567 => Item::CyanStainedGlass,
+            568 => Item::PurpleStainedGlass,
+            569 => Item::BlueStainedGlass,
+            570 => Item::BrownStainedGlass,
+            571 => Item::GreenStainedGlass,
+            572 => Item::RedStainedGlass,
+            573 => Item::BlackStainedGlass,
+            549 => Item::Terracotta,
+            514 => Item::WhiteTerracotta,
+            515 => Item::OrangeTerracotta,
+            516 => Item::MagentaTerracotta,
+            517 => Item::LightBlueTerracotta,
+            518 => Item::YellowTerracotta,
+            519 => Item::LimeTerracotta,
+            520 => Item::PinkTerracotta,
+            521 => Item::GrayTerracotta,
+            522 => Item::LightGrayTerracotta,
+            523 => Item::CyanTerracotta,
+            524 => Item::PurpleTerracotta,
+            525 => Item::BlueTerracotta,
+            526 => Item::BrownTerracotta,
+            527 => Item::GreenTerracotta,
+            528 => Item::RedTerracotta,
+            529 => Item::BlackTerracotta,
+            240 => Item::WhiteWool,
+            241 => Item::OrangeWool,
+            242 => Item::MagentaWool,
+            243 => Item::LightBlueWool,
+            244 => Item::YellowWool,
+            245 => Item::LimeWool,
+            246 => Item::PinkWool,
+            247 => Item::GrayWool,
+            248 => Item::LightGrayWool,
+            249 => Item::CyanWool,
+            250 => Item::PurpleWool,
+            251 => Item::BlueWool,
+            252 => Item::BrownWool,
+            253 => Item::GreenWool,
+            254 => Item::RedWool,
+            255 => Item::BlackWool,
+            828 => Item::IronTrapdoor,
+            776 => Item::NoteBlock,
+            370 => Item::Clay,
+            126 => Item::GoldBlock,
+            550 => Item::PackedIce,
+            607 => Item::BoneBlock,
+            117 => Item::IronBlock,
+            388 => Item::SoulSand,
+            384 => Item::Pumpkin,
+            468 => Item::EmeraldBlock,
+            532 => Item::HayBlock,
+            86 => Item::Sand,
+            403 => Item::StoneBricks,
+            462 => Item::EndPortalFrame,
+            942 => Item::WoodenAxe,
+            1044 => Item::Snowball,
+            1333 => Item::TotemOfUndying,
+            1046 => Item::MilkBucket,
+            745 => Item::Redstone,
+            1157 => Item::EnderEye,
             _ => Item::Unknown(id),
         }
     }

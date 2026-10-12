@@ -7,8 +7,8 @@ use clap::Parser;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub const MC_VERSION: &str = "1.20.4";
-pub const MC_DATA_VERSION: i32 = 3700;
+pub const MC_VERSION: &str = "26.2";
+pub const MC_DATA_VERSION: i32 = 4903;
 
 /// MCHPRS world export tool
 #[derive(Parser, Debug)]
