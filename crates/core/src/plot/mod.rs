@@ -114,7 +114,17 @@ pub struct PlotWorld {
     pub(super) pending_ignitions: FxHashSet<BlockPos>,
     /// Blocks that might have to start falling
     pub(super) pending_falling: FxHashSet<BlockPos>,
+    pistons: PistonQueue,
+    /// Piston events the players have not been told about yet
+    pending_piston_events: Vec<PistonEvent>,
+    /// Whether the plot contains pistons, which keep redpiler from compiling. `None` if it has to
+    /// be looked up again.
+    has_pistons: Option<bool>,
 }
+
+/// More piston events than this in a single send interval are not sent to the players, who get
+/// the resulting blocks anyways
+const MAX_PENDING_PISTON_EVENTS: usize = 2048;
 
 impl PlotWorld {
     fn get_chunk_index_for_chunk(&self, chunk_x: i32, chunk_z: i32) -> usize {
@@ -274,7 +284,44 @@ impl World for PlotWorld {
         self.pending_falling.insert(pos);
     }
 
+    fn piston_queue(&mut self) -> &mut PistonQueue {
+        &mut self.pistons
+    }
+
+    fn in_world_bounds(&self, pos: BlockPos) -> bool {
+        self.get_chunk_index_for_block(pos.x, pos.z).is_some()
+            && (0..PLOT_BLOCK_HEIGHT).contains(&pos.y)
+    }
+
+    fn send_piston_event(&mut self, event: PistonEvent) {
+        if self.world_send_rate.0 != 0.0 && self.pending_piston_events.len() < MAX_PENDING_PISTON_EVENTS
+        {
+            self.pending_piston_events.push(event);
+        }
+    }
+
     fn flush_block_changes(&mut self) {
+        // Clients animate the pistons from the events, which they have to get before the blocks
+        // are changed
+        for event in self.pending_piston_events.drain(..) {
+            let block = if event.sticky {
+                protocol_id!("minecraft:block", "minecraft:sticky_piston")
+            } else {
+                protocol_id!("minecraft:block", "minecraft:piston")
+            };
+            let encoded = CBlockEvent {
+                x: event.pos.x,
+                y: event.pos.y,
+                z: event.pos.z,
+                b0: event.ty,
+                b1: event.data,
+                block_id: block,
+            }
+            .encode();
+            for player in &self.packet_senders {
+                player.send_packet(&encoded);
+            }
+        }
         for packet in self.chunks.iter_mut().flat_map(|c| c.multi_blocks()) {
             let encoded = packet.encode();
             for player in &self.packet_senders {
@@ -1197,6 +1244,9 @@ impl Plot {
             pending_sounds: FxHashMap::default(),
             pending_ignitions: Default::default(),
             pending_falling: Default::default(),
+            pistons: Default::default(),
+            pending_piston_events: Vec::new(),
+            has_pistons: None,
         };
         let tps = plot_data.tps;
         Plot {

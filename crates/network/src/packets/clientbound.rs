@@ -360,6 +360,27 @@ impl ClientBoundPacket for CBlockEntityData {
     }
 }
 
+pub struct CBlockEvent {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+    pub b0: u8,
+    pub b1: u8,
+    /// The registry id of the block, not a block state id
+    pub block_id: i32,
+}
+
+impl ClientBoundPacket for CBlockEvent {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        buf.write_position(self.x, self.y, self.z);
+        buf.push(self.b0);
+        buf.push(self.b1);
+        buf.write_varint(self.block_id);
+        PacketEncoder::new(buf, 0x07)
+    }
+}
+
 pub struct CBlockUpdate {
     pub x: i32,
     pub y: i32,
