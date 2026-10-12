@@ -517,6 +517,10 @@ impl ServerBoundPacketHandler for Plot {
             return;
         };
 
+        if use_item.hand == 0 && self.try_use_brush(player, item.item_type.get_id(), None) {
+            return;
+        }
+
         if let Some(owner) = self.owner {
             let player = &mut self.players[player];
             if owner != player.uuid && !player.has_permission("plots.admin.interact.other") {

@@ -45,7 +45,7 @@ use perf::{LOADED_PLOTS, ONLINE_PLAYERS};
 use rustc_hash::{FxHashMap, FxHashSet};
 use scoreboard::RedpilerState;
 use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::mem;
 use std::path::Path;
 use std::sync::atomic::Ordering as AtomicOrdering;
@@ -119,6 +119,8 @@ pub struct Plot {
     vibrations: vibrations::Vibrations,
     perf: perf::PerfDisplay,
     environment: environment::Environment,
+    /// Worldedit operations that are still being worked on, see `worldedit::job`
+    edit_jobs: VecDeque<worldedit::EditJob>,
 }
 
 pub struct PlotWorld {
@@ -233,6 +235,34 @@ impl PlotWorld {
             (self.z + 1) * W - 1,
         );
         (first_pos, second_pos)
+    }
+}
+
+#[cfg(test)]
+impl PlotWorld {
+    /// An empty world without any connected players, used by tests and benchmarks
+    pub(crate) fn empty_for_test(x: i32, z: i32) -> PlotWorld {
+        let chunks = (0..NUM_CHUNKS as i32)
+            .map(|i| {
+                Chunk::empty(
+                    (x << PLOT_SCALE) + i / PLOT_WIDTH,
+                    (z << PLOT_SCALE) + i % PLOT_WIDTH,
+                    PLOT_SECTIONS,
+                )
+            })
+            .collect();
+        PlotWorld {
+            x,
+            z,
+            chunks,
+            to_be_ticked: Vec::new(),
+            packet_senders: Vec::new(),
+            world_send_rate: Default::default(),
+            pending_block_entities: FxHashMap::default(),
+            pending_sounds: FxHashMap::default(),
+            pending_ignitions: Default::default(),
+            pending_falling: Default::default(),
+        }
     }
 }
 
@@ -780,6 +810,14 @@ impl Plot {
             }
         }
 
+        if use_item_on.hand == 0
+            && let Some(item) = &item_in_hand
+            && self.try_use_brush(player, item.item_type.get_id(), Some(block_pos))
+        {
+            cancel(self);
+            return;
+        }
+
         if let Some(owner) = self.owner {
             let player = &mut self.players[player];
             if owner != player.uuid && !player.has_permission("plots.admin.interact.other") {
@@ -976,6 +1014,8 @@ impl Plot {
             return;
         }
         debug!("Starting redpiler");
+        // Redpiler compiles the blocks as they are, so the queued edits have to be done
+        self.finish_edit_jobs();
         self.scoreboard
             .set_redpiler_state(&self.players, RedpilerState::Compiling);
         self.scoreboard
@@ -1409,6 +1449,7 @@ impl Plot {
 
         // Handle commands before removing players just in case they ran a command before leaving
         self.handle_commands();
+        self.run_edit_jobs(worldedit::SLICE_BUDGET);
 
         self.update_perf_display(update_start);
 
@@ -1577,6 +1618,7 @@ impl Plot {
             vibrations: Default::default(),
             perf: Default::default(),
             environment: environment::Environment::from_data(plot_data.environment),
+            edit_jobs: VecDeque::new(),
             world,
         }
     }
@@ -1658,6 +1700,7 @@ impl Plot {
             }
         }
 
+        self.finish_edit_jobs();
         self.save();
     }
 
