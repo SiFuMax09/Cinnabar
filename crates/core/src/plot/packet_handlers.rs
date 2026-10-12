@@ -215,6 +215,7 @@ impl ServerBoundPacketHandler for Plot {
             || (new.z - old.z).abs() > 8.0
         {
             CTeleportEntity {
+                velocity: (0.0, 0.0, 0.0),
                 entity_id: self.players[player].entity_id as i32,
                 x: new.x,
                 y: new.y,
@@ -266,6 +267,7 @@ impl ServerBoundPacketHandler for Plot {
             || (new.z - old.z).abs() > 8.0
         {
             CTeleportEntity {
+                velocity: (0.0, 0.0, 0.0),
                 entity_id: self.players[player].entity_id as i32,
                 x: new.x,
                 y: new.y,

@@ -21,6 +21,8 @@ const TICK_INTERVAL: Duration = Duration::from_millis(50);
 const MAX_CATCH_UP_TICKS: u32 = 5;
 
 const GRAVITY: f64 = 0.04;
+/// The sound category of blocks, which is what TNT uses
+const SOUND_CATEGORY_BLOCKS: i32 = 4;
 pub const TNT_FUSE: i32 = 80;
 const TNT_RADIUS: f32 = 4.0;
 const EXPLOSION_RAYS: i32 = 16;
@@ -134,6 +136,7 @@ impl Entity {
             x: self.pos.x,
             y: self.pos.y,
             z: self.pos.z,
+            velocity: (self.vel.x, self.vel.y, self.vel.z),
             yaw: 0.0,
             pitch: 0.0,
             on_ground: self.on_ground,
@@ -260,8 +263,18 @@ impl Plot {
         self.entities.list.push(entity);
     }
 
-    pub fn spawn_tnt(&mut self, pos: Vec3, fuse: i32, vel: Vec3) {
+    /// Spawns primed TNT that hops up a little, like it does in Minecraft
+    pub fn spawn_tnt(&mut self, pos: Vec3, fuse: i32) {
+        let angle = rand::random::<f64>() * std::f64::consts::TAU;
+        let vel = Vec3::new(-angle.sin() * 0.02, 0.2, -angle.cos() * 0.02);
         self.spawn_entity(Entity::new(EntityKind::PrimedTnt { fuse }, pos, vel));
+        self.world.play_sound(
+            pos.block_pos(),
+            protocol_id!("minecraft:sound_event", "minecraft:entity.tnt.primed"),
+            SOUND_CATEGORY_BLOCKS,
+            1.0,
+            1.0,
+        );
     }
 
     /// Turns the TNT block at the position into a primed TNT entity
@@ -272,7 +285,7 @@ impl Plot {
         }
         self.world.set_block(pos, Block::Air);
         let center = Vec3::new(pos.x as f64 + 0.5, pos.y as f64, pos.z as f64 + 0.5);
-        self.spawn_tnt(center, fuse, Vec3::ZERO);
+        self.spawn_tnt(center, fuse);
     }
 
     /// Handles what the world asked for since the last time, like TNT that received power and
@@ -491,5 +504,48 @@ impl Plot {
             .encode(),
         );
         self.world.flush_block_changes();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Prints the packets of a TNT entity as hex, so they can be checked against the game's codecs
+    #[test]
+    #[ignore]
+    fn dump_tnt_packets() {
+        let mut entity = Entity::new(
+            EntityKind::PrimedTnt { fuse: 80 },
+            Vec3::new(1.5, 70.0, 2.5),
+            Vec3::ZERO,
+        );
+        entity.id = 5;
+        let mut packets = entity.spawn_packets();
+        packets.push(entity.teleport_packet());
+        packets.push(
+            CExplode {
+                x: 1.5,
+                y: 70.0,
+                z: 2.5,
+                radius: 4.0,
+                block_count: 10,
+            }
+            .encode(),
+        );
+        packets.push(
+            CSetEntityMotion {
+                entity_id: 5,
+                x: 0.1,
+                y: 0.2,
+                z: 0.0,
+            }
+            .encode(),
+        );
+        for packet in packets {
+            let mut bytes = Vec::new();
+            packet.write_uncompressed(&mut bytes).unwrap();
+            println!("PACKET {}", bytes.iter().map(|b| format!("{b:02x}")).collect::<String>());
+        }
     }
 }

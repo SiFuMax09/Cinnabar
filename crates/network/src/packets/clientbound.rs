@@ -1394,6 +1394,8 @@ pub struct CTeleportEntity {
     pub x: f64,
     pub y: f64,
     pub z: f64,
+    /// The movement of the entity per tick, which the client continues with until the next update
+    pub velocity: (f64, f64, f64),
     pub yaw: f32,
     pub pitch: f32,
     pub on_ground: bool,
@@ -1406,10 +1408,9 @@ impl ClientBoundPacket for CTeleportEntity {
         buf.write_double(self.x);
         buf.write_double(self.y);
         buf.write_double(self.z);
-        // Delta movement
-        buf.write_double(0.0);
-        buf.write_double(0.0);
-        buf.write_double(0.0);
+        buf.write_double(self.velocity.0);
+        buf.write_double(self.velocity.1);
+        buf.write_double(self.velocity.2);
         buf.write_float(self.yaw);
         buf.write_float(self.pitch);
         // Relative flags
