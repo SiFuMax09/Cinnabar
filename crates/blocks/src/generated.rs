@@ -306,6 +306,8 @@ pub enum Block {
         eye: bool,
         facing: BlockDirection,
     },
+    #[doc = r" Any block state that has no dedicated variant, see the `generic` module"]
+    Generic(u32),
 }
 impl Block {
     pub fn get_name(self) -> &'static str {
@@ -456,6 +458,7 @@ impl Block {
             Block::Sand => "minecraft:sand",
             Block::StoneBricks => "minecraft:stone_bricks",
             Block::EndPortalFrame { .. } => "minecraft:end_portal_frame",
+            Block::Generic(id) => generic::state_name(id),
         }
     }
     pub fn from_name(name: &str) -> Option<Block> {
@@ -736,7 +739,7 @@ impl Block {
                 eye: false,
                 facing: BlockDirection::North,
             },
-            _ => return None,
+            _ => return generic::default_state(name).map(Block::Generic),
         })
     }
     pub fn is_solid(self) -> bool {
@@ -815,6 +818,7 @@ impl Block {
             Block::Sand => true,
             Block::StoneBricks => true,
             Block::EndPortalFrame { .. } => true,
+            Block::Generic(id) => generic::is_solid(id),
             _ => false,
         }
     }
@@ -915,6 +919,7 @@ impl Block {
             Block::Sand => true,
             Block::StoneBricks => true,
             Block::EndPortalFrame { .. } => true,
+            Block::Generic(id) => generic::is_cube(id),
             _ => false,
         }
     }
@@ -945,6 +950,7 @@ impl Block {
             Block::GreenStainedGlass => true,
             Block::RedStainedGlass => true,
             Block::BlackStainedGlass => true,
+            Block::Generic(id) => generic::is_transparent(id),
             _ => false,
         }
     }
@@ -1372,6 +1378,7 @@ impl Block {
                 <bool as BlockProperty>::decode(eye, &props, "eye");
                 <BlockDirection as BlockProperty>::decode(facing, &props, "facing");
             }
+            Block::Generic(id) => *id = generic::set_properties(*id, &props),
         }
     }
     pub fn properties(&self) -> HashMap<&'static str, String> {
@@ -1799,6 +1806,11 @@ impl Block {
                 <bool as BlockProperty>::encode(*eye, &mut props, "eye");
                 <BlockDirection as BlockProperty>::encode(*facing, &mut props, "facing");
             }
+            Block::Generic(id) => {
+                for (name, value) in generic::properties(*id) {
+                    props.insert(name, value.to_owned());
+                }
+            }
         }
         props
     }
@@ -2220,6 +2232,7 @@ impl Block {
                 <bool as BlockTransform>::rotate(eye, amt);
                 <BlockDirection as BlockTransform>::rotate(facing, amt);
             }
+            Block::Generic(id) => *id = generic::rotate(*id, amt),
         }
     }
     pub fn flip(&mut self, dir: FlipDirection) {
@@ -2640,6 +2653,7 @@ impl Block {
                 <bool as BlockTransform>::flip(eye, dir);
                 <BlockDirection as BlockTransform>::flip(facing, dir);
             }
+            Block::Generic(id) => *id = generic::flip(*id, dir),
         }
     }
     pub fn get_id(self) -> u32 {
@@ -2920,6 +2934,7 @@ impl Block {
             Block::Sand => 118,
             Block::StoneBricks => 7754,
             Block::EndPortalFrame { eye, facing } => 9469 + (!eye as u32) * 4 + (facing.get_id()),
+            Block::Generic(id) => id,
         }
     }
     pub fn from_id(mut id: u32) -> Block {
@@ -3672,7 +3687,7 @@ impl Block {
                     facing: BlockDirection::from_id(((id) % 4)),
                 }
             }
-            _ => Block::Air,
+            _ => Block::Generic(id),
         }
     }
     pub fn is_wool(self) -> bool {
@@ -4772,7 +4787,7 @@ impl Item {
             Item::MilkBucket => "minecraft:milk_bucket",
             Item::Redstone => "minecraft:redstone",
             Item::EnderEye => "minecraft:ender_eye",
-            Item::Unknown(_) => "minecraft:redstone",
+            Item::Unknown(id) => generic::item_name(id),
         }
     }
     pub fn from_name(name: &str) -> Option<Item> {
@@ -4912,7 +4927,7 @@ impl Item {
             "minecraft:milk_bucket" => Item::MilkBucket,
             "minecraft:redstone" => Item::Redstone,
             "minecraft:ender_eye" => Item::EnderEye,
-            _ => return None,
+            _ => return generic::item_id(name).map(Item::Unknown),
         })
     }
     pub fn get_simple_placement(self) -> Option<Block> {
@@ -5138,7 +5153,7 @@ impl Item {
             Item::MilkBucket => false,
             Item::Redstone => true,
             Item::EnderEye => false,
-            Item::Unknown(_) => false,
+            Item::Unknown(id) => generic::item_is_block(id),
         }
     }
     pub fn max_stack_size(self) -> u32 {

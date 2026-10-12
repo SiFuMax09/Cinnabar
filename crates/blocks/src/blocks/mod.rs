@@ -134,19 +134,22 @@ impl Block {
             )
     }
 
+    /// Whether placing a block at the position of this block replaces it
     pub fn can_place_block_in(self) -> bool {
-        matches!(self.get_id(),
-            0               // Air
-            | 12958..=12959 // Void and Cave air
-            | 80..=95       // Water
-            | 96..=111      // Lava
-            | 2005          // Short Grass
-            | 2006          // Fern
-            | 2007          // Dead bush
-            | 2008          // Seagrass
-            | 2009..=2010   // Tall Seagrass
-            | 10755..=10756 // Tall Grass
-            | 10757..=10758 // Large Fern
+        matches!(
+            self.get_name(),
+            "minecraft:air"
+                | "minecraft:void_air"
+                | "minecraft:cave_air"
+                | "minecraft:water"
+                | "minecraft:lava"
+                | "minecraft:short_grass"
+                | "minecraft:fern"
+                | "minecraft:dead_bush"
+                | "minecraft:seagrass"
+                | "minecraft:tall_seagrass"
+                | "minecraft:tall_grass"
+                | "minecraft:large_fern"
         )
     }
 

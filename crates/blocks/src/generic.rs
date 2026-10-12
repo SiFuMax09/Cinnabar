@@ -1,0 +1,363 @@
+//! Support for block states and items that have no dedicated variant in the generated `Block` and
+//! `Item` enums.
+//!
+//! Only blocks that the server has special behavior for (redstone components and a few more) get
+//! their own variant. Every other block is represented by [`Block::Generic`] holding its state
+//! id, and the tables in this module describe it. The tables are generated from the Minecraft
+//! data generator and a probe of the server, see `mc_data/gen_generic_blocks.py`.
+
+use crate::blocks::{FlipDirection, RotateAmt};
+use std::collections::HashMap;
+use std::sync::LazyLock;
+
+pub struct GenericBlock {
+    pub name: &'static str,
+    pub first_id: u32,
+    pub default_id: u32,
+    /// The properties in the order of the state ids (the last one changes the fastest) together
+    /// with all values they can have.
+    pub props: Vec<(&'static str, Vec<&'static str>)>,
+    /// How much the state id changes when the value index of the property at the same position
+    /// in `props` goes up by one.
+    strides: Vec<u32>,
+    num_states: u32,
+}
+
+impl GenericBlock {
+    fn value_indices(&self, id: u32) -> impl Iterator<Item = usize> + '_ {
+        let offset = id - self.first_id;
+        self.props
+            .iter()
+            .zip(&self.strides)
+            .map(move |((_, values), stride)| (offset / stride) as usize % values.len())
+    }
+
+    fn prop_index(&self, name: &str) -> Option<usize> {
+        self.props.iter().position(|(prop, _)| *prop == name)
+    }
+}
+
+static BLOCKS: LazyLock<Vec<GenericBlock>> = LazyLock::new(|| {
+    let data = include_str!("../../../mc_data/generic_blocks.txt");
+    data.lines()
+        .map(|line| {
+            let mut parts = line.splitn(4, ' ');
+            let name = parts.next().unwrap();
+            let first_id = parts.next().unwrap().parse().unwrap();
+            let default_id = parts.next().unwrap().parse().unwrap();
+            let props: Vec<(&str, Vec<&str>)> = parts
+                .next()
+                .unwrap_or("")
+                .split(';')
+                .filter(|spec| !spec.is_empty())
+                .map(|spec| {
+                    let (prop, values) = spec.split_once('=').unwrap();
+                    (prop, values.split(',').collect())
+                })
+                .collect();
+            let mut strides = vec![1; props.len()];
+            for i in (0..props.len().saturating_sub(1)).rev() {
+                strides[i] = strides[i + 1] * props[i + 1].1.len() as u32;
+            }
+            let num_states = props.iter().map(|(_, values)| values.len() as u32).product();
+            GenericBlock {
+                name,
+                first_id,
+                default_id,
+                props,
+                strides,
+                num_states,
+            }
+        })
+        .collect()
+});
+
+static BY_NAME: LazyLock<HashMap<&'static str, usize>> = LazyLock::new(|| {
+    BLOCKS
+        .iter()
+        .enumerate()
+        .map(|(idx, block)| (block.name, idx))
+        .collect()
+});
+
+/// Two bytes per block state: flags and the note block instrument
+static ATTRS: &[u8] = include_bytes!("../../../mc_data/block_attrs.bin");
+
+const FLAG_SOLID: u8 = 1;
+const FLAG_STURDY_TOP: u8 = 2;
+
+static ITEM_NAMES: LazyLock<Vec<&'static str>> =
+    LazyLock::new(|| include_str!("../../../mc_data/item_names.txt").lines().collect());
+
+static ITEM_IDS: LazyLock<HashMap<&'static str, u32>> = LazyLock::new(|| {
+    ITEM_NAMES
+        .iter()
+        .enumerate()
+        .map(|(id, name)| (*name, id as u32))
+        .collect()
+});
+
+/// The block the state id belongs to, if it is a valid state id
+pub fn block(id: u32) -> Option<&'static GenericBlock> {
+    let idx = BLOCKS.partition_point(|block| block.first_id <= id);
+    let block = &BLOCKS[idx.checked_sub(1)?];
+    (id < block.first_id + block.num_states).then_some(block)
+}
+
+pub fn state_name(id: u32) -> &'static str {
+    block(id).map_or("minecraft:air", |block| block.name)
+}
+
+/// The default state of a block, if there is a block with this name
+pub fn default_state(name: &str) -> Option<u32> {
+    BY_NAME.get(name).map(|&idx| BLOCKS[idx].default_id)
+}
+
+/// All properties of a state with their current values
+pub fn properties(id: u32) -> Vec<(&'static str, &'static str)> {
+    let Some(block) = block(id) else {
+        return Vec::new();
+    };
+    block
+        .props
+        .iter()
+        .zip(block.value_indices(id))
+        .map(|((name, values), idx)| (*name, values[idx]))
+        .collect()
+}
+
+/// The values the property can have for the block of this state
+pub fn property_values(id: u32, name: &str) -> &'static [&'static str] {
+    block(id)
+        .and_then(|block| block.prop_index(name).map(|idx| &block.props[idx].1[..]))
+        .unwrap_or(&[])
+}
+
+pub fn get_property(id: u32, name: &str) -> Option<&'static str> {
+    properties(id)
+        .into_iter()
+        .find_map(|(prop, value)| (prop == name).then_some(value))
+}
+
+/// Returns the state with one property changed. Unknown properties and values are ignored.
+pub fn with_property(id: u32, name: &str, value: &str) -> u32 {
+    let Some(block) = block(id) else {
+        return id;
+    };
+    let Some(prop_idx) = block.prop_index(name) else {
+        return id;
+    };
+    let Some(new_idx) = block.props[prop_idx].1.iter().position(|v| *v == value) else {
+        return id;
+    };
+    let stride = block.strides[prop_idx];
+    let old_idx = block.value_indices(id).nth(prop_idx).unwrap();
+    (id - old_idx as u32 * stride) + new_idx as u32 * stride
+}
+
+/// Changes the properties of a state, ignoring unknown properties and values
+pub fn set_properties(mut id: u32, props: &HashMap<&str, &str>) -> u32 {
+    for (name, value) in props {
+        id = with_property(id, name, value);
+    }
+    id
+}
+
+fn flags(id: u32) -> u8 {
+    ATTRS.get(id as usize * 2).copied().unwrap_or(0)
+}
+
+/// Whether redstone power can pass through the block
+pub fn is_solid(id: u32) -> bool {
+    flags(id) & FLAG_SOLID != 0
+}
+
+/// Whether redstone can be placed on top of the block
+pub fn is_cube(id: u32) -> bool {
+    flags(id) & FLAG_STURDY_TOP != 0
+}
+
+/// Blocks that are full blocks but don't conduct redstone power, like glass
+pub fn is_transparent(id: u32) -> bool {
+    flags(id) & (FLAG_SOLID | FLAG_STURDY_TOP) == FLAG_STURDY_TOP
+}
+
+/// The index of the note block instrument the block below a note block selects, which is the
+/// position in the `Instrument` enum
+pub fn instrument_index(id: u32) -> usize {
+    ATTRS.get(id as usize * 2 + 1).copied().unwrap_or(0) as usize
+}
+
+pub fn item_id(name: &str) -> Option<u32> {
+    ITEM_IDS.get(name).copied()
+}
+
+pub fn item_name(id: u32) -> &'static str {
+    ITEM_NAMES.get(id as usize).copied().unwrap_or("minecraft:air")
+}
+
+/// Whether the item places a block with the same name
+pub fn item_is_block(id: u32) -> bool {
+    BY_NAME.contains_key(item_name(id))
+}
+
+const DIRECTIONS: [&str; 4] = ["north", "east", "south", "west"];
+
+fn rotate_direction(dir: &str, quarter_turns: usize) -> &str {
+    match DIRECTIONS.iter().position(|d| *d == dir) {
+        Some(idx) => DIRECTIONS[(idx + quarter_turns) % 4],
+        None => dir,
+    }
+}
+
+fn flip_direction(dir: &str, flip: FlipDirection) -> &str {
+    match (flip, dir) {
+        (FlipDirection::FlipX, "east") => "west",
+        (FlipDirection::FlipX, "west") => "east",
+        (FlipDirection::FlipZ, "north") => "south",
+        (FlipDirection::FlipZ, "south") => "north",
+        _ => dir,
+    }
+}
+
+/// Applies `f` to every direction in a value like `ascending_east` or `south_west`
+fn map_directions(value: &str, f: impl Fn(&str) -> String) -> String {
+    value.split('_').map(f).collect::<Vec<_>>().join("_")
+}
+
+fn swap_left_right(value: &str) -> String {
+    match value {
+        "left" => "right".to_owned(),
+        "right" => "left".to_owned(),
+        _ => map_directions(value, |part| match part {
+            "left" => "right".to_owned(),
+            "right" => "left".to_owned(),
+            other => other.to_owned(),
+        }),
+    }
+}
+
+/// Transforms a state by remapping its properties: `f` gets the name and the value of every
+/// property and returns the new value for the property at `new name`
+fn transform(
+    id: u32,
+    rename: impl Fn(&str) -> String,
+    value_of: impl Fn(&str, &str) -> String,
+) -> u32 {
+    let props = properties(id);
+    let mut result = id;
+    for (name, value) in &props {
+        // The value that ends up in `name` comes from the property that is renamed to `name`
+        let (source_name, source_value) = props
+            .iter()
+            .find(|(source, _)| rename(source) == *name)
+            .map_or((*name, *value), |(source, value)| (*source, *value));
+        let new_value = value_of(source_name, source_value);
+        result = with_property(result, name, &new_value);
+    }
+    result
+}
+
+pub fn rotate(id: u32, amt: RotateAmt) -> u32 {
+    let turns = match amt {
+        RotateAmt::Rotate90 => 1,
+        RotateAmt::Rotate180 => 2,
+        RotateAmt::Rotate270 => 3,
+    };
+    transform(
+        id,
+        // Properties named after a direction (fences, walls, panes, ...) move around
+        |name| rotate_direction(name, turns).to_owned(),
+        |name, value| match name {
+            "axis" if turns % 2 == 1 => match value {
+                "x" => "z".to_owned(),
+                "z" => "x".to_owned(),
+                other => other.to_owned(),
+            },
+            "rotation" => value
+                .parse::<usize>()
+                .map_or(value.to_owned(), |rot| ((rot + 4 * turns) % 16).to_string()),
+            // Directions can appear in values too, like `facing=north` and `shape=north_south`
+            _ => map_directions(value, |part| rotate_direction(part, turns).to_owned()),
+        },
+    )
+}
+
+pub fn flip(id: u32, dir: FlipDirection) -> u32 {
+    transform(
+        id,
+        |name| flip_direction(name, dir).to_owned(),
+        |name, value| match name {
+            "rotation" => value.parse::<usize>().map_or(value.to_owned(), |rot| {
+                let mirrored = match dir {
+                    FlipDirection::FlipX => 16 - rot,
+                    FlipDirection::FlipZ => 8 + 16 - rot,
+                };
+                (mirrored % 16).to_string()
+            }),
+            // Mirroring swaps the sides of stairs, doors and chests
+            "shape" | "hinge" | "type" if value.contains("left") || value.contains("right") => {
+                swap_left_right(value)
+            }
+            _ => map_directions(value, |part| flip_direction(part, dir).to_owned()),
+        },
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn id_roundtrip() {
+        for block in BLOCKS.iter() {
+            for id in block.first_id..block.first_id + block.num_states {
+                let mut new_id = block.default_id;
+                for (name, value) in properties(id) {
+                    new_id = with_property(new_id, name, value);
+                }
+                assert_eq!(new_id, id, "{}", block.name);
+            }
+        }
+    }
+
+    #[test]
+    fn log_axis() {
+        let id = default_state("minecraft:oak_log").unwrap();
+        assert_eq!(get_property(id, "axis"), Some("y"));
+        let rotated = rotate(with_property(id, "axis", "x"), RotateAmt::Rotate90);
+        assert_eq!(get_property(rotated, "axis"), Some("z"));
+        assert!(is_solid(id));
+        assert!(is_cube(id));
+    }
+
+    #[test]
+    fn stairs_transform() {
+        let mut id = default_state("minecraft:oak_stairs").unwrap();
+        id = with_property(id, "facing", "north");
+        id = with_property(id, "shape", "inner_left");
+        let rotated = rotate(id, RotateAmt::Rotate90);
+        assert_eq!(get_property(rotated, "facing"), Some("east"));
+        assert_eq!(get_property(rotated, "shape"), Some("inner_left"));
+        let flipped = flip(id, FlipDirection::FlipX);
+        assert_eq!(get_property(flipped, "facing"), Some("north"));
+        assert_eq!(get_property(flipped, "shape"), Some("inner_right"));
+    }
+
+    #[test]
+    fn pane_sides_rotate() {
+        let mut id = default_state("minecraft:glass_pane").unwrap();
+        id = with_property(id, "north", "true");
+        let rotated = rotate(id, RotateAmt::Rotate90);
+        assert_eq!(get_property(rotated, "east"), Some("true"));
+        assert_eq!(get_property(rotated, "north"), Some("false"));
+    }
+
+    #[test]
+    fn glass_is_not_solid() {
+        let id = default_state("minecraft:glass").unwrap();
+        assert!(!is_solid(id));
+        assert!(is_cube(id));
+        assert!(is_transparent(id));
+    }
+}

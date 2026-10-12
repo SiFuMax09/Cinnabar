@@ -1,4 +1,5 @@
 use crate::config::CONFIG;
+use crate::generic_placement;
 use crate::player::Player;
 use crate::plot::{PlotWorld, PLOT_BLOCK_HEIGHT};
 use mchprs_blocks::block_entities::BlockEntity;
@@ -252,7 +253,7 @@ pub fn get_state_for_placement(
             eye: false,
             facing: context.player.get_direction().opposite(),
         },
-        _ => Block::Air,
+        _ => generic_placement::state_for_placement(item, context),
     };
     let block = simple_block.unwrap_or(block);
     if is_valid_position(block, world, pos) {
@@ -299,6 +300,7 @@ pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
     if block.has_block_entity() {
         world.delete_block_entity(pos);
     }
+    generic_placement::remove_partner(world, block, pos);
 
     match block {
         Block::RedstoneWire { .. } => {
@@ -332,6 +334,7 @@ pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
             world.set_block(pos, Block::Air);
             change_surrounding_blocks(world, pos);
             redstone::update_surrounding_blocks(world, pos);
+            generic_placement::after_remove(world, pos);
         }
     }
 }
@@ -477,6 +480,12 @@ pub fn use_item_on_block(
         return false;
     }
 
+    if !ctx.player.crouching
+        && generic_placement::try_make_double_slab(world, item.item_type, use_pos, ctx.block_face)
+    {
+        return false;
+    }
+
     if can_place && (0..PLOT_BLOCK_HEIGHT).contains(&block_pos.y) {
         let block = get_state_for_placement(world, block_pos, item.item_type, &ctx);
 
@@ -498,6 +507,7 @@ pub fn use_item_on_block(
         }
 
         place_in_world(block, world, block_pos, &item.nbt);
+        generic_placement::after_place(world, block_pos);
         false
     } else {
         true
