@@ -74,6 +74,8 @@ gen_config! {
     block_in_hitbox: bool = false,
     max_entities: i64 = 5000,
     auto_redpiler: bool = false,
+    // true restores the legacy road grid between plots and empty (void) neighbour chunks
+    plot_borders: bool = false,
     velocity: Option<VelocityConfig> = None
 }
 
