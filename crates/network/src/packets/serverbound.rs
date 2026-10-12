@@ -41,6 +41,7 @@ pub trait ServerBoundPacketHandler {
     fn handle_set_player_on_ground(&mut self, _packet: SSetPlayerOnGround, _player_idx: usize) {}
     fn handle_player_abilities(&mut self, _packet: SPlayerAbilities, _player_idx: usize) {}
     fn handle_player_action(&mut self, _packet: SPlayerAction, _player_idx: usize) {}
+    fn handle_pick_item_from_block(&mut self, _packet: SPickItemFromBlock, _player_idx: usize) {}
     fn handle_player_input(&mut self, _packet: SPlayerInput, _player_idx: usize) {}
     fn handle_player_command(&mut self, _packet: SPlayerCommand, _player_idx: usize) {}
     fn handle_swing_arm(&mut self, _packet: SSwingArm, _player_idx: usize) {}
@@ -464,6 +465,31 @@ impl ServerBoundPacket for SSetPlayerOnGround {
 
     fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
         handler.handle_set_player_on_ground(*self, player_idx);
+    }
+}
+
+/// Sent when the player pick-blocks (middle mouse button by default)
+#[derive(Debug)]
+pub struct SPickItemFromBlock {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+    pub include_data: bool,
+}
+
+impl ServerBoundPacket for SPickItemFromBlock {
+    fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
+        let (x, y, z) = decoder.read_position()?;
+        Ok(SPickItemFromBlock {
+            x,
+            y,
+            z,
+            include_data: decoder.read_bool()?,
+        })
+    }
+
+    fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
+        handler.handle_pick_item_from_block(*self, player_idx);
     }
 }
 

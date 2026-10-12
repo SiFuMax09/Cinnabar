@@ -147,6 +147,7 @@ fn read_decompressed<T: PacketDecoderExt>(
             0x1F => Box::new(SSetPlayerPositionAndRotation::decode(reader)?),
             0x20 => Box::new(SPlayerRotation::decode(reader)?),
             0x21 => Box::new(SSetPlayerOnGround::decode(reader)?),
+            0x24 => Box::new(SPickItemFromBlock::decode(reader)?),
             0x28 => Box::new(SPlayerAbilities::decode(reader)?),
             0x29 => Box::new(SPlayerAction::decode(reader)?),
             0x2A => Box::new(SPlayerCommand::decode(reader)?),

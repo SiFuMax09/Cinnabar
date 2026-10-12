@@ -4,6 +4,7 @@ use crate::player::{PacketSender, PlayerPos, SkinParts};
 use crate::server::Message;
 use crate::utils::{self, HyphenatedUUID};
 use mchprs_blocks::block_entities::BlockEntity;
+use mchprs_blocks::blocks::Block;
 use mchprs_blocks::items::{Item, ItemStack};
 use mchprs_blocks::BlockPos;
 use mchprs_network::packets::clientbound::*;
@@ -373,6 +374,45 @@ impl ServerBoundPacketHandler for Plot {
             _ => return,
         }
         self.broadcast_player_state(player);
+    }
+
+    fn handle_pick_item_from_block(&mut self, pick: SPickItemFromBlock, player: usize) {
+        let block = self.world.get_block(BlockPos::new(pick.x, pick.y, pick.z));
+        let name = match block {
+            Block::RedstoneWire { .. } => "minecraft:redstone",
+            _ => block.get_name(),
+        };
+        let Some(item_type) = Item::from_name(name) else {
+            return;
+        };
+
+        // Hotbar slots are 36..=44 in the player inventory window
+        let hotbar = |slot: usize| slot + 36;
+        let players = &mut self.players[player];
+        let existing = (0..9).find(|&slot| {
+            players.inventory[hotbar(slot)]
+                .as_ref()
+                .is_some_and(|stack| stack.item_type.get_id() == item_type.get_id())
+        });
+        let slot = match existing {
+            Some(slot) => slot,
+            None => {
+                // Prefer an empty hotbar slot, otherwise replace the selected one
+                let slot = (0..9)
+                    .find(|&slot| players.inventory[hotbar(slot)].is_none())
+                    .unwrap_or(players.selected_slot as usize);
+                let stack = ItemStack {
+                    item_type,
+                    count: 1,
+                    nbt: None,
+                };
+                players.set_inventory_slot(hotbar(slot) as u32, Some(stack));
+                slot
+            }
+        };
+
+        players.send_packet(&CSetHeldItem { slot: slot as i8 }.encode());
+        self.handle_set_held_item(SSetHeldItem { slot: slot as i16 }, player);
     }
 
     fn handle_player_input(&mut self, input: SPlayerInput, player: usize) {

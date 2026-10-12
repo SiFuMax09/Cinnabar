@@ -1,6 +1,7 @@
 use crate::config::CONFIG;
 use crate::player::{Gamemode, PacketSender, Player};
 use crate::plot::commands::DECLARE_COMMANDS;
+use crate::profile;
 use crate::plot::{self, database, Plot, PLOT_BLOCK_HEIGHT};
 use crate::utils::HyphenatedUUID;
 use crate::{permissions, utils};
@@ -451,6 +452,9 @@ impl MinecraftServer {
             clients[client_idx].send_packet(&plugin_message);
             return;
         }
+
+        // Without Velocity there is nobody who tells us the skin of the player
+        clients[client_idx].properties = profile::skin_properties(&username);
 
         self.complete_player_login(client_idx);
     }
