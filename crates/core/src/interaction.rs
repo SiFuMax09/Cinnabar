@@ -696,3 +696,52 @@ pub fn use_item_on_block(
         true
     }
 }
+
+#[cfg(test)]
+mod rail_tests {
+    use super::*;
+    use mchprs_world::testing::TestWorld;
+
+    fn floor_world() -> TestWorld {
+        let mut world = TestWorld::new(2, 2, 2);
+        let stone = mchprs_blocks::generic::default_state("minecraft:stone").unwrap();
+        for x in 0..32 {
+            for z in 0..32 {
+                world.set_block_raw(BlockPos::new(x, 0, z), stone);
+            }
+        }
+        world
+    }
+
+    fn rail(shape: &str) -> Block {
+        let id = mchprs_blocks::generic::default_state("minecraft:rail").unwrap();
+        Block::Generic(mchprs_blocks::generic::with_property(id, "shape", shape))
+    }
+
+    fn shape_at(world: &TestWorld, pos: BlockPos) -> Option<&'static str> {
+        match world.get_block(pos) {
+            Block::Generic(id) => mchprs_blocks::generic::get_property(id, "shape"),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn placed_rails_connect_and_break_without_support() {
+        let mut world = floor_world();
+        place_in_world(
+            rail("north_south"),
+            &mut world,
+            BlockPos::new(5, 1, 5),
+            &None,
+        );
+        place_in_world(rail("east_west"), &mut world, BlockPos::new(6, 1, 5), &None);
+        assert_eq!(shape_at(&world, BlockPos::new(5, 1, 5)), Some("east_west"));
+        assert_eq!(shape_at(&world, BlockPos::new(6, 1, 5)), Some("east_west"));
+
+        // Removing the support of the rail removes the rail
+        world.set_block_raw(BlockPos::new(5, 0, 5), 0);
+        change_neighbors(&mut world, BlockPos::new(5, 0, 5));
+        assert_eq!(world.get_block(BlockPos::new(5, 1, 5)), Block::Air);
+        assert!(shape_at(&world, BlockPos::new(6, 1, 5)).is_some());
+    }
+}
