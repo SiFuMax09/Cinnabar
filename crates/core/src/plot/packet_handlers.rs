@@ -256,6 +256,22 @@ impl ServerBoundPacketHandler for Plot {
         self.players[player].flying = player_abilities.is_flying;
     }
 
+    fn handle_attack(&mut self, attack: SAttack, player: usize) {
+        // Hitting a minecart breaks it, which only creative players do here
+        let is_minecart = self.entities.is_minecart(attack.entity_id);
+        if !is_minecart
+            || !matches!(self.players[player].gamemode, Gamemode::Creative)
+            || !super::may_edit_plot(
+                self.owner,
+                self.players[player].uuid,
+                self.edit_permissions(player),
+            )
+        {
+            return;
+        }
+        self.remove_entity(attack.entity_id);
+    }
+
     fn handle_swing_arm(&mut self, animation: SSwingArm, player: usize) {
         let animation_id = match animation.hand {
             0 => 0,

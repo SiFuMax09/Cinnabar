@@ -247,6 +247,13 @@ pub fn state_for_placement(item: Item, ctx: &UseOnBlockContext<'_>) -> Block {
         state.set("persistent", "true");
     }
 
+    if mchprs_redstone::rail::is_rail_name(name) {
+        // Rails are straight in the direction the player looks, the connections are made when
+        // the rail is placed
+        let east_west = matches!(player_dir, BlockDirection::East | BlockDirection::West);
+        state.set("shape", mchprs_redstone::rail::placement_shape(east_west));
+    }
+
     Block::from_id(state.0)
 }
 

@@ -4,6 +4,7 @@
 //! Entities are ticked 20 times per second, independent of the tick rate of the redstone in the
 //! plot.
 
+use super::minecart::{self, RAIL_HEIGHT};
 use super::physics::{move_box, raycast, Aabb, Vec3};
 use super::Plot;
 use crate::config::CONFIG;
@@ -15,6 +16,7 @@ use mchprs_blocks::{generic, BlockFace, BlockPos};
 use mchprs_network::packets::clientbound::*;
 use mchprs_network::packets::{PacketEncoder, PacketEncoderExt};
 use mchprs_proc_macros::protocol_id;
+use mchprs_redstone::rail;
 use mchprs_world::game_event::{block_center, EventContext, GameEvent};
 use mchprs_world::transport::{SpawnRequest, WorldItem};
 use mchprs_world::World;
@@ -34,10 +36,22 @@ const EXPLOSION_RAYS: i32 = 16;
 
 #[derive(Clone, Debug)]
 pub enum EntityKind {
-    PrimedTnt { fuse: i32 },
-    FallingBlock { block_id: u32 },
-    EnderPearl { owner: u128 },
-    Item { entry: InventoryEntry },
+    PrimedTnt {
+        fuse: i32,
+    },
+    FallingBlock {
+        block_id: u32,
+    },
+    EnderPearl {
+        owner: u128,
+    },
+    Item {
+        entry: InventoryEntry,
+    },
+    /// A minecart that drives along rails. `on_detector` is the detector rail it is pressing.
+    Minecart {
+        on_detector: Option<BlockPos>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -49,6 +63,9 @@ pub struct Entity {
     pub vel: Vec3,
     pub on_ground: bool,
     pub age: u32,
+    /// The rotation in degrees, which only minecarts change
+    pub yaw: f32,
+    pub pitch: f32,
 }
 
 impl Entity {
@@ -61,6 +78,8 @@ impl Entity {
             vel,
             on_ground: false,
             age: 0,
+            yaw: 0.0,
+            pitch: 0.0,
         }
     }
 
@@ -69,6 +88,7 @@ impl Entity {
         match self.kind {
             EntityKind::PrimedTnt { .. } | EntityKind::FallingBlock { .. } => (0.98, 0.98),
             EntityKind::EnderPearl { .. } | EntityKind::Item { .. } => (0.25, 0.25),
+            EntityKind::Minecart { .. } => (0.98, 0.7),
         }
     }
 
@@ -89,6 +109,10 @@ impl Entity {
                 0,
             ),
             EntityKind::Item { .. } => (protocol_id!("minecraft:entity_type", "minecraft:item"), 0),
+            EntityKind::Minecart { .. } => (
+                protocol_id!("minecraft:entity_type", "minecraft:minecart"),
+                0,
+            ),
         };
         let mut packets = vec![CSpawnEntity {
             entity_id: self.id,
@@ -97,9 +121,9 @@ impl Entity {
             x: self.pos.x,
             y: self.pos.y,
             z: self.pos.z,
-            pitch: 0.0,
-            yaw: 0.0,
-            head_yaw: 0.0,
+            pitch: self.pitch,
+            yaw: self.yaw,
+            head_yaw: self.yaw,
             data,
             velocity_x: (self.vel.x * 8000.0) as i16,
             velocity_y: (self.vel.y * 8000.0) as i16,
@@ -163,8 +187,8 @@ impl Entity {
             y: self.pos.y,
             z: self.pos.z,
             velocity: (self.vel.x, self.vel.y, self.vel.z),
-            yaw: 0.0,
-            pitch: 0.0,
+            yaw: self.yaw,
+            pitch: self.pitch,
             on_ground: self.on_ground,
         }
         .encode()
@@ -195,6 +219,11 @@ enum Action {
     Explode(Vec3, f32),
     Land(Vec3, u32),
     Teleport(u128, Vec3),
+    /// A minecart left and/or entered a detector rail
+    Detector {
+        leave: Option<BlockPos>,
+        enter: Option<BlockPos>,
+    },
 }
 
 #[derive(Default)]
@@ -213,6 +242,12 @@ impl Entities {
 
     pub fn spawn_packets(&self) -> Vec<PacketEncoder> {
         self.list.iter().flat_map(Entity::spawn_packets).collect()
+    }
+
+    pub fn is_minecart(&self, id: i32) -> bool {
+        self.list
+            .iter()
+            .any(|entity| entity.id == id && matches!(entity.kind, EntityKind::Minecart { .. }))
     }
 }
 
@@ -270,6 +305,40 @@ fn tick_entity(entity: &mut Entity, world: &impl World) -> (bool, Option<Action>
                 remove = true;
             }
         }
+        EntityKind::Minecart { on_detector } => {
+            let previous = *on_detector;
+            let detector = match minecart::drive(world, &mut entity.pos, &mut entity.vel) {
+                Some(movement) => {
+                    entity.yaw = movement.yaw;
+                    entity.pitch = movement.pitch;
+                    entity.on_ground = true;
+                    movement
+                        .rail
+                        .filter(|pos| matches!(world.get_block(*pos), Block::Generic(id) if rail::is_detector(id)))
+                }
+                None => {
+                    // Off the track the cart falls like the other entities
+                    entity.vel.y -= minecart::GRAVITY;
+                    entity.move_with_collision(world);
+                    entity.vel = entity.vel * 0.95;
+                    None
+                }
+            };
+            if entity.pos.y < -64.0 {
+                remove = true;
+            }
+            // Removing the cart releases the detector it was on
+            let enter = if remove { None } else { detector };
+            if previous != enter {
+                action = Some(Action::Detector {
+                    leave: previous,
+                    enter,
+                });
+            }
+            if let EntityKind::Minecart { on_detector } = &mut entity.kind {
+                *on_detector = detector;
+            }
+        }
         EntityKind::EnderPearl { owner } => {
             let owner = *owner;
             entity.vel.y -= 0.03;
@@ -317,6 +386,42 @@ impl Plot {
         }
         self.entities.list.push(entity);
         true
+    }
+
+    /// Places a minecart on the rail, which is what the minecart item does. Returns whether it
+    /// was spawned.
+    pub fn spawn_minecart(&mut self, rail_pos: BlockPos) -> bool {
+        let pos = Vec3::new(
+            rail_pos.x as f64 + 0.5,
+            rail_pos.y as f64 + RAIL_HEIGHT,
+            rail_pos.z as f64 + 0.5,
+        );
+        self.spawn_entity(Entity::new(
+            EntityKind::Minecart { on_detector: None },
+            pos,
+            Vec3::ZERO,
+        ))
+    }
+
+    /// Removes the entity with the id, for example a minecart that was broken
+    pub fn remove_entity(&mut self, id: i32) {
+        let Some(entity) = self.entities.list.iter().find(|entity| entity.id == id) else {
+            return;
+        };
+        if let EntityKind::Minecart {
+            on_detector: Some(pos),
+        } = entity.kind
+        {
+            self.reset_redpiler();
+            rail::set_detector_powered(&mut self.world, pos, false);
+        }
+        self.entities.list.retain(|entity| entity.id != id);
+        self.broadcast(
+            &CRemoveEntities {
+                entity_ids: vec![id],
+            }
+            .encode(),
+        );
     }
 
     /// Spawns primed TNT that hops up a little, like it does in Minecraft
@@ -561,6 +666,15 @@ impl Plot {
             match action {
                 Action::Explode(center, radius) => self.explode(center, radius),
                 Action::Land(pos, block_id) => self.land_falling_block(pos, block_id),
+                Action::Detector { leave, enter } => {
+                    self.reset_redpiler();
+                    if let Some(pos) = leave {
+                        rail::set_detector_powered(&mut self.world, pos, false);
+                    }
+                    if let Some(pos) = enter {
+                        rail::set_detector_powered(&mut self.world, pos, true);
+                    }
+                }
                 Action::Teleport(owner, pos) => {
                     if let Some(player) = self.players.iter_mut().find(|p| p.uuid == owner) {
                         player.teleport(PlayerPos::new(pos.x, pos.y, pos.z));
@@ -707,6 +821,7 @@ impl Plot {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mchprs_world::testing::TestWorld;
 
     /// Prints the packets of a TNT entity as hex, so they can be checked against the game's codecs
     #[test]
@@ -774,5 +889,98 @@ mod tests {
                 bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
             );
         }
+    }
+
+    /// Prints the packets of a minecart as hex, so they can be checked against the game's codecs
+    #[test]
+    #[ignore]
+    fn dump_minecart_packets() {
+        let mut entity = Entity::new(
+            EntityKind::Minecart { on_detector: None },
+            Vec3::new(1.5, 70.0625, 2.5),
+            Vec3::new(0.2, 0.0, 0.0),
+        );
+        entity.id = 7;
+        entity.yaw = -90.0;
+        entity.pitch = 0.0;
+        let mut packets = entity.spawn_packets();
+        packets.push(entity.teleport_packet());
+        for packet in packets {
+            let mut bytes = Vec::new();
+            packet.write_uncompressed(&mut bytes).unwrap();
+            println!(
+                "PACKET {}",
+                bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
+            );
+        }
+    }
+
+    fn minecart_world() -> TestWorld {
+        let mut world = TestWorld::new(2, 2, 2);
+        let stone = generic::default_state("minecraft:stone").unwrap();
+        for x in 0..32 {
+            for z in 0..32 {
+                world.set_block_raw(BlockPos::new(x, 0, z), stone);
+            }
+        }
+        for x in 5..=12 {
+            let id = generic::default_state("minecraft:rail").unwrap();
+            world.set_block_raw(BlockPos::new(x, 1, 5), id);
+            mchprs_redstone::rail::on_placed(&mut world, BlockPos::new(x, 1, 5));
+        }
+        world
+    }
+
+    #[test]
+    fn minecart_drives_along_the_track_and_is_teleported() {
+        let world = minecart_world();
+        let mut cart = Entity::new(
+            EntityKind::Minecart { on_detector: None },
+            Vec3::new(5.5, 1.0 + RAIL_HEIGHT, 5.5),
+            Vec3::new(0.2, 0.0, 0.0),
+        );
+        let (remove, action) = tick_entity(&mut cart, &world);
+        assert!(!remove);
+        assert!(action.is_none());
+        assert!(cart.pos.x > 5.5);
+        assert!(cart.on_ground);
+        assert!((cart.yaw + 90.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn minecart_off_the_track_falls() {
+        let world = minecart_world();
+        let mut cart = Entity::new(
+            EntityKind::Minecart { on_detector: None },
+            Vec3::new(20.5, 5.0, 5.5),
+            Vec3::ZERO,
+        );
+        tick_entity(&mut cart, &world);
+        assert!(cart.pos.y < 5.0);
+    }
+
+    #[test]
+    fn minecart_on_a_detector_rail_reports_it() {
+        let mut world = minecart_world();
+        let detector = BlockPos::new(7, 1, 5);
+        let id = generic::default_state("minecraft:detector_rail").unwrap();
+        let id = generic::with_property(id, "shape", "east_west");
+        world.set_block_raw(detector, id);
+        let mut cart = Entity::new(
+            EntityKind::Minecart { on_detector: None },
+            Vec3::new(6.9, 1.0 + RAIL_HEIGHT, 5.5),
+            Vec3::new(0.3, 0.0, 0.0),
+        );
+        let (_, action) = tick_entity(&mut cart, &world);
+        match action {
+            Some(Action::Detector { leave, enter }) => {
+                assert_eq!(leave, None);
+                assert_eq!(enter, Some(detector));
+            }
+            _ => panic!("the detector should be entered"),
+        }
+        assert!(
+            matches!(cart.kind, EntityKind::Minecart { on_detector: Some(pos) } if pos == detector)
+        );
     }
 }
