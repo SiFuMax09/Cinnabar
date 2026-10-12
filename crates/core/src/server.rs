@@ -13,7 +13,7 @@ use mchprs_network::packets::clientbound::{
     CGameEventType, CLogin, CLoginPluginRequest, CLoginSuccess, CPlayerInfoActions,
     CPlayerInfoAddPlayer, CPlayerInfoUpdate, CPlayerInfoUpdatePlayer, CPong, CRegistryData,
     CResponse, CSelectKnownPacks, CSetCompression, CSetContainerContent, CSetHeldItem,
-    CSynchronizePlayerPosition, CUpdateTags, ClientBoundPacket, UpdateTime,
+    CSynchronizePlayerPosition, CUpdateTags, ClientBoundPacket,
 };
 use mchprs_network::packets::serverbound::{
     SAcknowledgeFinishConfiguration, SHandshake, SLoginAcknowledged, SLoginPluginResponse,
@@ -423,14 +423,6 @@ impl MinecraftServer {
         player.client.send_packet(&held_item_change);
 
         player.client.send_packet(&DECLARE_COMMANDS);
-
-        let time_update = UpdateTime {
-            world_age: 0,
-            // Noon
-            time_of_day: -6000,
-        }
-        .encode();
-        player.client.send_packet(&time_update);
 
         player.update_player_abilities();
 

@@ -1,6 +1,7 @@
 mod fixer;
 mod v2_to_v3;
 mod v3_to_v4;
+mod v4_to_v5;
 
 use self::fixer::FixInfo;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -22,7 +23,8 @@ use thiserror::Error;
 /// 2: Update to MC 1.20.4
 /// 3: Change Tps and WorldSendRate to support real values (f32)
 /// 4: Update to MC 26.2, which changed all block state and item ids
-pub const VERSION: u32 = 4;
+/// 5: Add the time of day and weather of the plot
+pub const VERSION: u32 = 5;
 
 #[derive(Error, Debug)]
 pub enum PlotLoadError {
@@ -160,12 +162,41 @@ impl fmt::Display for Tps {
     }
 }
 
+/// The weather of a plot. Rain and thunder levels fade in and out, only the target is stored.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct WeatherData {
+    pub raining: bool,
+    pub thundering: bool,
+    /// Ticks until the weather clears again, 0 if it lasts until changed
+    pub ticks_left: u32,
+}
+
+/// The time of day of a plot, driven by its own world clock.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EnvironmentData {
+    pub clock_ticks: u64,
+    pub clock_frozen: bool,
+    pub weather: WeatherData,
+}
+
+impl Default for EnvironmentData {
+    /// Noon with a stopped clock, which is what plots looked like before they had a clock.
+    fn default() -> Self {
+        Self {
+            clock_ticks: 6000,
+            clock_frozen: true,
+            weather: WeatherData::default(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PlotData {
     pub tps: Tps,
     pub world_send_rate: WorldSendRate,
     pub chunk_data: Vec<ChunkData>,
     pub pending_ticks: Vec<TickEntry>,
+    pub environment: EnvironmentData,
 }
 
 impl PlotData {

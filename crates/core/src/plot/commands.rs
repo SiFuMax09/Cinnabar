@@ -577,6 +577,8 @@ impl Plot {
                 self.players[player]
                     .send_system_message("The world send rate was successfully set.");
             }
+            "time" => self.handle_time_command(player, &args),
+            "weather" => self.handle_weather_command(player, &args),
             "version" => {
                 self.players[player].send_system_message(&get_version_string());
             }
@@ -608,7 +610,7 @@ pub static DECLARE_COMMANDS: LazyLock<PacketEncoder> = LazyLock::new(|| {
             Node {
                 flags: CommandFlags::ROOT.bits() as i8,
                 children: vec![
-                    1, 4, 5, 6, 8, 10, 11, 13, 18, 30, 34, 41, 43, 44, 45, 49, 51, 52, 53, 58,
+                    1, 4, 5, 6, 8, 10, 11, 13, 18, 30, 34, 41, 43, 44, 45, 49, 51, 52, 53, 58, 59, 74,
                 ],
                 redirect_node: None,
                 name: None,
@@ -1138,6 +1140,204 @@ pub static DECLARE_COMMANDS: LazyLock<PacketEncoder> = LazyLock::new(|| {
                 redirect_node: None,
                 name: Some("tps"),
                 parser: None,
+                suggestions_type: None,
+            },
+            // 59: /time
+            Node {
+                flags: (CommandFlags::LITERAL).bits() as i8,
+                children: vec![60, 61, 62, 63, 64],
+                redirect_node: None,
+                name: Some("time"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 60: /time set
+            Node {
+                flags: (CommandFlags::LITERAL).bits() as i8,
+                children: vec![65, 66, 67, 68, 69],
+                redirect_node: None,
+                name: Some("set"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 61: /time add
+            Node {
+                flags: (CommandFlags::LITERAL).bits() as i8,
+                children: vec![70],
+                redirect_node: None,
+                name: Some("add"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 62: /time query
+            Node {
+                flags: (CommandFlags::LITERAL).bits() as i8,
+                children: vec![71, 72, 73],
+                redirect_node: None,
+                name: Some("query"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 63: /time freeze
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("freeze"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 64: /time unfreeze
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("unfreeze"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 65: /time set [ticks]
+            Node {
+                flags: (CommandFlags::ARGUMENT | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("ticks"),
+                parser: Some(Parser::String(0)),
+                suggestions_type: None,
+            },
+            // 66: /time set day
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("day"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 67: /time set noon
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("noon"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 68: /time set night
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("night"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 69: /time set midnight
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("midnight"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 70: /time add [ticks]
+            Node {
+                flags: (CommandFlags::ARGUMENT | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("ticks"),
+                parser: Some(Parser::Integer(i32::MIN, i32::MAX)),
+                suggestions_type: None,
+            },
+            // 71: /time query daytime
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("daytime"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 72: /time query gametime
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("gametime"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 73: /time query day
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("day"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 74: /weather
+            Node {
+                flags: (CommandFlags::LITERAL).bits() as i8,
+                children: vec![75, 76, 77],
+                redirect_node: None,
+                name: Some("weather"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 75: /weather clear
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![78],
+                redirect_node: None,
+                name: Some("clear"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 76: /weather rain
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![79],
+                redirect_node: None,
+                name: Some("rain"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 77: /weather thunder
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![80],
+                redirect_node: None,
+                name: Some("thunder"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 78: /weather clear [duration]
+            Node {
+                flags: (CommandFlags::ARGUMENT | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("duration"),
+                parser: Some(Parser::String(0)),
+                suggestions_type: None,
+            },
+            // 79: /weather rain [duration]
+            Node {
+                flags: (CommandFlags::ARGUMENT | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("duration"),
+                parser: Some(Parser::String(0)),
+                suggestions_type: None,
+            },
+            // 80: /weather thunder [duration]
+            Node {
+                flags: (CommandFlags::ARGUMENT | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("duration"),
+                parser: Some(Parser::String(0)),
                 suggestions_type: None,
             },
         ],

@@ -4,6 +4,7 @@ mod entities;
 pub(crate) mod fluids;
 mod physics;
 pub mod database;
+mod environment;
 mod monitor;
 mod packet_handlers;
 pub mod perf;
@@ -114,6 +115,7 @@ pub struct Plot {
     fluids: fluids::Fluids,
     vibrations: vibrations::Vibrations,
     perf: perf::PerfDisplay,
+    environment: environment::Environment,
 }
 
 pub struct PlotWorld {
@@ -584,6 +586,7 @@ impl Plot {
             .push(PlayerPacketSender::new(&player.client));
         self.scoreboard.add_player(&player);
         self.perf.mark_dirty();
+        self.environment.sync_player(&player);
         self.players.push(player);
         self.update_view_pos_for_player(self.players.len() - 1, true);
     }
@@ -1235,6 +1238,7 @@ impl Plot {
         if !self.players.is_empty() {
             self.tick_entities();
             self.tick_fluids();
+            self.tick_environment();
             self.timings.set_ticking(true);
             let now = Instant::now();
             self.last_player_time = now;
@@ -1304,6 +1308,7 @@ impl Plot {
             }
         } else {
             self.timings.set_ticking(false);
+            self.environment.pause();
             // Unload plot after 600 seconds unless the plot should be always loaded
             if self.last_player_time.elapsed().as_secs() > 600 && !self.always_running {
                 self.running = false;
@@ -1478,6 +1483,7 @@ impl Plot {
             fluids: Default::default(),
             vibrations: Default::default(),
             perf: Default::default(),
+            environment: environment::Environment::from_data(plot_data.environment),
             world,
         }
     }
@@ -1514,6 +1520,7 @@ impl Plot {
             world_send_rate: world.world_send_rate,
             chunk_data,
             pending_ticks: world.to_be_ticked.clone(),
+            environment: self.environment.data(),
         };
         data.save_to_file(format!("./world/plots/p{},{}", world.x, world.z))
             .unwrap();

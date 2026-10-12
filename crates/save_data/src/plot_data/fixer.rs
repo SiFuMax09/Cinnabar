@@ -7,7 +7,7 @@
 //! seperate download. As our save format changes in the future, the fixer
 //! module may become quite big.
 
-use super::{v2_to_v3, v3_to_v4};
+use super::{v2_to_v3, v3_to_v4, v4_to_v5};
 use super::{PlotData, PlotLoadError};
 use crate::plot_data::VERSION;
 use std::fs;
@@ -47,6 +47,7 @@ pub fn try_fix(path: impl AsRef<Path>, info: FixInfo) -> Result<Option<PlotData>
             v2_to_v3::convert_v2_to_v3(&path)?.map(crate::upgrade::upgrade_plot)
         }
         FixInfo::OldVersion { version: 3 } => v3_to_v4::convert_v3_to_v4(&path)?,
+        FixInfo::OldVersion { version: 4 } => v4_to_v5::convert_v4_to_v5(&path)?,
         _ => None,
     };
 

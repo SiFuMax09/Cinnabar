@@ -376,9 +376,11 @@ pub trait PacketEncoderExt: Write {
         let _ = self.write_all(&PacketEncoder::varint(val));
     }
 
-    fn write_varlong(&mut self, mut val: i64) {
+    fn write_varlong(&mut self, val: i64) {
+        // Logical shift, negative values take ten bytes
+        let mut val = val as u64;
         loop {
-            let mut temp = (val & 0b1111_1111) as u8;
+            let mut temp = (val & 0b0111_1111) as u8;
             val >>= 7;
             if val != 0 {
                 temp |= 0b1000_0000;
@@ -617,5 +619,27 @@ impl PacketEncoder {
         w.write_all(&self.buffer)?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn varlong_encoding() {
+        let encode = |val: i64| {
+            let mut buf = Vec::new();
+            buf.write_varlong(val);
+            buf
+        };
+        assert_eq!(encode(0), [0]);
+        assert_eq!(encode(127), [0x7f]);
+        assert_eq!(encode(128), [0x80, 0x01]);
+        assert_eq!(encode(6000), [0xf0, 0x2e]);
+        assert_eq!(
+            encode(-1),
+            [0xff; 9].iter().copied().chain([1]).collect::<Vec<_>>()
+        );
     }
 }

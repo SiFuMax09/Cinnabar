@@ -69,6 +69,7 @@ static EMPTY_PLOT: LazyLock<PlotData> = LazyLock::new(|| {
             world_send_rate: WorldSendRate::default(),
             chunk_data,
             pending_ticks: Vec::new(),
+            environment: Default::default(),
         }
     }
 });
