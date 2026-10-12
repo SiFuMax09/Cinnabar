@@ -29,7 +29,7 @@ use mchprs_text::TextComponent;
 use mchprs_world::storage::Chunk;
 use mchprs_world::{TickEntry, TickPriority, World};
 use monitor::TimingsMonitor;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use scoreboard::RedpilerState;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -111,9 +111,9 @@ pub struct PlotWorld {
     pending_block_entities: FxHashMap<BlockPos, CBlockEntityData>,
     pending_sounds: FxHashMap<BlockPos, CSoundEffect>,
     /// TNT blocks that received power and should become primed TNT
-    pub(super) pending_ignitions: Vec<BlockPos>,
+    pub(super) pending_ignitions: FxHashSet<BlockPos>,
     /// Blocks that might have to start falling
-    pub(super) pending_falling: Vec<BlockPos>,
+    pub(super) pending_falling: FxHashSet<BlockPos>,
 }
 
 impl PlotWorld {
@@ -267,15 +267,11 @@ impl World for PlotWorld {
     }
 
     fn ignite_tnt(&mut self, pos: BlockPos) {
-        if !self.pending_ignitions.contains(&pos) {
-            self.pending_ignitions.push(pos);
-        }
+        self.pending_ignitions.insert(pos);
     }
 
     fn schedule_falling_block(&mut self, pos: BlockPos) {
-        if !self.pending_falling.contains(&pos) {
-            self.pending_falling.push(pos);
-        }
+        self.pending_falling.insert(pos);
     }
 
     fn flush_block_changes(&mut self) {
@@ -1199,8 +1195,8 @@ impl Plot {
             world_send_rate: plot_data.world_send_rate,
             pending_block_entities: FxHashMap::default(),
             pending_sounds: FxHashMap::default(),
-            pending_ignitions: Vec::new(),
-            pending_falling: Vec::new(),
+            pending_ignitions: Default::default(),
+            pending_falling: Default::default(),
         };
         let tps = plot_data.tps;
         Plot {

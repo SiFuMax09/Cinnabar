@@ -72,6 +72,7 @@ gen_config! {
     schemati: bool = false,
     luckperms: Option<PermissionsConfig> = None,
     block_in_hitbox: bool = false,
+    max_entities: i64 = 5000,
     auto_redpiler: bool = false,
     velocity: Option<VelocityConfig> = None
 }

@@ -4,6 +4,7 @@
 //! plot.
 
 use super::physics::{move_box, raycast, Aabb, Vec3};
+use crate::config::CONFIG;
 use super::Plot;
 use crate::interaction;
 use crate::player::{self, PacketSender, PlayerPos};
@@ -256,18 +257,26 @@ impl Plot {
         }
     }
 
-    pub fn spawn_entity(&mut self, entity: Entity) {
+    /// Spawns the entity unless the plot has reached the limit of entities. Returns whether it was
+    /// spawned.
+    pub fn spawn_entity(&mut self, entity: Entity) -> bool {
+        if self.entities.list.len() >= CONFIG.max_entities as usize {
+            return false;
+        }
         for packet in entity.spawn_packets() {
             self.broadcast(&packet);
         }
         self.entities.list.push(entity);
+        true
     }
 
     /// Spawns primed TNT that hops up a little, like it does in Minecraft
-    pub fn spawn_tnt(&mut self, pos: Vec3, fuse: i32) {
+    pub fn spawn_tnt(&mut self, pos: Vec3, fuse: i32) -> bool {
         let angle = rand::random::<f64>() * std::f64::consts::TAU;
         let vel = Vec3::new(-angle.sin() * 0.02, 0.2, -angle.cos() * 0.02);
-        self.spawn_entity(Entity::new(EntityKind::PrimedTnt { fuse }, pos, vel));
+        if !self.spawn_entity(Entity::new(EntityKind::PrimedTnt { fuse }, pos, vel)) {
+            return false;
+        }
         self.world.play_sound(
             pos.block_pos(),
             protocol_id!("minecraft:sound_event", "minecraft:entity.tnt.primed"),
@@ -275,6 +284,7 @@ impl Plot {
             1.0,
             1.0,
         );
+        true
     }
 
     /// Turns the TNT block at the position into a primed TNT entity
@@ -283,9 +293,11 @@ impl Plot {
         {
             return;
         }
-        self.world.set_block(pos, Block::Air);
         let center = Vec3::new(pos.x as f64 + 0.5, pos.y as f64, pos.z as f64 + 0.5);
-        self.spawn_tnt(center, fuse);
+        // The block stays when there is no room for more entities
+        if self.spawn_tnt(center, fuse) {
+            self.world.set_block(pos, Block::Air);
+        }
     }
 
     /// Handles what the world asked for since the last time, like TNT that received power and
@@ -307,14 +319,15 @@ impl Plot {
             }
             self.reset_redpiler();
             let block_id = block.get_id();
-            self.world.set_block(pos, Block::Air);
             let center = Vec3::new(pos.x as f64 + 0.5, pos.y as f64, pos.z as f64 + 0.5);
-            self.spawn_entity(Entity::new(
+            if self.spawn_entity(Entity::new(
                 EntityKind::FallingBlock { block_id },
                 center,
                 Vec3::ZERO,
-            ));
-            interaction::change_neighbors(&mut self.world, pos);
+            )) {
+                self.world.set_block(pos, Block::Air);
+                interaction::change_neighbors(&mut self.world, pos);
+            }
         }
     }
 
@@ -365,7 +378,10 @@ impl Plot {
             actions.extend(action);
         }
 
-        self.entities.list.retain(|entity| !removed.contains(&entity.id));
+        let removed_set: HashSet<i32> = removed.iter().copied().collect();
+        self.entities
+            .list
+            .retain(|entity| !removed_set.contains(&entity.id));
         for packet in &moved {
             self.broadcast(packet);
         }
@@ -446,32 +462,30 @@ impl Plot {
 
         // Entities in range get pushed away
         let reach = radius as f64 * 2.0;
+        let mut pushed = Vec::new();
         for entity in &mut self.entities.list {
             let (_, height) = entity.size();
             let offset = entity.pos + Vec3::new(0.0, height / 2.0, 0.0) - center;
+            // Cheap check first, as there can be a lot of entities
+            if offset.x.abs() > reach || offset.y.abs() > reach || offset.z.abs() > reach {
+                continue;
+            }
             let distance = offset.length();
             if distance > reach || distance < 1e-6 {
                 continue;
             }
             entity.vel += offset.normalized() * (1.0 - distance / reach);
+            pushed.push(CSetEntityMotion {
+                entity_id: entity.id,
+                x: entity.vel.x,
+                y: entity.vel.y,
+                z: entity.vel.z,
+            });
         }
-        let motion_packets: Vec<PacketEncoder> = self
-            .entities
-            .list
-            .iter()
-            .filter(|entity| entity.vel != Vec3::ZERO)
-            .map(|entity| {
-                CSetEntityMotion {
-                    entity_id: entity.id,
-                    x: entity.vel.x,
-                    y: entity.vel.y,
-                    z: entity.vel.z,
-                }
-                .encode()
-            })
-            .collect();
-        for packet in &motion_packets {
-            self.broadcast(packet);
+        // The entities that moved are sent their position in the next tick anyway, so the motion
+        // is only needed for the ones that are in the air
+        for motion in pushed {
+            self.broadcast(&motion.encode());
         }
 
         self.reset_redpiler();
@@ -483,6 +497,10 @@ impl Plot {
             }
             if matches!(block, Block::Generic(id) if generic::state_name(id) == "minecraft:tnt") {
                 ignite.push(*pos);
+            } else if let Block::Generic(_) = block {
+                // Blocks without behavior don't need the expensive updates of their neighbors
+                self.world.set_block(*pos, Block::Air);
+                self.world.schedule_falling_block(pos.offset(BlockFace::Top));
             } else {
                 interaction::destroy(block, &mut self.world, *pos);
             }
