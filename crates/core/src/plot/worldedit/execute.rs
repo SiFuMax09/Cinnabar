@@ -1052,9 +1052,12 @@ pub(super) fn execute_replace_container(ctx: CommandExecuteContext<'_>) {
             facing: BlockFacing::Up,
         },
         ContainerType::Hopper => Block::Hopper {
-            enabled: false,
+            enabled: true,
             facing: HopperFacing::Down,
         },
+        other => Block::Generic(
+            mchprs_blocks::generic::default_state(&other.to_string()).unwrap(),
+        ),
     };
     let slots = to.num_slots() as u32;
 
@@ -1065,10 +1068,7 @@ pub(super) fn execute_replace_container(ctx: CommandExecuteContext<'_>) {
                 let pos = BlockPos::new(x, y, z);
                 let block = ctx.plot.get_block(pos);
 
-                if !matches!(
-                    block,
-                    Block::Furnace { .. } | Block::Barrel { .. } | Block::Hopper { .. }
-                ) {
+                if ContainerType::for_block(block).is_none() {
                     continue;
                 }
                 let block_entity = ctx.plot.get_block_entity(pos);

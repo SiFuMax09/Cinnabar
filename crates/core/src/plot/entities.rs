@@ -1,4 +1,5 @@
-//! Entities that move around in a plot: primed TNT, falling blocks and thrown ender pearls.
+//! Entities that move around in a plot: primed TNT, falling blocks, thrown ender pearls and
+//! dropped items.
 //!
 //! Entities are ticked 20 times per second, independent of the tick rate of the redstone in the
 //! plot.
@@ -8,11 +9,13 @@ use crate::config::CONFIG;
 use super::Plot;
 use crate::interaction;
 use crate::player::{self, PacketSender, PlayerPos};
+use mchprs_blocks::block_entities::InventoryEntry;
 use mchprs_blocks::blocks::Block;
 use mchprs_blocks::{generic, BlockFace, BlockPos};
 use mchprs_network::packets::clientbound::*;
 use mchprs_network::packets::{PacketEncoder, PacketEncoderExt};
 use mchprs_proc_macros::protocol_id;
+use mchprs_world::transport::{SpawnRequest, WorldItem};
 use mchprs_world::World;
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
@@ -28,11 +31,12 @@ pub const TNT_FUSE: i32 = 80;
 const TNT_RADIUS: f32 = 4.0;
 const EXPLOSION_RAYS: i32 = 16;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum EntityKind {
     PrimedTnt { fuse: i32 },
     FallingBlock { block_id: u32 },
     EnderPearl { owner: u128 },
+    Item { entry: InventoryEntry },
 }
 
 #[derive(Clone, Debug)]
@@ -63,9 +67,12 @@ impl Entity {
     fn size(&self) -> (f64, f64) {
         match self.kind {
             EntityKind::PrimedTnt { .. } | EntityKind::FallingBlock { .. } => (0.98, 0.98),
-            EntityKind::EnderPearl { .. } => (0.25, 0.25),
+            EntityKind::EnderPearl { .. } | EntityKind::Item { .. } => (0.25, 0.25),
         }
     }
+
+    /// Dropped items stay for 5 minutes
+    const ITEM_LIFETIME: u32 = 6000;
 
     fn spawn_packets(&self) -> Vec<PacketEncoder> {
         let (entity_type, data) = match self.kind {
@@ -81,6 +88,7 @@ impl Entity {
                 protocol_id!("minecraft:entity_type", "minecraft:ender_pearl"),
                 0,
             ),
+            EntityKind::Item { .. } => (protocol_id!("minecraft:entity_type", "minecraft:item"), 0),
         };
         let mut packets = vec![
             CSpawnEntity {
@@ -100,8 +108,10 @@ impl Entity {
             }
             .encode(),
         ];
-        if let EntityKind::PrimedTnt { fuse } = self.kind {
-            packets.push(self.tnt_metadata(fuse));
+        match &self.kind {
+            EntityKind::PrimedTnt { fuse } => packets.push(self.tnt_metadata(*fuse)),
+            EntityKind::Item { entry } => packets.push(self.item_metadata(entry)),
+            _ => {}
         }
         packets
     }
@@ -127,6 +137,23 @@ impl Entity {
                     value: block_value,
                 },
             ],
+        }
+        .encode()
+    }
+
+    /// The item stack the client renders, which is metadata field 8 of an item entity
+    pub fn item_metadata(&self, entry: &InventoryEntry) -> PacketEncoder {
+        let stack = crate::utils::inventory_entry_to_stack(entry);
+        let mut value = Vec::new();
+        value.write_slot_data(&Some(crate::utils::encode_slot_data(&stack)));
+        CSetEntityMetadata {
+            entity_id: self.id,
+            metadata: vec![CSetEntityMetadataEntry {
+                index: 8,
+                // Item stack
+                metadata_type: 7,
+                value,
+            }],
         }
         .encode()
     }
@@ -218,6 +245,23 @@ fn tick_entity(entity: &mut Entity, world: &impl World) -> (bool, Option<Action>
                 remove = true;
                 action = Some(Action::Land(entity.pos, block_id));
             } else if entity.pos.y < -64.0 || entity.age > 600 {
+                remove = true;
+            }
+        }
+        EntityKind::Item { .. } => {
+            entity.vel.y -= GRAVITY;
+            entity.move_with_collision(world);
+            // 0.98 of air drag, and the default block friction of 0.6 on top of it on the ground
+            let horizontal = if entity.on_ground { 0.98 * 0.6 } else { 0.98 };
+            entity.vel = Vec3::new(
+                entity.vel.x * horizontal,
+                entity.vel.y * 0.98,
+                entity.vel.z * horizontal,
+            );
+            if entity.on_ground && entity.vel.y < 0.0 {
+                entity.vel.y *= -0.5;
+            }
+            if entity.age >= Entity::ITEM_LIFETIME || entity.pos.y < -64.0 {
                 remove = true;
             }
         }
@@ -327,6 +371,104 @@ impl Plot {
             )) {
                 self.world.set_block(pos, Block::Air);
                 interaction::change_neighbors(&mut self.world, pos);
+            }
+        }
+    }
+
+    /// Runs the hoppers once and spawns what droppers and dispensers produced. This is part of
+    /// the redstone tick, unlike the entities, which are ticked in real time.
+    pub(super) fn tick_item_transport(&mut self) {
+        if !self.world.transport.is_empty() {
+            let transport = &mut self.world.transport;
+            transport.changed_items.clear();
+            transport.items = self
+                .entities
+                .list
+                .iter()
+                .filter_map(|entity| match &entity.kind {
+                    EntityKind::Item { entry } => Some(WorldItem {
+                        entity_id: entity.id,
+                        pos: (entity.pos.x, entity.pos.y, entity.pos.z),
+                        entry: entry.clone(),
+                    }),
+                    _ => None,
+                })
+                .collect();
+            mchprs_redstone::transport::tick_hoppers(&mut self.world);
+            self.apply_picked_up_items();
+        }
+        self.spawn_transport_entities();
+    }
+
+    /// Takes the items that hoppers picked up out of the entities
+    fn apply_picked_up_items(&mut self) {
+        let transport = &mut self.world.transport;
+        if transport.changed_items.is_empty() {
+            return;
+        }
+        let items = std::mem::take(&mut transport.items);
+        let changed = std::mem::take(&mut transport.changed_items);
+        let mut removed = Vec::new();
+        let mut updated = Vec::new();
+        for item in items.into_iter().filter(|item| changed.contains(&item.entity_id)) {
+            let Some(entity) = self
+                .entities
+                .list
+                .iter_mut()
+                .find(|entity| entity.id == item.entity_id)
+            else {
+                continue;
+            };
+            if item.entry.count <= 0 {
+                removed.push(entity.id);
+            } else {
+                entity.kind = EntityKind::Item { entry: item.entry };
+                updated.push(entity.id);
+            }
+        }
+        for id in updated {
+            let entity = self.entities.list.iter().find(|entity| entity.id == id).unwrap();
+            if let EntityKind::Item { entry } = &entity.kind {
+                self.broadcast(&entity.item_metadata(entry));
+            }
+        }
+        if !removed.is_empty() {
+            self.entities
+                .list
+                .retain(|entity| !removed.contains(&entity.id));
+            self.broadcast(
+                &CRemoveEntities {
+                    entity_ids: removed,
+                }
+                .encode(),
+            );
+        }
+    }
+
+    fn spawn_transport_entities(&mut self) {
+        let transport = &mut self.world.transport;
+        let spawned = std::mem::take(&mut transport.spawned);
+        let requests = std::mem::take(&mut transport.spawn_requests);
+        for item in spawned {
+            self.spawn_entity(Entity::new(
+                EntityKind::Item { entry: item.entry },
+                Vec3::new(item.pos.0, item.pos.1, item.pos.2),
+                Vec3::new(item.vel.0, item.vel.1, item.vel.2),
+            ));
+        }
+        for request in requests {
+            match request {
+                SpawnRequest::PrimedTnt { pos } => {
+                    self.spawn_tnt(Vec3::new(pos.0, pos.1, pos.2), TNT_FUSE);
+                }
+                SpawnRequest::EnderPearl { pos, vel } => {
+                    // Without a thrower nobody is teleported
+                    self.spawn_entity(Entity::new(
+                        EntityKind::EnderPearl { owner: 0 },
+                        Vec3::new(pos.0, pos.1, pos.2),
+                        Vec3::new(vel.0, vel.1, vel.2),
+                    ));
+                }
             }
         }
     }

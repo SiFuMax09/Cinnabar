@@ -59,6 +59,41 @@ impl TransportKind {
     }
 }
 
+/// The state id ranges of the blocks that hold their items in a block entity without a variant of
+/// their own
+fn container_ranges() -> &'static [Range<u32>] {
+    static RANGES: OnceLock<Vec<Range<u32>>> = OnceLock::new();
+    RANGES.get_or_init(|| {
+        const COLORS: [&str; 16] = [
+            "white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
+            "light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black",
+        ];
+        let mut names = vec![
+            "minecraft:dropper".to_owned(),
+            "minecraft:dispenser".to_owned(),
+            "minecraft:chest".to_owned(),
+            "minecraft:trapped_chest".to_owned(),
+            "minecraft:shulker_box".to_owned(),
+        ];
+        names.extend(COLORS.iter().map(|color| format!("minecraft:{color}_shulker_box")));
+        let mut ranges: Vec<_> = names
+            .iter()
+            .filter_map(|name| generic::state_range(name))
+            .collect();
+        ranges.push(kind_ranges()[0].0.clone());
+        ranges
+    })
+}
+
+/// Identifies the block a container state belongs to, ignoring properties like the facing.
+/// Containers of the same family keep their block entity when one state is replaced by another.
+pub fn container_family(id: u32) -> Option<u32> {
+    container_ranges()
+        .iter()
+        .find(|range| range.contains(&id))
+        .map(|range| range.start)
+}
+
 /// The part of a hopper that is not saved with its items
 #[derive(Clone, Copy, Debug)]
 pub struct HopperState {

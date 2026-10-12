@@ -29,6 +29,7 @@ use mchprs_redpiler::{Compiler, CompilerOptions};
 use mchprs_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
 use mchprs_text::TextComponent;
 use mchprs_world::storage::Chunk;
+use mchprs_world::transport::{self, ItemTransport};
 use mchprs_world::{TickEntry, TickPriority, World};
 use monitor::TimingsMonitor;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -116,6 +117,7 @@ pub struct PlotWorld {
     pub(super) pending_ignitions: FxHashSet<BlockPos>,
     /// Blocks that might have to start falling
     pub(super) pending_falling: FxHashSet<BlockPos>,
+    pub transport: ItemTransport,
 }
 
 impl PlotWorld {
@@ -132,6 +134,21 @@ impl PlotWorld {
             return None;
         }
         Some(((chunk_x << PLOT_SCALE) + chunk_z).unsigned_abs() as usize)
+    }
+
+    /// Finds the hoppers, droppers and dispensers of a freshly loaded plot
+    fn rebuild_transport(&mut self) {
+        let (first, second) = self.get_corners();
+        let mut found = Vec::new();
+        mchprs_world::for_each_block_optimized(&*self, first, second, |pos| {
+            let id = self.get_block_raw(pos);
+            if transport::TransportKind::of_state(id).is_some() {
+                found.push((pos, id));
+            }
+        });
+        for (pos, id) in found {
+            self.transport.on_block_set(pos, id);
+        }
     }
 
     pub fn get_corners(&self) -> (BlockPos, BlockPos) {
@@ -160,12 +177,19 @@ impl World for PlotWorld {
         }
 
         let chunk = &mut self.chunks[chunk_index];
-        chunk.set_block(
-            (pos.x & 0xF) as u32,
-            pos.y as u32,
-            (pos.z & 0xF) as u32,
-            block,
-        )
+        let (x, y, z) = ((pos.x & 0xF) as u32, pos.y as u32, (pos.z & 0xF) as u32);
+        let old = chunk.get_block(x, y, z);
+        let changed = chunk.set_block(x, y, z, block);
+        if changed {
+            // Items must not carry over to the next container placed at the position
+            let old_family = transport::container_family(old);
+            if old_family.is_some() && old_family != transport::container_family(block) {
+                chunk.delete_block_entity(BlockPos::new(x as i32, pos.y, z as i32));
+                self.pending_block_entities.remove(&pos);
+            }
+            self.transport.on_block_set(pos, block);
+        }
+        changed
     }
 
     /// Returns the block state id of the block at `pos`
@@ -268,6 +292,10 @@ impl World for PlotWorld {
         self.pending_sounds.insert(pos, sound_effect_data);
     }
 
+    fn transport(&mut self) -> &mut ItemTransport {
+        &mut self.transport
+    }
+
     fn ignite_tnt(&mut self, pos: BlockPos) {
         self.pending_ignitions.insert(pos);
     }
@@ -331,6 +359,7 @@ impl Plot {
             let entry = self.world.to_be_ticked.remove(0);
             mchprs_redstone::tick(self.world.get_block(entry.pos), &mut self.world, entry.pos);
         }
+        self.tick_item_transport();
     }
 
     pub fn send_block_corrections(&mut self, positions: &[BlockPos]) {
@@ -742,6 +771,17 @@ impl Plot {
     }
 
     fn start_redpiler(&mut self, options: CompilerOptions) {
+        // The redpiler only knows static circuits. Hoppers, droppers and dispensers move items
+        // between block entities every tick, which it cannot compile, so the plot keeps running
+        // on the regular tick implementation.
+        if !self.world.transport.is_empty() {
+            for player in &self.players {
+                player.send_error_message(
+                    "Redpiler cannot compile plots with hoppers, droppers or dispensers.",
+                );
+            }
+            return;
+        }
         debug!("Starting redpiler");
         self.scoreboard
             .set_redpiler_state(&self.players, RedpilerState::Compiling);
@@ -1141,6 +1181,7 @@ impl Plot {
 
             if self.auto_redpiler
                 && !self.redpiler.is_active()
+                && self.world.transport.is_empty()
                 && (self.tps == Tps::Unlimited || self.timings.is_running_behind())
             {
                 self.start_redpiler(Default::default());
@@ -1227,7 +1268,7 @@ impl Plot {
             let possible_scale = (chunks.len() as f64).sqrt().log2();
             error!("Note: it most likely came from a server running plot scale {}, this server is running a plot scale of {}", possible_scale, PLOT_SCALE);
         }
-        let world = PlotWorld {
+        let mut world = PlotWorld {
             x,
             z,
             chunks,
@@ -1238,7 +1279,9 @@ impl Plot {
             pending_sounds: FxHashMap::default(),
             pending_ignitions: Default::default(),
             pending_falling: Default::default(),
+            transport: Default::default(),
         };
+        world.rebuild_transport();
         let tps = plot_data.tps;
         Plot {
             last_player_time: Instant::now(),
