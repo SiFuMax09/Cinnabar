@@ -5,7 +5,7 @@ use anyhow::{bail, Result};
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
 use mchprs_blocks::BlockPos;
-use mchprs_world::MC_DATA_VERSION;
+use mchprs_world::{World, MC_DATA_VERSION};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use std::fs::{self, File};
@@ -48,6 +48,41 @@ fn renamed_block(name: &str) -> &str {
     match name {
         "minecraft:chain" => "minecraft:iron_chain",
         other => other,
+    }
+}
+
+/// Places the clipboard in any world with `pos` at the origin of the clipboard. The server has
+/// its own faster implementation for plots, this is for tools and tests.
+pub fn paste_clipboard<W: World>(
+    world: &mut W,
+    cb: &WorldEditClipboard,
+    pos: BlockPos,
+    ignore_air: bool,
+) {
+    let base = BlockPos::new(
+        pos.x - cb.offset_x,
+        pos.y - cb.offset_y,
+        pos.z - cb.offset_z,
+    );
+    let mut i = 0;
+    for y in 0..cb.size_y as i32 {
+        for z in 0..cb.size_z as i32 {
+            for x in 0..cb.size_x as i32 {
+                let entry = cb.data[i] as u32;
+                i += 1;
+                if ignore_air && entry == 0 {
+                    continue;
+                }
+                world.set_block_raw(BlockPos::new(base.x + x, base.y + y, base.z + z), entry);
+            }
+        }
+    }
+
+    // Send block changes before we send block entity data, otherwise it'll be ignored
+    world.flush_block_changes();
+
+    for (pos, block_entity) in &cb.block_entities {
+        world.set_block_entity(base + *pos, block_entity.clone());
     }
 }
 

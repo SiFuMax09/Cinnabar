@@ -1,16 +1,25 @@
+use super::brush::{Brush, BrushKind, MAX_BRUSH_SIZE};
+use super::job::*;
+use super::ops;
+use super::pattern::FastRng;
+use super::session::{create_clipboard, read_box};
+use super::shapes;
+use super::transform::{flip_clipboard, rotate_clipboard, Axis};
 use super::*;
 use crate::config::CONFIG;
 use crate::player::PacketSender;
 use crate::plot::PLOT_BLOCK_HEIGHT;
 use crate::utils::{self, HyphenatedUUID};
-use mchprs_blocks::block_entities::InventoryEntry;
-use mchprs_blocks::blocks::{Block, FlipDirection, HopperFacing, RotateAmt};
+use mchprs_blocks::block_entities::{BlockEntity, InventoryEntry};
+use mchprs_blocks::blocks::{Block, HopperFacing};
 use mchprs_blocks::items::{Item, ItemStack};
 use mchprs_blocks::{BlockDirection, BlockFace, BlockFacing, BlockPos};
 use mchprs_network::packets::clientbound::*;
-use mchprs_schematic::{load_schematic, paste_clipboard, save_schematic, WorldEditClipboard};
+use mchprs_schematic::{load_schematic, save_schematic, WorldEditClipboard};
 use mchprs_text::{ColorCode, TextComponentBuilder};
+use regex::Regex;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use std::time::Instant;
 use tracing::error;
 
@@ -36,98 +45,132 @@ pub(super) fn execute_wand(ctx: CommandExecuteContext<'_>) {
     }
 }
 
-pub(super) fn execute_set(ctx: CommandExecuteContext<'_>) {
-    let start_time = Instant::now();
-    let pattern = ctx.arguments[0].unwrap_pattern();
+static SCHEMATI_VALIDATE_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[a-zA-Z0-9_.]+\.schem(atic)?").unwrap());
 
-    let mut operation = worldedit_start_operation(ctx.player);
-    capture_undo(
-        ctx.plot,
-        ctx.player,
-        ctx.player.first_position.unwrap(),
-        ctx.player.second_position.unwrap(),
-    );
-    for x in operation.x_range() {
-        for y in operation.y_range() {
-            for z in operation.z_range() {
-                let block_pos = BlockPos::new(x, y, z);
-                let block_id = pattern.pick().get_id();
+/// The corners of the selection with the smaller coordinates first
+fn selection(ctx: &CommandExecuteContext<'_>) -> (BlockPos, BlockPos) {
+    let first = ctx.player.first_position.unwrap();
+    let second = ctx.player.second_position.unwrap();
+    (first.min(second), first.max(second))
+}
 
-                if ctx.plot.set_block_raw(block_pos, block_id) {
-                    operation.update_block();
-                }
-            }
+/// The clipboard of the player if the pattern needs it. Tells the player when there is none.
+fn clipboard_for(
+    ctx: &CommandExecuteContext<'_>,
+    pattern: &Pattern,
+) -> Result<Option<WorldEditClipboard>, ()> {
+    if !pattern.needs_clipboard() {
+        return Ok(None);
+    }
+    match &ctx.player.worldedit_clipboard {
+        Some(clipboard) => Ok(Some(clipboard.clone())),
+        None => {
+            ctx.player
+                .send_error_message("Your clipboard is empty. Use //copy first.");
+            Err(())
         }
     }
+}
 
-    let blocks_updated = operation.blocks_updated();
+fn held_item_id(player: &Player) -> Option<u32> {
+    player.inventory[player.selected_slot as usize + 36]
+        .as_ref()
+        .map(|item| item.item_type.get_id())
+}
 
-    ctx.player.send_worldedit_message(&format!(
-        "Operation completed: {} block(s) affected ({:?})",
-        blocks_updated,
-        start_time.elapsed()
-    ));
+pub(super) fn execute_set(ctx: CommandExecuteContext<'_>) {
+    let pattern = ctx.arguments[0].unwrap_pattern().clone();
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    let (min, max) = selection(&ctx);
+    let job = ops::region_job(
+        ctx.plot,
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        None,
+        min,
+        max,
+        pattern,
+        clipboard,
+        None,
+    );
+    ctx.jobs.push_back(job);
 }
 
 pub(super) fn execute_replace(ctx: CommandExecuteContext<'_>) {
-    let start_time = Instant::now();
-
-    let filter = ctx.arguments[0].unwrap_mask();
-    let pattern = ctx.arguments[1].unwrap_pattern();
-
-    let mut operation = worldedit_start_operation(ctx.player);
-    capture_undo(
+    let filter = ctx.arguments[0].unwrap_mask().clone();
+    let pattern = ctx.arguments[1].unwrap_pattern().clone();
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    let (min, max) = selection(&ctx);
+    let job = ops::region_job(
         ctx.plot,
-        ctx.player,
-        ctx.player.first_position.unwrap(),
-        ctx.player.second_position.unwrap(),
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        Some(filter),
+        min,
+        max,
+        pattern,
+        clipboard,
+        None,
     );
-    for x in operation.x_range() {
-        for y in operation.y_range() {
-            for z in operation.z_range() {
-                let block_pos = BlockPos::new(x, y, z);
+    ctx.jobs.push_back(job);
+}
 
-                if filter.matches(ctx.plot.get_block(block_pos)) {
-                    let block_id = pattern.pick().get_id();
-
-                    if ctx.plot.set_block_raw(block_pos, block_id) {
-                        operation.update_block();
-                    }
-                }
-            }
-        }
-    }
-
-    let blocks_updated = operation.blocks_updated();
-
-    ctx.player.send_worldedit_message(&format!(
-        "Operation completed: {} block(s) affected ({:?})",
-        blocks_updated,
-        start_time.elapsed()
-    ));
+pub(super) fn execute_replace_near(ctx: CommandExecuteContext<'_>) {
+    let size = ctx.arguments[0].unwrap_uint().min(256) as i32;
+    let filter = ctx.arguments[1].unwrap_mask().clone();
+    let pattern = ctx.arguments[2].unwrap_pattern().clone();
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    let center = ctx.player.pos.block_pos();
+    let job = ops::region_job(
+        ctx.plot,
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        Some(filter),
+        BlockPos::new(center.x - size, center.y - size, center.z - size),
+        BlockPos::new(center.x + size, center.y + size, center.z + size),
+        pattern,
+        clipboard,
+        None,
+    );
+    ctx.jobs.push_back(job);
 }
 
 pub(super) fn execute_count(ctx: CommandExecuteContext<'_>) {
     let start_time = Instant::now();
 
     let filter = ctx.arguments[0].unwrap_mask();
-
-    let mut blocks_counted = 0;
-    let operation = worldedit_start_operation(ctx.player);
-    for x in operation.x_range() {
-        for y in operation.y_range() {
-            for z in operation.z_range() {
-                let block_pos = BlockPos::new(x, y, z);
-                if filter.matches(ctx.plot.get_block(block_pos)) {
-                    blocks_counted += 1;
+    let (min, max) = selection(&ctx);
+    let data = read_box(ctx.plot, min, max);
+    let counted = if filter.is_state_only() {
+        data.iter()
+            .filter(|id| filter.test_state(**id as u32))
+            .count()
+    } else {
+        let mut rng = FastRng::new();
+        let mut counted = 0;
+        let mut i = 0;
+        for y in min.y..=max.y {
+            for z in min.z..=max.z {
+                for x in min.x..=max.x {
+                    let pos = BlockPos::new(x, y, z);
+                    counted += filter.test(&*ctx.plot, pos, data[i] as u32, &mut rng) as usize;
+                    i += 1;
                 }
             }
         }
-    }
+        counted
+    };
 
     ctx.player.send_worldedit_message(&format!(
         "Counted {} block(s) ({:?})",
-        blocks_counted,
+        counted,
         start_time.elapsed()
     ));
 }
@@ -151,110 +194,652 @@ pub(super) fn execute_copy(ctx: CommandExecuteContext<'_>) {
 }
 
 pub(super) fn execute_cut(ctx: CommandExecuteContext<'_>) {
-    let start_time = Instant::now();
-
-    let first_pos = ctx.player.first_position.unwrap();
-    let second_pos = ctx.player.second_position.unwrap();
-
-    capture_undo(ctx.plot, ctx.player, first_pos, second_pos);
+    let (min, max) = selection(&ctx);
 
     let origin = ctx.player.pos.block_pos();
-    let clipboard = create_clipboard(ctx.plot, origin, first_pos, second_pos);
-    ctx.player.worldedit_clipboard = Some(clipboard);
-    clear_area(ctx.plot, first_pos, second_pos);
-
-    ctx.player.send_worldedit_message(&format!(
-        "Your selection was cut. ({:?})",
-        start_time.elapsed()
-    ));
+    ctx.player.worldedit_clipboard = Some(create_clipboard(ctx.plot, origin, min, max));
+    let job = ops::region_job(
+        ctx.plot,
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        None,
+        min,
+        max,
+        Pattern::Single(0),
+        None,
+        None,
+    )
+    .on_finish(|player, stats| {
+        player.send_worldedit_message(&format!("Your selection was cut. ({:?})", stats.elapsed));
+    });
+    ctx.jobs.push_back(job);
 }
 
 pub(super) fn execute_move(mut ctx: CommandExecuteContext<'_>) {
-    let start_time = Instant::now();
-
     let move_amt = ctx.arguments[0].unwrap_uint();
     let direction = ctx.arguments[1].unwrap_direction();
+    let replace = ctx.arguments[2].unwrap_pattern().clone();
 
-    let first_pos = ctx.player.first_position.unwrap();
-    let second_pos = ctx.player.second_position.unwrap();
+    let (min, max) = selection(&ctx);
+    let offset = direction.offset_pos(BlockPos::zero(), move_amt as i32);
+    let clipboard = create_clipboard(ctx.plot, min, min, max);
 
-    let zero_pos = BlockPos::new(0, 0, 0);
-
-    let undo = WorldEditUndo {
-        clipboards: vec![
-            create_clipboard(ctx.plot, first_pos.min(second_pos), first_pos, second_pos),
-            create_clipboard(
-                ctx.plot,
-                first_pos.min(second_pos),
-                direction.offset_pos(first_pos, move_amt as i32),
-                direction.offset_pos(second_pos, move_amt as i32),
-            ),
-        ],
-        pos: first_pos.min(second_pos),
-        plot_x: ctx.plot.x,
-        plot_z: ctx.plot.z,
-    };
-    ctx.player.worldedit_undo.push(undo);
-
-    let clipboard = create_clipboard(ctx.plot, zero_pos, first_pos, second_pos);
-    clear_area(ctx.plot, first_pos, second_pos);
-    paste_clipboard(
-        ctx.plot,
-        &clipboard,
-        direction.offset_pos(zero_pos, move_amt as i32),
-        ctx.has_flag('a'),
-    );
+    let job = EditJob::new(ctx.player.uuid, ctx.player.worldedit_mask.clone())
+        .stage(ops::clear_stage(ctx.plot, min, max, replace))
+        .stage(
+            ops::paste_stage(ctx.plot, clipboard, vec![min + offset], ctx.has_flag('a'))
+                .commit_to(HistoryDest::Undo),
+        )
+        .on_finish(|player, stats| {
+            player.send_worldedit_message(&format!(
+                "Your selection was moved. ({:?})",
+                stats.elapsed
+            ));
+        });
+    ctx.jobs.push_back(job);
 
     if ctx.has_flag('s') {
-        let first_pos = direction.offset_pos(first_pos, move_amt as i32);
-        let second_pos = direction.offset_pos(second_pos, move_amt as i32);
+        let first_pos = ctx.player.first_position.unwrap() + offset;
+        let second_pos = ctx.player.second_position.unwrap() + offset;
         let player = &mut ctx.player;
         player.worldedit_set_first_position(first_pos);
         player.worldedit_set_second_position(second_pos);
     }
+}
 
+/// Lets the blocks of the area update their neighbours, as a stage that comes after the edit
+fn update_stage(world: &PlotWorld, min: BlockPos, max: BlockPos) -> Stage {
+    Stage::new(
+        section_items(world, min, max),
+        Box::new(|session, item| {
+            let WorkItem::Box(lo, hi) = item else {
+                return 0;
+            };
+            for y in lo.y..=hi.y {
+                for z in lo.z..=hi.z {
+                    for x in lo.x..=hi.x {
+                        let pos = BlockPos::new(x, y, z);
+                        if session.get(pos) != 0 {
+                            let block = session.world.get_block(pos);
+                            mchprs_redstone::update(block, session.world, pos);
+                        }
+                    }
+                }
+            }
+            0
+        }),
+    )
+}
+
+pub(super) fn execute_paste(ctx: CommandExecuteContext<'_>) {
+    let clipboard = ctx.player.worldedit_clipboard.clone().unwrap();
+    let pos = ctx.player.pos.block_pos();
+    let first_pos = BlockPos::new(
+        pos.x - clipboard.offset_x,
+        pos.y - clipboard.offset_y,
+        pos.z - clipboard.offset_z,
+    );
+    let second_pos = BlockPos::new(
+        first_pos.x + clipboard.size_x as i32 - 1,
+        first_pos.y + clipboard.size_y as i32 - 1,
+        first_pos.z + clipboard.size_z as i32 - 1,
+    );
+    let mut job = EditJob::new(ctx.player.uuid, ctx.player.worldedit_mask.clone()).stage(
+        ops::paste_stage(ctx.plot, clipboard, vec![first_pos], ctx.has_flag('a'))
+            .commit_to(HistoryDest::Undo),
+    );
+    if ctx.has_flag('u') {
+        job = job.stage(update_stage(ctx.plot, first_pos, second_pos));
+    }
+    ctx.jobs.push_back(job.on_finish(|player, stats| {
+        player.send_worldedit_message(&format!("Your clipboard was pasted. ({:?})", stats.elapsed));
+    }));
+    if ctx.has_flag('s') {
+        ctx.player.worldedit_set_first_position(first_pos);
+        ctx.player.worldedit_set_second_position(second_pos);
+    }
+}
+
+pub(super) fn execute_stack(ctx: CommandExecuteContext<'_>) {
+    // More copies than fit in the plot would be placed outside of it anyway
+    let stack_amt = ctx.arguments[0].unwrap_uint().min(1024);
+    let direction = ctx.arguments[1].unwrap_direction();
+    let (min, max) = selection(&ctx);
+    let clipboard = create_clipboard(ctx.plot, min, min, max);
+    let stack_offset = match direction {
+        BlockFacing::North | BlockFacing::South => clipboard.size_z,
+        BlockFacing::East | BlockFacing::West => clipboard.size_x,
+        BlockFacing::Up | BlockFacing::Down => clipboard.size_y,
+    };
+    let bases = (1..=stack_amt)
+        .map(|i| direction.offset_pos(min, (i * stack_offset) as i32))
+        .collect();
+    let job = ops::paste_job(
+        ctx.plot,
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        clipboard,
+        bases,
+        ctx.has_flag('a'),
+    )
+    .on_finish(|player, stats| {
+        player.send_worldedit_message(&format!(
+            "Your selection was stacked. ({:?})",
+            stats.elapsed
+        ));
+    });
+    ctx.jobs.push_back(job);
+}
+
+pub(super) fn execute_rstack(ctx: CommandExecuteContext<'_>) {
+    let stack_amt = ctx.arguments[0].unwrap_uint();
+    let stack_spacing = ctx.arguments[1].unwrap_uint();
+    let direction = ctx.arguments[2].unwrap_direction_vec();
+    let (min, max) = selection(&ctx);
+    let clipboard = create_clipboard(ctx.plot, min, min, max);
+    let bases = (1..=stack_amt.min(10_000))
+        .map(|i| min + direction * (i * stack_spacing) as i32)
+        .collect();
+    let job = ops::paste_job(
+        ctx.plot,
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        clipboard,
+        bases,
+        !ctx.has_flag('a'),
+    )
+    .on_finish(|player, stats| {
+        player.send_worldedit_message(&format!(
+            "Your selection was stacked successfully. ({:?})",
+            stats.elapsed
+        ));
+    });
+    ctx.jobs.push_back(job);
+
+    if ctx.has_flag('e') {
+        expand_selection(
+            ctx.player,
+            direction * (stack_amt * stack_spacing) as i32,
+            false,
+        );
+    }
+}
+
+pub(super) fn execute_undo(ctx: CommandExecuteContext<'_>) {
+    let times = ctx.arguments[0].unwrap_uint().clamp(1, 1000);
+    ctx.jobs
+        .push_back(ops::history_job(ctx.player.uuid, times, true));
+}
+
+pub(super) fn execute_redo(ctx: CommandExecuteContext<'_>) {
+    let times = ctx.arguments[0].unwrap_uint().clamp(1, 1000);
+    ctx.jobs
+        .push_back(ops::history_job(ctx.player.uuid, times, false));
+}
+
+pub(super) fn execute_flip(ctx: CommandExecuteContext<'_>) {
+    let start_time = Instant::now();
+
+    let direction = ctx.arguments[0].unwrap_direction();
+    let axis = match direction {
+        BlockFacing::East | BlockFacing::West => Axis::X,
+        BlockFacing::North | BlockFacing::South => Axis::Z,
+        BlockFacing::Up | BlockFacing::Down => Axis::Y,
+    };
+    let clipboard = ctx.player.worldedit_clipboard.as_ref().unwrap();
+    let flipped = flip_clipboard(clipboard, axis);
+
+    ctx.player.worldedit_clipboard = Some(flipped);
     ctx.player.send_worldedit_message(&format!(
-        "Your selection was moved. ({:?})",
+        "The clipboard copy has been flipped. ({:?})",
         start_time.elapsed()
     ));
 }
 
-pub(super) fn execute_paste(ctx: CommandExecuteContext<'_>) {
+pub(super) fn execute_rotate(ctx: CommandExecuteContext<'_>) {
     let start_time = Instant::now();
 
-    if ctx.player.worldedit_clipboard.is_some() {
-        // Here I am cloning the clipboard. This is bad. Don't do this.
-        let cb = &ctx.player.worldedit_clipboard.clone().unwrap();
-        let pos = ctx.player.pos.block_pos();
-        let offset_x = pos.x - cb.offset_x;
-        let offset_y = pos.y - cb.offset_y;
-        let offset_z = pos.z - cb.offset_z;
-        let first_pos = BlockPos::new(offset_x, offset_y, offset_z);
-        let second_pos = BlockPos::new(
-            offset_x + cb.size_x as i32 - 1,
-            offset_y + cb.size_y as i32 - 1,
-            offset_z + cb.size_z as i32 - 1,
-        );
-        capture_undo(ctx.plot, ctx.player, first_pos, second_pos);
-        paste_clipboard(ctx.plot, cb, pos, ctx.has_flag('a'));
-        if ctx.has_flag('u') {
-            update(ctx.plot, first_pos, second_pos);
+    let mut rotations = Vec::new();
+    for (axis, arg) in [Axis::Y, Axis::X, Axis::Z].into_iter().zip(&ctx.arguments) {
+        let degrees = arg.unwrap_int();
+        if degrees % 90 != 0 {
+            ctx.player
+                .send_error_message("Rotate amount must be a multiple of 90.");
+            return;
         }
-        if ctx.has_flag('s') {
-            ctx.player.worldedit_set_first_position(first_pos);
-            ctx.player.worldedit_set_second_position(second_pos);
-        }
-        ctx.player.send_worldedit_message(&format!(
-            "Your clipboard was pasted. ({:?})",
-            start_time.elapsed()
-        ));
-    } else {
-        ctx.player.send_system_message("Your clipboard is empty!");
+        rotations.push((axis, degrees / 90));
+    }
+    let mut clipboard = ctx.player.worldedit_clipboard.take().unwrap();
+    for (axis, turns) in rotations {
+        clipboard = rotate_clipboard(&clipboard, axis, turns);
+    }
+    ctx.player.worldedit_clipboard = Some(clipboard);
+    ctx.player.send_worldedit_message(&format!(
+        "The clipboard copy has been rotated. ({:?})",
+        start_time.elapsed()
+    ));
+}
+
+fn sphere(ctx: CommandExecuteContext<'_>, hollow: bool) {
+    let pattern = ctx.arguments[0].unwrap_pattern().clone();
+    let radius = ctx.arguments[1].unwrap_uint().min(512);
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    let mut center = ctx.player.pos.block_pos();
+    if ctx.has_flag('r') {
+        center.y += radius as i32;
+    }
+    let job = ops::sphere_job(
+        ctx.plot,
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        None,
+        center,
+        radius,
+        hollow,
+        pattern,
+        clipboard,
+    );
+    ctx.jobs.push_back(job);
+}
+
+pub(super) fn execute_sphere(ctx: CommandExecuteContext<'_>) {
+    sphere(ctx, false);
+}
+
+pub(super) fn execute_hsphere(ctx: CommandExecuteContext<'_>) {
+    sphere(ctx, true);
+}
+
+fn cylinder(ctx: CommandExecuteContext<'_>, hollow: bool) {
+    let pattern = ctx.arguments[0].unwrap_pattern().clone();
+    let radius = ctx.arguments[1].unwrap_uint().min(512);
+    let height = ctx.arguments[2].unwrap_uint().min(PLOT_BLOCK_HEIGHT as u32);
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    let job = ops::cylinder_job(
+        ctx.plot,
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        None,
+        ctx.player.pos.block_pos(),
+        radius,
+        height as i32,
+        hollow,
+        pattern,
+        clipboard,
+    );
+    ctx.jobs.push_back(job);
+}
+
+pub(super) fn execute_cyl(ctx: CommandExecuteContext<'_>) {
+    cylinder(ctx, false);
+}
+
+pub(super) fn execute_hcyl(ctx: CommandExecuteContext<'_>) {
+    cylinder(ctx, true);
+}
+
+fn shell(ctx: CommandExecuteContext<'_>, faces: bool) {
+    let pattern = ctx.arguments[0].unwrap_pattern().clone();
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    let (min, max) = selection(&ctx);
+    let job = ops::shell_job(
+        ctx.plot,
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        min,
+        max,
+        faces,
+        pattern,
+        clipboard,
+    );
+    ctx.jobs.push_back(job);
+}
+
+pub(super) fn execute_walls(ctx: CommandExecuteContext<'_>) {
+    shell(ctx, false);
+}
+
+pub(super) fn execute_faces(ctx: CommandExecuteContext<'_>) {
+    shell(ctx, true);
+}
+
+pub(super) fn execute_overlay(ctx: CommandExecuteContext<'_>) {
+    let pattern = ctx.arguments[0].unwrap_pattern().clone();
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    let (min, max) = selection(&ctx);
+    let job = ops::overlay_job(
+        ctx.plot,
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        min,
+        max,
+        pattern,
+        clipboard,
+    );
+    ctx.jobs.push_back(job);
+}
+
+/// The biggest area the commands that have to look at all of it work on
+const MAX_ANALYSED_VOLUME: i64 = 16 * 1024 * 1024;
+
+fn volume(min: BlockPos, max: BlockPos) -> i64 {
+    (max.x - min.x + 1) as i64 * (max.y - min.y + 1) as i64 * (max.z - min.z + 1) as i64
+}
+
+pub(super) fn execute_hollow(ctx: CommandExecuteContext<'_>) {
+    let thickness = ctx.arguments[0].unwrap_uint();
+    let pattern = ctx.arguments[1].unwrap_pattern().clone();
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    let (min, max) = selection(&ctx);
+    if volume(min, max) > MAX_ANALYSED_VOLUME {
+        ctx.player
+            .send_error_message("The selection is too big to hollow out.");
+        return;
+    }
+    let job = ops::hollow_job(
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        min,
+        max,
+        thickness,
+        pattern,
+        clipboard,
+    );
+    ctx.jobs.push_back(job);
+}
+
+pub(super) fn execute_smooth(ctx: CommandExecuteContext<'_>) {
+    let iterations = ctx.arguments[0].unwrap_uint().min(100);
+    let (min, max) = selection(&ctx);
+    if volume(min, max) > MAX_ANALYSED_VOLUME {
+        ctx.player
+            .send_error_message("The selection is too big to smooth.");
+        return;
+    }
+    let job = ops::smooth_job(
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        min,
+        max,
+        iterations,
+        None,
+    );
+    ctx.jobs.push_back(job);
+}
+
+pub(super) fn execute_line(ctx: CommandExecuteContext<'_>) {
+    let pattern = ctx.arguments[0].unwrap_pattern().clone();
+    let thickness = ctx.arguments[1].unwrap_uint().min(16);
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    let job = ops::line_job(
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        ctx.player.first_position.unwrap(),
+        ctx.player.second_position.unwrap(),
+        thickness,
+        pattern,
+        clipboard,
+    );
+    ctx.jobs.push_back(job);
+}
+
+pub(super) fn execute_center(ctx: CommandExecuteContext<'_>) {
+    let pattern = ctx.arguments[0].unwrap_pattern().clone();
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    let (min, max) = selection(&ctx);
+    let (lo, hi) = shapes::center_boxes(min, max);
+    let job = ops::region_job(
+        ctx.plot,
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        None,
+        lo,
+        hi,
+        pattern,
+        clipboard,
+        None,
+    );
+    ctx.jobs.push_back(job);
+}
+
+fn fill(ctx: CommandExecuteContext<'_>, depth: u32) {
+    let pattern = ctx.arguments[0].unwrap_pattern().clone();
+    let radius = ctx.arguments[1].unwrap_uint().min(256);
+    let depth = depth.clamp(1, PLOT_BLOCK_HEIGHT as u32);
+    let Ok(clipboard) = clipboard_for(&ctx, &pattern) else {
+        return;
+    };
+    if (2 * radius as i64 + 1).pow(2) * depth as i64 > MAX_ANALYSED_VOLUME {
+        ctx.player
+            .send_error_message("That area is too big to fill, use a smaller radius or depth.");
+        return;
+    }
+    let job = ops::fill_job(
+        ctx.player.uuid,
+        ctx.player.worldedit_mask.clone(),
+        ctx.player.pos.block_pos(),
+        radius,
+        depth,
+        pattern,
+        clipboard,
+    );
+    ctx.jobs.push_back(job);
+}
+
+pub(super) fn execute_fill(ctx: CommandExecuteContext<'_>) {
+    let depth = ctx.arguments[2].unwrap_uint();
+    fill(ctx, depth);
+}
+
+pub(super) fn execute_fillr(ctx: CommandExecuteContext<'_>) {
+    let depth = ctx.arguments[2].unwrap_uint();
+    fill(ctx, depth);
+}
+
+pub(super) fn execute_chunk(ctx: CommandExecuteContext<'_>) {
+    let pos = ctx.player.pos.block_pos();
+    let (x, z) = (pos.x & !0xF, pos.z & !0xF);
+    ctx.player
+        .worldedit_set_first_position(BlockPos::new(x, 0, z));
+    ctx.player
+        .worldedit_set_second_position(BlockPos::new(x + 15, PLOT_BLOCK_HEIGHT - 1, z + 15));
+}
+
+fn parse_size(text: &str, default: u32) -> Result<u32, String> {
+    if text.is_empty() {
+        return Ok(default);
+    }
+    match text.parse::<u32>() {
+        Ok(size) if (1..=MAX_BRUSH_SIZE).contains(&size) => Ok(size),
+        _ => Err(format!(
+            "The size has to be a number from 1 to {MAX_BRUSH_SIZE}."
+        )),
     }
 }
 
-static SCHEMATI_VALIDATE_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"[a-zA-Z0-9_.]+\.schem(atic)?").unwrap());
+fn create_brush(ctx: &CommandExecuteContext<'_>, kind: &str) -> Result<Brush, String> {
+    let arg = |i: usize| ctx.arguments[i].unwrap_string().as_str();
+    let (a1, a2, a3) = (arg(1), arg(2), arg(3));
+    let hollow = ctx.has_flag('h');
+    let pattern = |text: &str| {
+        if text.is_empty() {
+            return Err("A pattern is missing, use for example //brush sphere stone 5".to_owned());
+        }
+        Pattern::parse(text).map_err(|err| err.to_string())
+    };
+    let air = Pattern::Single(0);
+    let (kind, pattern, size) = match kind {
+        "sphere" | "s" => (
+            BrushKind::Sphere { hollow },
+            pattern(a1)?,
+            parse_size(a2, 3)?,
+        ),
+        "cylinder" | "cyl" | "c" => {
+            let height = parse_size(a3, 1)?;
+            (
+                BrushKind::Cylinder { height, hollow },
+                pattern(a1)?,
+                parse_size(a2, 3)?,
+            )
+        }
+        "smooth" => {
+            let iterations = match a2.is_empty() {
+                true => 4,
+                false => a2
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|n| (1..=100).contains(n))
+                    .ok_or("The iterations have to be a number from 1 to 100.")?,
+            };
+            (BrushKind::Smooth { iterations }, air, parse_size(a1, 3)?)
+        }
+        "clipboard" | "clip" => (
+            BrushKind::Clipboard {
+                ignore_air: ctx.has_flag('a'),
+            },
+            air,
+            1,
+        ),
+        _ => {
+            return Err(
+                "Unknown brush, use sphere, cylinder, smooth, clipboard or none.".to_owned(),
+            )
+        }
+    };
+    Ok(Brush {
+        kind,
+        pattern,
+        size,
+        mask: None,
+        mask_text: None,
+    })
+}
+
+pub(super) fn execute_brush(ctx: CommandExecuteContext<'_>) {
+    let kind = ctx.arguments[0].unwrap_string().to_lowercase();
+    let Some(item_id) = held_item_id(ctx.player) else {
+        ctx.player
+            .send_error_message("Hold the item you want to bind the brush to.");
+        return;
+    };
+    if ctx.player.inventory[ctx.player.selected_slot as usize + 36]
+        .as_ref()
+        .is_some_and(|item| item.item_type == Item::WoodenAxe)
+    {
+        ctx.player
+            .send_error_message("The wooden axe is the selection wand, use another item.");
+        return;
+    }
+    if matches!(kind.as_str(), "none" | "off") {
+        ctx.player.worldedit_brushes.remove(&item_id);
+        ctx.player
+            .send_worldedit_message("The brush of this item was removed.");
+        return;
+    }
+    match create_brush(&ctx, &kind) {
+        Ok(brush) => {
+            ctx.player.send_worldedit_message(&format!(
+                "Brush bound to the item in your hand: {}",
+                brush.describe()
+            ));
+            ctx.player.worldedit_brushes.insert(item_id, brush);
+        }
+        Err(message) => ctx.player.send_error_message(&message),
+    }
+}
+
+/// Changes the brush in the hand of the player
+fn with_held_brush(
+    ctx: &mut CommandExecuteContext<'_>,
+    change: impl FnOnce(&mut Brush) -> Result<(), String>,
+) {
+    let Some(item_id) = held_item_id(ctx.player) else {
+        ctx.player
+            .send_error_message("Hold the item with the brush you want to change.");
+        return;
+    };
+    let Some(brush) = ctx.player.worldedit_brushes.get_mut(&item_id) else {
+        ctx.player
+            .send_error_message("There is no brush bound to the item in your hand.");
+        return;
+    };
+    match change(brush) {
+        Ok(()) => {
+            let text = brush.describe();
+            ctx.player
+                .send_worldedit_message(&format!("Brush changed: {text}"));
+        }
+        Err(message) => ctx.player.send_error_message(&message),
+    }
+}
+
+pub(super) fn execute_size(mut ctx: CommandExecuteContext<'_>) {
+    let size = ctx.arguments[0].unwrap_uint();
+    with_held_brush(&mut ctx, |brush| {
+        brush.size = parse_size(&size.to_string(), 1)?;
+        Ok(())
+    });
+}
+
+pub(super) fn execute_mat(mut ctx: CommandExecuteContext<'_>) {
+    let pattern = ctx.arguments[0].unwrap_pattern().clone();
+    with_held_brush(&mut ctx, |brush| {
+        brush.pattern = pattern;
+        Ok(())
+    });
+}
+
+fn parse_optional_mask(text: &str) -> Result<Option<Mask>, String> {
+    if text.is_empty() || matches!(text, "none" | "off" | "clear") {
+        return Ok(None);
+    }
+    Mask::parse(text).map(Some).map_err(|err| err.to_string())
+}
+
+pub(super) fn execute_mask(mut ctx: CommandExecuteContext<'_>) {
+    let text = ctx.arguments[0].unwrap_string().clone();
+    with_held_brush(&mut ctx, |brush| {
+        brush.mask = parse_optional_mask(&text)?;
+        brush.mask_text = brush.mask.is_some().then_some(text);
+        Ok(())
+    });
+}
+
+pub(super) fn execute_gmask(ctx: CommandExecuteContext<'_>) {
+    match parse_optional_mask(ctx.arguments[0].unwrap_string()) {
+        Ok(mask) => {
+            let message = match mask {
+                Some(_) => "Your global mask was set.",
+                None => "Your global mask was removed.",
+            };
+            ctx.player.worldedit_mask = mask;
+            ctx.player.send_worldedit_message(message);
+        }
+        Err(message) => ctx.player.send_error_message(&message),
+    }
+}
+
+pub(super) fn execute_none(ctx: CommandExecuteContext<'_>) {
+    if let Some(item_id) = held_item_id(ctx.player) {
+        ctx.player.worldedit_brushes.remove(&item_id);
+    }
+    ctx.player
+        .send_worldedit_message("The brush of this item was removed.");
+}
 
 pub(super) fn execute_load(ctx: CommandExecuteContext<'_>) {
     let start_time = Instant::now();
@@ -327,121 +912,6 @@ pub(super) fn execute_save(ctx: CommandExecuteContext<'_>) {
                 .send_error_message("There was an error saving the schematic.");
         }
     }
-}
-
-pub(super) fn execute_stack(ctx: CommandExecuteContext<'_>) {
-    let start_time = Instant::now();
-
-    let stack_amt = ctx.arguments[0].unwrap_uint();
-    let direction = ctx.arguments[1].unwrap_direction();
-    let pos1 = ctx.player.first_position.unwrap();
-    let pos2 = ctx.player.second_position.unwrap();
-    let clipboard = create_clipboard(ctx.plot, pos1, pos1, pos2);
-    let stack_offset = match direction {
-        BlockFacing::North | BlockFacing::South => clipboard.size_z,
-        BlockFacing::East | BlockFacing::West => clipboard.size_x,
-        BlockFacing::Up | BlockFacing::Down => clipboard.size_y,
-    };
-    let mut undo_cbs = Vec::new();
-    for i in 1..stack_amt + 1 {
-        let offset = (i * stack_offset) as i32;
-        let block_pos = direction.offset_pos(pos1, offset);
-        undo_cbs.push(create_clipboard(
-            ctx.plot,
-            pos1,
-            block_pos,
-            direction.offset_pos(pos2, offset),
-        ));
-        paste_clipboard(ctx.plot, &clipboard, block_pos, ctx.has_flag('a'));
-    }
-    let undo = WorldEditUndo {
-        clipboards: undo_cbs,
-        pos: pos1,
-        plot_x: ctx.plot.x,
-        plot_z: ctx.plot.z,
-    };
-    ctx.player.worldedit_undo.push(undo);
-
-    ctx.player.send_worldedit_message(&format!(
-        "Your selection was stacked. ({:?})",
-        start_time.elapsed()
-    ));
-}
-
-pub(super) fn execute_undo(ctx: CommandExecuteContext<'_>) {
-    if ctx.player.worldedit_undo.is_empty() {
-        ctx.player
-            .send_error_message("There is nothing left to undo.");
-        return;
-    }
-    let undo = ctx.player.worldedit_undo.pop().unwrap();
-    if undo.plot_x != ctx.plot.x || undo.plot_z != ctx.plot.z {
-        ctx.player
-            .send_error_message("Cannot undo outside of your current plot.");
-        return;
-    }
-    let redo = WorldEditUndo {
-        clipboards: undo
-            .clipboards
-            .iter()
-            .map(|clipboard| {
-                let first_pos = BlockPos {
-                    x: undo.pos.x - clipboard.offset_x,
-                    y: undo.pos.y - clipboard.offset_y,
-                    z: undo.pos.z - clipboard.offset_z,
-                };
-                let second_pos = BlockPos {
-                    x: first_pos.x + clipboard.size_x as i32 - 1,
-                    y: first_pos.y + clipboard.size_y as i32 - 1,
-                    z: first_pos.z + clipboard.size_z as i32 - 1,
-                };
-                create_clipboard(ctx.plot, undo.pos, first_pos, second_pos)
-            })
-            .collect(),
-        ..undo
-    };
-    for clipboard in &undo.clipboards {
-        paste_clipboard(ctx.plot, clipboard, undo.pos, false);
-    }
-    ctx.player.worldedit_redo.push(redo);
-}
-
-pub(super) fn execute_redo(ctx: CommandExecuteContext<'_>) {
-    if ctx.player.worldedit_redo.is_empty() {
-        ctx.player
-            .send_error_message("There is nothing left to redo.");
-        return;
-    }
-    let redo = ctx.player.worldedit_redo.pop().unwrap();
-    if redo.plot_x != ctx.plot.x || redo.plot_z != ctx.plot.z {
-        ctx.player
-            .send_error_message("Cannot redo outside of your current plot.");
-        return;
-    }
-    let undo = WorldEditUndo {
-        clipboards: redo
-            .clipboards
-            .iter()
-            .map(|clipboard| {
-                let first_pos = BlockPos {
-                    x: redo.pos.x - clipboard.offset_x,
-                    y: redo.pos.y - clipboard.offset_y,
-                    z: redo.pos.z - clipboard.offset_z,
-                };
-                let second_pos = BlockPos {
-                    x: first_pos.x + clipboard.size_x as i32 - 1,
-                    y: first_pos.y + clipboard.size_y as i32 - 1,
-                    z: first_pos.z + clipboard.size_z as i32 - 1,
-                };
-                create_clipboard(ctx.plot, redo.pos, first_pos, second_pos)
-            })
-            .collect(),
-        ..redo
-    };
-    for clipboard in &redo.clipboards {
-        paste_clipboard(ctx.plot, clipboard, redo.pos, false);
-    }
-    ctx.player.worldedit_undo.push(undo);
 }
 
 pub(super) fn execute_sel(ctx: CommandExecuteContext<'_>) {
@@ -563,193 +1033,6 @@ pub(super) fn execute_shift(ctx: CommandExecuteContext<'_>) {
     }
 
     player.send_worldedit_message(&format!("Region shifted {} block(s).", amount));
-}
-
-pub(super) fn execute_flip(ctx: CommandExecuteContext<'_>) {
-    let start_time = Instant::now();
-
-    let direction = ctx.arguments[0].unwrap_direction();
-    let clipboard = ctx.player.worldedit_clipboard.as_ref().unwrap();
-    let size_x = clipboard.size_x;
-    let size_y = clipboard.size_y;
-    let size_z = clipboard.size_z;
-    let volume = size_x * size_y * size_z;
-
-    let flip_pos = |mut pos: BlockPos| {
-        match direction {
-            BlockFacing::East | BlockFacing::West => pos.x = size_x as i32 - 1 - pos.x,
-            BlockFacing::North | BlockFacing::South => pos.z = size_z as i32 - 1 - pos.z,
-            BlockFacing::Up | BlockFacing::Down => pos.y = size_y as i32 - 1 - pos.y,
-        }
-        pos
-    };
-
-    let mut newcpdata = PalettedBitBuffer::new(volume as usize, 9);
-
-    let mut c_x = 0;
-    let mut c_y = 0;
-    let mut c_z = 0;
-    for i in 0..volume {
-        let BlockPos {
-            x: n_x,
-            y: n_y,
-            z: n_z,
-        } = flip_pos(BlockPos::new(c_x, c_y, c_z));
-        let n_i = (n_y as u32 * size_x * size_z) + (n_z as u32 * size_x) + n_x as u32;
-
-        let mut block = Block::from_id(clipboard.data.get_entry(i as usize));
-        match direction {
-            BlockFacing::East | BlockFacing::West => block.flip(FlipDirection::FlipX),
-            BlockFacing::North | BlockFacing::South => block.flip(FlipDirection::FlipZ),
-            _ => {}
-        }
-        newcpdata.set_entry(n_i as usize, block.get_id());
-
-        // Ok now lets increment the coordinates for the next block
-        c_x += 1;
-
-        if c_x as u32 == size_x {
-            c_x = 0;
-            c_z += 1;
-
-            if c_z as u32 == size_z {
-                c_z = 0;
-                c_y += 1;
-            }
-        }
-    }
-
-    let offset = flip_pos(BlockPos::new(
-        clipboard.offset_x,
-        clipboard.offset_y,
-        clipboard.offset_z,
-    ));
-    let cb = WorldEditClipboard {
-        offset_x: offset.x,
-        offset_y: offset.y,
-        offset_z: offset.z,
-        size_x,
-        size_y,
-        size_z,
-        data: newcpdata,
-        block_entities: clipboard
-            .block_entities
-            .iter()
-            .map(|(pos, e)| (flip_pos(*pos), e.clone()))
-            .collect(),
-    };
-
-    ctx.player.worldedit_clipboard = Some(cb);
-    ctx.player.send_worldedit_message(&format!(
-        "The clipboard copy has been flipped. ({:?})",
-        start_time.elapsed()
-    ));
-}
-
-pub(super) fn execute_rotate(ctx: CommandExecuteContext<'_>) {
-    let start_time = Instant::now();
-    let rotate_amt = ctx.arguments[0].unwrap_uint();
-    let rotate_amt = match rotate_amt % 360 {
-        0 => {
-            ctx.player
-                .send_worldedit_message("Successfully rotated by 0! That took a lot of work.");
-            return;
-        }
-        90 => RotateAmt::Rotate90,
-        180 => RotateAmt::Rotate180,
-        270 => RotateAmt::Rotate270,
-        _ => {
-            ctx.player
-                .send_error_message("Rotate amount must be a multiple of 90.");
-            return;
-        }
-    };
-
-    let clipboard = ctx.player.worldedit_clipboard.as_ref().unwrap();
-    let size_x = clipboard.size_x;
-    let size_y = clipboard.size_y;
-    let size_z = clipboard.size_z;
-    let volume = size_x * size_y * size_z;
-
-    let (n_size_x, n_size_z) = match rotate_amt {
-        RotateAmt::Rotate90 | RotateAmt::Rotate270 => (size_z, size_x),
-        _ => (size_x, size_z),
-    };
-
-    let rotate_pos = |pos: BlockPos| match rotate_amt {
-        RotateAmt::Rotate90 => BlockPos {
-            x: n_size_x as i32 - 1 - pos.z,
-            y: pos.y,
-            z: pos.x,
-        },
-        RotateAmt::Rotate180 => BlockPos {
-            x: n_size_x as i32 - 1 - pos.x,
-            y: pos.y,
-            z: n_size_z as i32 - 1 - pos.z,
-        },
-        RotateAmt::Rotate270 => BlockPos {
-            x: pos.z,
-            y: pos.y,
-            z: n_size_z as i32 - 1 - pos.x,
-        },
-    };
-
-    let mut newcpdata = PalettedBitBuffer::new(volume as usize, 9);
-
-    let mut c_x = 0;
-    let mut c_y = 0;
-    let mut c_z = 0;
-    for i in 0..volume {
-        let BlockPos {
-            x: n_x,
-            y: n_y,
-            z: n_z,
-        } = rotate_pos(BlockPos::new(c_x, c_y, c_z));
-        let n_i = (n_y as u32 * n_size_x * n_size_z) + (n_z as u32 * n_size_x) + n_x as u32;
-
-        let mut block = Block::from_id(clipboard.data.get_entry(i as usize));
-        block.rotate(rotate_amt);
-        newcpdata.set_entry(n_i as usize, block.get_id());
-
-        // Ok now lets increment the coordinates for the next block
-        c_x += 1;
-
-        if c_x as u32 == size_x {
-            c_x = 0;
-            c_z += 1;
-
-            if c_z as u32 == size_z {
-                c_z = 0;
-                c_y += 1;
-            }
-        }
-    }
-
-    let offset = rotate_pos(BlockPos::new(
-        clipboard.offset_x,
-        clipboard.offset_y,
-        clipboard.offset_z,
-    ));
-    let cb = WorldEditClipboard {
-        offset_x: offset.x,
-        offset_y: offset.y,
-        offset_z: offset.z,
-        size_x: n_size_x,
-        size_y,
-        size_z: n_size_z,
-        data: newcpdata,
-        block_entities: clipboard
-            .block_entities
-            .iter()
-            .map(|(pos, e)| (rotate_pos(*pos), e.clone()))
-            .collect(),
-    };
-
-    ctx.player.worldedit_clipboard = Some(cb);
-    ctx.player.send_worldedit_message(&format!(
-        "The clipboard copy has been rotated. ({:?})",
-        start_time.elapsed()
-    ));
 }
 
 pub(super) fn execute_help(mut ctx: CommandExecuteContext<'_>) {
@@ -966,53 +1249,6 @@ pub(super) fn execute_descend(ctx: CommandExecuteContext<'_>) {
     }
 }
 
-pub(super) fn execute_rstack(ctx: CommandExecuteContext<'_>) {
-    let start_time = Instant::now();
-
-    let stack_amt = ctx.arguments[0].unwrap_uint();
-    let stack_spacing = ctx.arguments[1].unwrap_uint();
-    let direction = ctx.arguments[2].unwrap_direction_vec();
-    let pos1 = ctx.player.first_position.unwrap();
-    let pos2 = ctx.player.second_position.unwrap();
-    let clipboard = create_clipboard(ctx.plot, pos1, pos1, pos2);
-    let mut undo_cbs = Vec::new();
-    for i in 1..stack_amt + 1 {
-        let offset = (i * stack_spacing) as i32;
-
-        let block_pos = pos1 + direction * offset;
-        undo_cbs.push(create_clipboard(
-            ctx.plot,
-            pos1,
-            block_pos,
-            pos2 + direction * offset,
-        ));
-        paste_clipboard(ctx.plot, &clipboard, block_pos, !ctx.has_flag('a'));
-    }
-    undo_cbs.reverse();
-    let undo = WorldEditUndo {
-        clipboards: undo_cbs,
-        pos: pos1,
-        plot_x: ctx.plot.x,
-        plot_z: ctx.plot.z,
-    };
-
-    if ctx.has_flag('e') {
-        expand_selection(
-            ctx.player,
-            direction * (stack_amt * stack_spacing) as i32,
-            false,
-        );
-    }
-
-    let player = ctx.player;
-    player.worldedit_undo.push(undo);
-
-    player.send_worldedit_message(&format!(
-        "Your selection was stacked successfully. ({:?})",
-        start_time.elapsed()
-    ));
-}
-
 pub(super) fn execute_update(ctx: CommandExecuteContext<'_>) {
     let start_time = Instant::now();
 
@@ -1058,10 +1294,10 @@ pub(super) fn execute_replace_container(ctx: CommandExecuteContext<'_>) {
     };
     let slots = to.num_slots() as u32;
 
-    let operation = worldedit_start_operation(ctx.player);
-    for x in operation.x_range() {
-        for y in operation.y_range() {
-            for z in operation.z_range() {
+    let (min, max) = selection(&ctx);
+    for x in min.x..=max.x {
+        for y in min.y..=max.y {
+            for z in min.z..=max.z {
                 let pos = BlockPos::new(x, y, z);
                 let block = ctx.plot.get_block(pos);
 

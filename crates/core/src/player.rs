@@ -1,6 +1,6 @@
 use crate::config::CONFIG;
 use crate::permissions::{self, PlayerPermissionsCache};
-use crate::plot::worldedit::WorldEditUndo;
+use crate::plot::worldedit::{Brush, History, Mask};
 use crate::plot::SelectionVisualizer;
 use crate::plot::PLOT_SCALE;
 use crate::utils::{self, HyphenatedUUID};
@@ -89,7 +89,10 @@ pub fn upgrade_saved_players() {
         return;
     }
 
-    let entries = std::fs::read_dir("./world/players").into_iter().flatten().flatten();
+    let entries = std::fs::read_dir("./world/players")
+        .into_iter()
+        .flatten()
+        .flatten();
     for entry in entries {
         let path = entry.path();
         let Ok(bytes) = std::fs::read(&path) else {
@@ -109,7 +112,10 @@ pub fn upgrade_saved_players() {
             }
         });
         if let Err(err) = std::fs::write(&path, bincode::serialize(&data).unwrap()) {
-            tracing::warn!("Could not save upgraded player data in {}: {err}", path.display());
+            tracing::warn!(
+                "Could not save upgraded player data in {}: {err}",
+                path.display()
+            );
         }
     }
 
@@ -209,10 +215,13 @@ pub struct Player {
     pub selection_viz: SelectionVisualizer,
     /// The worldedit current clipboard.
     pub worldedit_clipboard: Option<WorldEditClipboard>,
-    /// The saved sections used for worldedit //undo
-    /// Each entry stores the plot coords and the clipboard
-    pub worldedit_undo: Vec<WorldEditUndo>,
-    pub worldedit_redo: Vec<WorldEditUndo>,
+    /// The changes that can be undone and redone with //undo and //redo
+    pub worldedit_history: History,
+    /// The global mask: only blocks that match are changed by worldedit
+    pub worldedit_mask: Option<Mask>,
+    /// The brushes, by the id of the item they are bound to
+    pub worldedit_brushes: rustc_hash::FxHashMap<u32, Brush>,
+    pub worldedit_last_brush: Option<Instant>,
     /// Commands are stored so they can be handled after packets
     pub command_queue: Vec<String>,
     permissions_cache: Option<PlayerPermissionsCache>,
@@ -291,8 +300,10 @@ impl Player {
             second_position: None,
             selection_viz: SelectionVisualizer::default(),
             worldedit_clipboard: None,
-            worldedit_undo: Vec::new(),
-            worldedit_redo: Vec::new(),
+            worldedit_history: History::default(),
+            worldedit_mask: None,
+            worldedit_brushes: Default::default(),
+            worldedit_last_brush: None,
             command_queue: Vec::new(),
             permissions_cache,
         }
@@ -483,6 +494,26 @@ impl Player {
                 .color_code(ColorCode::LightPurple)
                 .finish(),
         );
+    }
+
+    /// Shows how far a long running edit is in the action bar
+    pub fn send_worldedit_progress(&self, progress: f32) {
+        const WIDTH: usize = 20;
+        let filled = (progress.clamp(0.0, 1.0) * WIDTH as f32) as usize;
+        let bar = format!(
+            "WorldEdit [{}{}] {}%",
+            "|".repeat(filled),
+            ".".repeat(WIDTH - filled),
+            (progress * 100.0) as u32
+        );
+        let message = CSystemChatMessage {
+            content: TextComponentBuilder::new(bar)
+                .color_code(ColorCode::LightPurple)
+                .finish(),
+            overlay: true,
+        }
+        .encode();
+        self.client.send_packet(&message);
     }
 
     pub fn worldedit_set_first_position(&mut self, pos: BlockPos) {

@@ -1,10 +1,10 @@
 pub mod commands;
 mod data;
-mod entities;
-mod physics;
 pub mod database;
+mod entities;
 mod monitor;
 mod packet_handlers;
+mod physics;
 mod scoreboard;
 mod selection_viz;
 pub use selection_viz::SelectionVisualizer;
@@ -34,7 +34,7 @@ use monitor::TimingsMonitor;
 use rustc_hash::{FxHashMap, FxHashSet};
 use scoreboard::RedpilerState;
 use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
@@ -101,6 +101,8 @@ pub struct Plot {
     async_rt: Runtime,
     scoreboard: Scoreboard,
     entities: entities::Entities,
+    /// Worldedit operations that are still being worked on, see `worldedit::job`
+    edit_jobs: VecDeque<worldedit::EditJob>,
 }
 
 pub struct PlotWorld {
@@ -603,6 +605,14 @@ impl Plot {
             }
         }
 
+        if use_item_on.hand == 0
+            && let Some(item) = &item_in_hand
+            && self.try_use_brush(player, item.item_type.get_id(), Some(block_pos))
+        {
+            cancel(self);
+            return;
+        }
+
         if let Some(owner) = self.owner {
             let player = &mut self.players[player];
             if owner != player.uuid && !player.has_permission("plots.admin.interact.other") {
@@ -673,7 +683,11 @@ impl Plot {
                 None,
                 interaction::BlockHit {
                     face: block_face,
-                    cursor: (use_item_on.cursor_x, use_item_on.cursor_y, use_item_on.cursor_z),
+                    cursor: (
+                        use_item_on.cursor_x,
+                        use_item_on.cursor_y,
+                        use_item_on.cursor_z,
+                    ),
                 },
             );
             self.world.flush_block_changes();
@@ -771,6 +785,8 @@ impl Plot {
 
     fn start_redpiler(&mut self, options: CompilerOptions) {
         debug!("Starting redpiler");
+        // Redpiler compiles the blocks as they are, so the queued edits have to be done
+        self.finish_edit_jobs();
         self.scoreboard
             .set_redpiler_state(&self.players, RedpilerState::Compiling);
         self.scoreboard
@@ -1193,6 +1209,7 @@ impl Plot {
 
         // Handle commands before removing players just in case they ran a command before leaving
         self.handle_commands();
+        self.run_edit_jobs(worldedit::SLICE_BUDGET);
 
         self.remove_dc_players();
         self.remove_oob_players();
@@ -1290,6 +1307,7 @@ impl Plot {
             async_rt: Plot::create_async_rt(),
             scoreboard: Default::default(),
             entities: Default::default(),
+            edit_jobs: VecDeque::new(),
             world,
         }
     }
@@ -1370,6 +1388,7 @@ impl Plot {
             }
         }
 
+        self.finish_edit_jobs();
         self.save();
     }
 

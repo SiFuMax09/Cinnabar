@@ -270,8 +270,22 @@ mod tests {
         push_change(&mut runs, 4, 2);
         assert_eq!(runs.len(), 3);
         assert_eq!(runs[0].len, 2);
-        assert_eq!(runs[1], Run { start: 2, len: 1, old: 2 });
-        assert_eq!(runs[2], Run { start: 4, len: 1, old: 2 });
+        assert_eq!(
+            runs[1],
+            Run {
+                start: 2,
+                len: 1,
+                old: 2
+            }
+        );
+        assert_eq!(
+            runs[2],
+            Run {
+                start: 4,
+                len: 1,
+                old: 2
+            }
+        );
     }
 
     #[test]

@@ -426,8 +426,9 @@ impl Mask {
             return Ok(Mask::Random((percent / 100.0).clamp(0.0, 1.0)));
         }
         if let Some(tag) = s.strip_prefix("##") {
-            let predicate =
-                tag_predicate(tag).ok_or_else(|| PatternParseError::UnknownTag(format!("{tag} (known tags: {TAG_NAMES})")))?;
+            let predicate = tag_predicate(tag).ok_or_else(|| {
+                PatternParseError::UnknownTag(format!("{tag} (known tags: {TAG_NAMES})"))
+            })?;
             return Ok(Mask::States(StateSet::from_predicate(|id| {
                 predicate(state_names()[id as usize])
             })));
@@ -676,6 +677,37 @@ impl Pattern {
     }
 }
 
+fn block_text(id: u32) -> String {
+    let block = Block::from_id(id);
+    let name = block.get_name().trim_start_matches("minecraft:");
+    let props = block.properties();
+    if props.is_empty() {
+        return name.to_owned();
+    }
+    let mut props: Vec<_> = props.iter().map(|(k, v)| format!("{k}={v}")).collect();
+    props.sort();
+    format!("{name}[{}]", props.join(","))
+}
+
+impl fmt::Display for Pattern {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Pattern::Single(id) => write!(f, "{}", block_text(*id)),
+            Pattern::KeepStates(id) => write!(f, "^{}", block_text(*id)),
+            Pattern::Clipboard => write!(f, "#clipboard"),
+            Pattern::Random { parts, .. } => {
+                for (i, (weight, pattern)) in parts.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ",")?;
+                    }
+                    write!(f, "{weight}%{pattern}")?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
 impl FromStr for Pattern {
     type Err = PatternParseError;
 
@@ -702,7 +734,9 @@ mod tests {
     use std::collections::HashMap;
 
     fn id(name: &str) -> u32 {
-        Block::from_name(&format!("minecraft:{name}")).unwrap().get_id()
+        Block::from_name(&format!("minecraft:{name}"))
+            .unwrap()
+            .get_id()
     }
 
     fn state(spec: &str) -> u32 {
@@ -726,7 +760,10 @@ mod tests {
 
     #[test]
     fn single_block() {
-        assert_eq!(Pattern::parse("stone").unwrap(), Pattern::Single(id("stone")));
+        assert_eq!(
+            Pattern::parse("stone").unwrap(),
+            Pattern::Single(id("stone"))
+        );
         assert_eq!(
             Pattern::parse("minecraft:stone").unwrap(),
             Pattern::Single(id("stone"))
@@ -837,9 +874,7 @@ mod tests {
         let pattern = Pattern::parse("#clipboard").unwrap();
         assert!(pattern.needs_clipboard());
         let mut env = PatternEnv::new(Some(&cb), BlockPos::new(10, 5, 10));
-        let at = |env: &mut PatternEnv<'_>, x, y, z| {
-            pattern.pick(BlockPos::new(x, y, z), 0, env)
-        };
+        let at = |env: &mut PatternEnv<'_>, x, y, z| pattern.pick(BlockPos::new(x, y, z), 0, env);
         assert_eq!(at(&mut env, 10, 5, 10), id("stone"));
         assert_eq!(at(&mut env, 11, 5, 10), id("dirt"));
         assert_eq!(at(&mut env, 12, 9, 12), id("stone"));
