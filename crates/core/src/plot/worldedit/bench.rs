@@ -17,7 +17,7 @@ use super::ops;
 use super::pattern::{Mask, Pattern};
 use super::session::{apply_section_changes, create_clipboard, EditSession};
 use super::*;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 fn time<T>(name: &str, f: impl FnOnce() -> T) -> T {
     let start = Instant::now();
