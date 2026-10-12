@@ -28,8 +28,11 @@ pub static ONLINE_PLAYERS: AtomicUsize = AtomicUsize::new(0);
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum PerfMode {
     Off,
+    /// A compact bar: `TPS: 20.00 MSPT: 2.62 Ping: 0ms`
     #[default]
     Bar,
+    /// A bar with all details
+    Full,
     ActionBar,
 }
 
@@ -127,6 +130,7 @@ impl Sampler {
     }
 }
 
+#[derive(Clone)]
 pub struct PerfSnapshot {
     pub rtps: f64,
     pub target: Tps,
@@ -270,6 +274,103 @@ impl PerfSnapshot {
     }
 }
 
+/// How long a redstone tick may take at most: the time that the target tick rate leaves
+fn tick_budget_ms(target: Tps) -> f64 {
+    match target {
+        Tps::Limited(target) if target > 0.0 => 1000.0 / f64::from(target),
+        _ => 50.0,
+    }
+}
+
+fn ping_color(ping_ms: u32) -> ColorCode {
+    if ping_ms < 100 {
+        ColorCode::Green
+    } else if ping_ms < 250 {
+        ColorCode::Gold
+    } else {
+        ColorCode::Red
+    }
+}
+
+impl PerfSnapshot {
+    /// Milliseconds a redstone tick takes
+    fn mspt(&self) -> f64 {
+        self.nspt
+            .map_or(0.0, |nspt| nspt.as_nanos() as f64 / 1_000_000.0)
+    }
+
+    /// How much of the time budget of a tick is used
+    fn budget_used(&self) -> f64 {
+        self.mspt() / tick_budget_ms(self.target)
+    }
+
+    fn tps_color(&self) -> ColorCode {
+        match self.target {
+            Tps::Limited(target) if target > 0.0 => {
+                let ratio = self.rtps / f64::from(target);
+                if ratio >= 0.95 {
+                    ColorCode::Green
+                } else if ratio >= 0.75 {
+                    ColorCode::Gold
+                } else {
+                    ColorCode::Red
+                }
+            }
+            _ => ColorCode::Green,
+        }
+    }
+
+    fn mspt_color(&self) -> ColorCode {
+        let used = self.budget_used();
+        if used < 0.5 {
+            ColorCode::Green
+        } else if used < 1.0 {
+            ColorCode::Gold
+        } else {
+            ColorCode::Red
+        }
+    }
+
+    /// The bar fills up with the share of the tick budget that is used, and its colour is the
+    /// worst of the tick rate and the tick time.
+    fn compact_progress(&self) -> f32 {
+        self.budget_used().clamp(0.0, 1.0) as f32
+    }
+
+    fn compact_color(&self) -> BossBarColor {
+        let rank = |code: ColorCode| match code {
+            ColorCode::Green => 0,
+            ColorCode::Gold => 1,
+            _ => 2,
+        };
+        match rank(self.tps_color()).max(rank(self.mspt_color())) {
+            0 => BossBarColor::Green,
+            1 => BossBarColor::Yellow,
+            _ => BossBarColor::Red,
+        }
+    }
+
+    /// `TPS: 20.00 MSPT: 2.62 Ping: 0ms`
+    pub fn compact_title(&self, ping_ms: u32) -> TextComponent {
+        let tps = if self.rtps >= 1000.0 {
+            format!("{:.0}", self.rtps)
+        } else {
+            format!("{:.2}", self.rtps)
+        };
+        TextComponent {
+            extra: vec![
+                seg("TPS: ", ColorCode::Gray),
+                seg(&tps, self.tps_color()),
+                seg(" MSPT: ", ColorCode::Gray),
+                seg(&format!("{:.2}", self.mspt()), self.mspt_color()),
+                seg(" Ping: ", ColorCode::Gray),
+                seg(&format!("{ping_ms}ms"), ping_color(ping_ms)),
+            ],
+            ..Default::default()
+        }
+    }
+}
+
 fn ms_color(ms: f64) -> ColorCode {
     if ms > 50.0 {
         ColorCode::Red
@@ -288,15 +389,20 @@ fn seg(text: &str, color: ColorCode) -> TextComponent {
     }
 }
 
+/// The bar a player currently has on their screen
+#[derive(Clone, Copy, PartialEq)]
+struct ShownBar {
+    color: BossBarColor,
+    overlay: BossBarOverlay,
+}
+
 /// Which players currently have a bar on their screen, so we never add one twice or leave one
 /// behind (the client throws on a duplicate id).
 #[derive(Default)]
 pub struct PerfDisplay {
     pub sampler: Sampler,
-    /// uuid -> whether the player has our bar
-    shown: FxHashMap<u128, bool>,
-    last_color: Option<BossBarColor>,
-    last: Option<(TextComponent, f32, BossBarColor)>,
+    shown: FxHashMap<u128, ShownBar>,
+    last: Option<PerfSnapshot>,
     dirty: bool,
 }
 
@@ -310,21 +416,9 @@ impl PerfDisplay {
         self.dirty
     }
 
-    fn add_packet(&self) -> Option<CBossEvent> {
-        self.last
-            .as_ref()
-            .map(|(title, progress, color)| CBossEvent::Add {
-                uuid: BAR_UUID,
-                title: title.clone(),
-                progress: *progress,
-                color: *color,
-                overlay: BossBarOverlay::Progress,
-            })
-    }
-
     /// Removes the bar when a player leaves the plot. Disconnected players use `forget`.
     pub fn remove_player(&mut self, player: &Player) {
-        if self.shown.remove(&player.uuid).unwrap_or(false) {
+        if self.shown.remove(&player.uuid).is_some() {
             player.send_packet(&CBossEvent::Remove { uuid: BAR_UUID }.encode());
         }
     }
@@ -333,77 +427,103 @@ impl PerfDisplay {
         self.shown.remove(&uuid);
     }
 
+    /// The title, progress, colour and style of the bar of a player
+    fn bar_for(snapshot: &PerfSnapshot, mode: PerfMode, ping_ms: u32) -> (TextComponent, f32, ShownBar) {
+        match mode {
+            PerfMode::Full => (
+                snapshot.title(),
+                snapshot.progress(),
+                ShownBar {
+                    color: snapshot.health().bar_color(),
+                    overlay: BossBarOverlay::Progress,
+                },
+            ),
+            _ => (
+                snapshot.compact_title(ping_ms),
+                snapshot.compact_progress(),
+                ShownBar {
+                    color: snapshot.compact_color(),
+                    overlay: BossBarOverlay::Notched20,
+                },
+            ),
+        }
+    }
+
     /// Reconciles every player with their preference and, if `snapshot` is given, pushes the
     /// new numbers.
     pub fn refresh(&mut self, players: &[Player], snapshot: Option<PerfSnapshot>) {
         self.dirty = false;
-        let mut update = None;
         if let Some(snapshot) = snapshot {
-            let color = snapshot.health().bar_color();
-            let progress = snapshot.progress();
-            let title = snapshot.title();
-            let style_changed = self.last.is_some() && self.last_color != Some(color);
-            self.last_color = Some(color);
-            self.last = Some((title.clone(), progress, color));
-            update = Some((
-                CBossEvent::UpdateTitle {
-                    uuid: BAR_UUID,
-                    title: title.clone(),
-                }
-                .encode(),
-                CBossEvent::UpdateProgress {
-                    uuid: BAR_UUID,
-                    progress,
-                }
-                .encode(),
-                style_changed.then(|| {
-                    CBossEvent::UpdateStyle {
-                        uuid: BAR_UUID,
-                        color,
-                        overlay: BossBarOverlay::Progress,
-                    }
-                    .encode()
-                }),
-                CSystemChatMessage {
-                    content: title,
-                    overlay: true,
-                }
-                .encode(),
-            ));
+            self.last = Some(snapshot);
         }
 
-        let add_packet = self.add_packet().map(|p| p.encode());
         for player in players {
-            let wanted = mode_for(player.uuid);
-            let has_bar = self.shown.entry(player.uuid).or_default();
-            if wanted != PerfMode::Bar && *has_bar {
-                player.send_packet(&CBossEvent::Remove { uuid: BAR_UUID }.encode());
-                *has_bar = false;
+            let mode = mode_for(player.uuid);
+            let wants_bar = matches!(mode, PerfMode::Bar | PerfMode::Full);
+            if !wants_bar {
+                if self.shown.remove(&player.uuid).is_some() {
+                    player.send_packet(&CBossEvent::Remove { uuid: BAR_UUID }.encode());
+                }
             }
-            match wanted {
+            let Some(snapshot) = &self.last else {
+                continue;
+            };
+            let (title, progress, style) = Self::bar_for(snapshot, mode, player.ping_ms);
+            match mode {
                 PerfMode::Off => {}
                 PerfMode::ActionBar => {
-                    if let Some((_, _, _, action)) = &update {
-                        player.send_packet(action);
-                    }
+                    player.send_packet(
+                        &CSystemChatMessage {
+                            content: snapshot.compact_title(player.ping_ms),
+                            overlay: true,
+                        }
+                        .encode(),
+                    );
                 }
-                PerfMode::Bar if *has_bar => {
-                    if let Some((title, progress, style, _)) = &update {
-                        player.send_packet(title);
-                        player.send_packet(progress);
-                        if let Some(style) = style {
-                            player.send_packet(style);
+                PerfMode::Bar | PerfMode::Full => match self.shown.get(&player.uuid).copied() {
+                    Some(shown) => {
+                        player.send_packet(
+                            &CBossEvent::UpdateTitle {
+                                uuid: BAR_UUID,
+                                title,
+                            }
+                            .encode(),
+                        );
+                        player.send_packet(
+                            &CBossEvent::UpdateProgress {
+                                uuid: BAR_UUID,
+                                progress,
+                            }
+                            .encode(),
+                        );
+                        if shown != style {
+                            player.send_packet(
+                                &CBossEvent::UpdateStyle {
+                                    uuid: BAR_UUID,
+                                    color: style.color,
+                                    overlay: style.overlay,
+                                }
+                                .encode(),
+                            );
+                            self.shown.insert(player.uuid, style);
                         }
                     }
-                }
-                PerfMode::Bar => {
-                    if let Some(add) = &add_packet {
+                    None => {
                         // Remove first in case a previous plot's bar was not cleaned up.
                         player.send_packet(&CBossEvent::Remove { uuid: BAR_UUID }.encode());
-                        player.send_packet(add);
-                        *has_bar = true;
+                        player.send_packet(
+                            &CBossEvent::Add {
+                                uuid: BAR_UUID,
+                                title,
+                                progress,
+                                color: style.color,
+                                overlay: style.overlay,
+                            }
+                            .encode(),
+                        );
+                        self.shown.insert(player.uuid, style);
                     }
-                }
+                },
             }
         }
     }
@@ -526,5 +646,50 @@ mod tests {
         assert_eq!(mode_for(0xdead_beef_u128), PerfMode::Bar);
         set_mode(0xdead_beef_u128, PerfMode::Off);
         assert_eq!(mode_for(0xdead_beef_u128), PerfMode::Off);
+    }
+
+    fn compact(rtps: f64, mspt: f64) -> PerfSnapshot {
+        PerfSnapshot {
+            nspt: Some(Duration::from_nanos((mspt * 1_000_000.0) as u64)),
+            ..snap(rtps, Tps::Limited(20.0))
+        }
+    }
+
+    fn plain(title: &TextComponent) -> String {
+        title.extra.iter().map(|part| part.text.as_str()).collect()
+    }
+
+    #[test]
+    fn compact_title_matches_the_design() {
+        assert_eq!(
+            plain(&compact(20.0, 2.62).compact_title(0)),
+            "TPS: 20.00 MSPT: 2.62 Ping: 0ms"
+        );
+    }
+
+    #[test]
+    fn compact_bar_shows_the_tick_budget() {
+        let good = compact(20.0, 2.62);
+        assert!(good.compact_progress() < 0.1);
+        assert_eq!(good.compact_color(), BossBarColor::Green);
+
+        let busy = compact(20.0, 29.28);
+        assert!((busy.compact_progress() - 0.5856).abs() < 0.001);
+        assert_eq!(busy.compact_color(), BossBarColor::Yellow);
+
+        let lagging = compact(17.42, 57.8);
+        assert_eq!(lagging.compact_progress(), 1.0);
+        assert_eq!(lagging.compact_color(), BossBarColor::Red);
+    }
+
+    #[test]
+    fn compact_value_colors() {
+        let snap = compact(17.42, 57.8);
+        assert!(matches!(snap.tps_color(), ColorCode::Gold));
+        assert!(matches!(snap.mspt_color(), ColorCode::Red));
+        assert!(matches!(compact(20.0, 29.28).mspt_color(), ColorCode::Gold));
+        assert!(matches!(ping_color(0), ColorCode::Green));
+        assert!(matches!(ping_color(180), ColorCode::Gold));
+        assert!(matches!(ping_color(400), ColorCode::Red));
     }
 }

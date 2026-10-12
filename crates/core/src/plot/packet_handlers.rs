@@ -132,7 +132,9 @@ impl ServerBoundPacketHandler for Plot {
     }
 
     fn handle_keep_alive(&mut self, _keep_alive: SKeepAlive, player_idx: usize) {
-        self.players[player_idx].last_keep_alive_received = Instant::now();
+        let player = &mut self.players[player_idx];
+        player.last_keep_alive_received = Instant::now();
+        player.ping_ms = player.last_keep_alive_sent_at().elapsed().as_millis() as u32;
     }
 
     fn handle_set_creative_mode_slot(

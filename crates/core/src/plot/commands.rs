@@ -284,11 +284,12 @@ impl Plot {
             "perf" => {
                 let mode = match args.as_slice() {
                     ["on" | "bar"] => perf::PerfMode::Bar,
+                    ["full"] => perf::PerfMode::Full,
                     ["off"] => perf::PerfMode::Off,
                     ["actionbar"] => perf::PerfMode::ActionBar,
                     _ => {
                         self.players[player]
-                            .send_error_message("Usage: /perf <on | off | bar | actionbar>");
+                            .send_error_message("Usage: /perf <on | off | bar | full | actionbar>");
                         return false;
                     }
                 };

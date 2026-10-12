@@ -209,6 +209,8 @@ pub struct Player {
     pub client: PlayerConn,
     /// The last time the keep alive packet was received.
     pub last_keep_alive_received: Instant,
+    /// Round trip time of the last keep alive packet
+    pub ping_ms: u32,
     /// The last time the keep alive packet was sent.
     last_keep_alive_sent: Instant,
     /// The worldedit first position.
@@ -301,7 +303,11 @@ impl Player {
             walk_speed: player_data.walk_speed,
             fly_speed: player_data.fly_speed,
             last_keep_alive_received: Instant::now(),
-            last_keep_alive_sent: Instant::now(),
+            ping_ms: 0,
+            // The first keep alive is sent right away, so the ping is known early
+            last_keep_alive_sent: Instant::now()
+                .checked_sub(std::time::Duration::from_secs(5))
+                .unwrap_or_else(Instant::now),
             first_position: None,
             second_position: None,
             selection_viz: SelectionVisualizer::default(),
@@ -393,7 +399,7 @@ impl Player {
         if self.last_keep_alive_received.elapsed().as_secs() > 30 {
             self.kick("Timed out.".into());
         }
-        if self.last_keep_alive_sent.elapsed().as_secs() > 10 {
+        if self.last_keep_alive_sent.elapsed().as_secs() > 5 {
             self.send_keep_alive();
         }
 
@@ -406,6 +412,10 @@ impl Player {
 
         let (chunk_x, chunk_z) = self.pos.chunk_pos();
         chunk_x != self.last_chunk_x || chunk_z != self.last_chunk_z
+    }
+
+    pub fn last_keep_alive_sent_at(&self) -> Instant {
+        self.last_keep_alive_sent
     }
 
     /// Sends the keep alive packet to the client and updates `last_keep_alive_sent`
