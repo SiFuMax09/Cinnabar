@@ -790,6 +790,38 @@ impl ClientBoundPacket for CExplode {
     }
 }
 
+/// A single `minecraft:dust` particle with an RGB colour, always shown to the client and drawn
+/// regardless of distance.
+pub struct CDustParticle {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub color: u32,
+    pub scale: f32,
+}
+
+impl ClientBoundPacket for CDustParticle {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        // override limiter, always show
+        buf.write_bool(true);
+        buf.write_bool(true);
+        buf.write_double(self.x);
+        buf.write_double(self.y);
+        buf.write_double(self.z);
+        // Offsets and max speed are zero so that the particle spawns exactly at the position.
+        buf.write_float(0.0);
+        buf.write_float(0.0);
+        buf.write_float(0.0);
+        buf.write_float(0.0);
+        buf.write_int(1);
+        buf.write_varint(protocol_id!("minecraft:particle_type", "minecraft:dust"));
+        buf.write_int(self.color as i32);
+        buf.write_float(self.scale);
+        PacketEncoder::new(buf, 0x2F)
+    }
+}
+
 pub struct CWorldEvent {
     pub event: i32,
     pub x: i32,
@@ -1452,5 +1484,31 @@ impl ClientBoundPacket for CSystemChatMessage {
         buf.write_text_component(&self.content);
         buf.write_bool(self.overlay);
         PacketEncoder::new(buf, 0x79)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dust_particle_layout() {
+        let packet = CDustParticle {
+            x: 1.5,
+            y: 64.0,
+            z: -2.5,
+            color: 0x55FFFF,
+            scale: 0.8,
+        };
+        let mut bytes = Vec::new();
+        packet.encode().write_uncompressed(&mut bytes).unwrap();
+        // Verified to decode with the game's own ClientboundLevelParticlesPacket codec
+        // length, id, 2 booleans, 3 doubles, 4 floats, count, particle id (varint), color, scale
+        let dust = protocol_id!("minecraft:particle_type", "minecraft:dust");
+        assert_eq!(dust, 21);
+        assert_eq!(bytes[1], 0x2F);
+        assert_eq!(&bytes[2..4], &[1, 1]);
+        assert_eq!(bytes.len(), 2 + 2 + 24 + 16 + 4 + 1 + 4 + 4);
+        assert_eq!(bytes[0] as usize, bytes.len() - 1);
     }
 }

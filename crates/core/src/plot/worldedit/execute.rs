@@ -452,6 +452,21 @@ pub(super) fn execute_sel(ctx: CommandExecuteContext<'_>) {
     player.worldedit_send_cui("s|cuboid");
 }
 
+pub(super) fn execute_visualize(ctx: CommandExecuteContext<'_>) {
+    let player = ctx.player;
+    player.selection_viz.enabled = !player.selection_viz.enabled;
+    let state = if player.selection_viz.enabled {
+        "enabled"
+    } else {
+        "disabled"
+    };
+    let mut message = format!("Selection visualization {state}.");
+    if player.selection_viz.enabled && player.selection_viz.cui {
+        message.push_str(" It is hidden while WorldEditCUI is in use.");
+    }
+    player.send_worldedit_message(&message);
+}
+
 pub(super) fn execute_pos1(ctx: CommandExecuteContext<'_>) {
     let pos = ctx.player.pos.block_pos();
     ctx.player.worldedit_set_first_position(pos);
