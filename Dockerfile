@@ -1,22 +1,65 @@
-# Build stage
-FROM --platform=$BUILDPLATFORM rust:alpine AS builder
+# syntax=docker/dockerfile:1
 
-RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static
+# ---- Chef base: Rust on Alpine (musl) with cargo-chef preinstalled ----------
+FROM lukemathwalker/cargo-chef:latest-rust-alpine AS chef
+# build-base/cmake/perl/clang: needed to compile aws-lc (rustls crypto provider)
+RUN apk add --no-cache build-base musl-dev cmake perl clang
+WORKDIR /app
 
-WORKDIR /app/
-COPY ./src/ ./src/
-COPY ./crates/ ./crates/
-COPY ./mc_data/ ./mc_data/
-COPY ./.cargo/ ./.cargo/
-COPY ./Cargo.toml ./Cargo.lock ./rust-toolchain.toml ./
-RUN cargo build --release
+# ---- Planner: compute the dependency recipe (changes only if manifests do) ---
+FROM chef AS planner
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY .cargo/ ./.cargo/
+COPY crates/ ./crates/
+COPY src/ ./src/
+COPY mc_data/ ./mc_data/
+RUN cargo chef prepare --recipe-path recipe.json
 
-# Runtime stage
-FROM scratch
+# ---- Builder: cook dependencies (cached layer), then build the server -------
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+COPY rust-toolchain.toml ./
+COPY .cargo/ ./.cargo/
+COPY mc_data/ ./mc_data/
+RUN cargo chef cook --release --recipe-path recipe.json
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ ./crates/
+COPY src/ ./src/
+RUN cargo build --release --bin mchprs \
+ && strip target/release/mchprs
 
-COPY --from=builder /app/target/**/mchprs /
+# ---- Runtime ----------------------------------------------------------------
+FROM alpine:3.22 AS runtime
 
-VOLUME ["/data/"]
-WORKDIR /data/
-EXPOSE 25565
-ENTRYPOINT ["/mchprs"]
+ARG VERSION=dev
+ARG REVISION=unknown
+ARG SOURCE=https://github.com/MCHPR/MCHPRS
+LABEL org.opencontainers.image.title="MCHPRS" \
+      org.opencontainers.image.description="Minecraft High Performance Redstone Server (Minecraft 26.2)" \
+      org.opencontainers.image.source="${SOURCE}" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}"
+
+# ca-certificates: Mojang skin lookup uses HTTPS (reqwest with rustls and the
+# platform verifier, which reads the system trust store).
+# "mchprs" is the default user; "container" (uid 988, home /home/container) is
+# what Pterodactyl Wings expects an image to provide.
+RUN apk add --no-cache ca-certificates tzdata \
+ && adduser -D -u 10001 -h /data mchprs \
+ && adduser -D -u 988 -h /home/container container \
+ && mkdir -p /data /home/container \
+ && chown mchprs:mchprs /data \
+ && chown container:container /home/container
+
+COPY --from=builder /app/target/release/mchprs /usr/local/bin/mchprs
+COPY --chmod=0755 docker/entrypoint.sh /entrypoint.sh
+
+ENV MCHPRS_LOG=info
+USER mchprs
+WORKDIR /data
+VOLUME ["/data"]
+EXPOSE 25565/tcp
+# The server saves and shuts down on SIGINT and SIGTERM.
+STOPSIGNAL SIGINT
+ENTRYPOINT ["/entrypoint.sh"]
