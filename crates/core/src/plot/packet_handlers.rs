@@ -201,6 +201,8 @@ impl ServerBoundPacketHandler for Plot {
 
     fn handle_plugin_message(&mut self, plugin_message: SPluginMessage, player: usize) {
         if plugin_message.channel == "worldedit:cui" {
+            // The mod renders the selection itself, so the particle outline would be a duplicate
+            self.players[player].selection_viz.cui = true;
             self.players[player].worldedit_send_cui("s|cuboid");
         }
     }
