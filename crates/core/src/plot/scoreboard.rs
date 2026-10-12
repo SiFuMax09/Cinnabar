@@ -1,3 +1,4 @@
+use crate::config::CONFIG;
 use crate::player::{PacketSender, Player};
 use mchprs_network::packets::clientbound::{
     CDisplayObjective, CResetScore, CUpdateObjectives, CUpdateScore, ClientBoundPacket,
@@ -73,6 +74,10 @@ impl Scoreboard {
     }
 
     fn set_lines(&mut self, players: &[Player], lines: Vec<ScoreboardLine>) {
+        if !CONFIG.redpiler_scoreboard {
+            self.current_state = lines;
+            return;
+        }
         for line in 0..self.current_state.len() {
             let removal_packet = self.make_removal_packet(line).encode();
             players.iter().for_each(|p| p.send_packet(&removal_packet));
@@ -87,6 +92,14 @@ impl Scoreboard {
     }
 
     fn set_line(&mut self, players: &[Player], line: usize, text: ScoreboardLine) {
+        if !CONFIG.redpiler_scoreboard {
+            if line == self.current_state.len() {
+                self.current_state.push(text);
+            } else {
+                self.current_state[line] = text;
+            }
+            return;
+        }
         if line == self.current_state.len() {
             self.current_state.push(text);
         } else {
@@ -101,6 +114,9 @@ impl Scoreboard {
     }
 
     pub fn add_player(&self, player: &Player) {
+        if !CONFIG.redpiler_scoreboard {
+            return;
+        }
         player.send_packet(
             &CUpdateObjectives {
                 objective_name: "redpiler_status".into(),
@@ -126,6 +142,9 @@ impl Scoreboard {
     }
 
     pub fn remove_player(&mut self, player: &Player) {
+        if !CONFIG.redpiler_scoreboard {
+            return;
+        }
         for i in 0..self.current_state.len() {
             player.send_packet(&self.make_removal_packet(i).encode());
         }
