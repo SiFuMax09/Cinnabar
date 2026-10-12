@@ -347,3 +347,24 @@ fn bench_initial_plot_light() {
     set(&mut world, &mut engine, 100, 80, 100, 0);
     println!("incremental update of two blocks: {:?}", start.elapsed());
 }
+
+/// Prints the light packets as hex, to be decoded with the vanilla classes (`Decode.java`).
+/// Run with `cargo test -p mchprs_world --features networking dump_light_packets -- --ignored --nocapture`
+#[cfg(feature = "networking")]
+#[test]
+#[ignore]
+fn dump_light_packets() {
+    let (mut world, mut engine) = world();
+    fill(&mut world, 0, 0, 0, (16, 20, 16), id("stone"));
+    fill(&mut world, 4, 20, 4, (3, 1, 3), id("glass"));
+    update(&mut world, &mut engine);
+    set(&mut world, &mut engine, 8, 25, 8, id("torch"));
+    let chunk = world.get_chunk_mut(0, 0).unwrap();
+    let hex = |packet: mchprs_network::packets::PacketEncoder| {
+        let mut bytes = Vec::new();
+        packet.write_uncompressed(&mut bytes).unwrap();
+        bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
+    };
+    println!("LIGHT {}", hex(chunk.encode_light_update().unwrap()));
+    println!("CHUNK {}", hex(chunk.encode_packet()));
+}

@@ -43,7 +43,11 @@ impl Vec3 {
     /// The direction a player looks into, for the rotation in degrees
     pub fn from_rotation(yaw: f32, pitch: f32) -> Vec3 {
         let (yaw, pitch) = ((yaw as f64).to_radians(), (pitch as f64).to_radians());
-        Vec3::new(-yaw.sin() * pitch.cos(), -pitch.sin(), yaw.cos() * pitch.cos())
+        Vec3::new(
+            -yaw.sin() * pitch.cos(),
+            -pitch.sin(),
+            yaw.cos() * pitch.cos(),
+        )
     }
 }
 

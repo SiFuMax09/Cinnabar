@@ -1,10 +1,10 @@
 pub mod commands;
 mod data;
-mod entities;
-mod physics;
 pub mod database;
+mod entities;
 mod monitor;
 mod packet_handlers;
+mod physics;
 mod scoreboard;
 mod selection_viz;
 pub use selection_viz::SelectionVisualizer;
@@ -28,6 +28,7 @@ use mchprs_network::PlayerPacketSender;
 use mchprs_redpiler::{Compiler, CompilerOptions};
 use mchprs_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
 use mchprs_text::TextComponent;
+use mchprs_world::light::LightEngine;
 use mchprs_world::storage::Chunk;
 use mchprs_world::{TickEntry, TickPriority, World};
 use monitor::TimingsMonitor;
@@ -35,6 +36,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use scoreboard::RedpilerState;
 use std::cmp::Ordering;
 use std::collections::HashSet;
+use std::mem;
 use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
@@ -116,13 +118,51 @@ pub struct PlotWorld {
     pub(super) pending_ignitions: FxHashSet<BlockPos>,
     /// Blocks that might have to start falling
     pub(super) pending_falling: FxHashSet<BlockPos>,
+    light: LightEngine,
 }
 
+/// How long a plot spends on updating light after every batch of block changes. What is left
+/// is continued the next time.
+const LIGHT_UPDATE_BUDGET: Duration = Duration::from_millis(10);
+
 impl PlotWorld {
+    /// Calculates the light of all chunks from their blocks
+    fn initialize_light(&mut self) {
+        let chunks: Vec<_> = self.chunks.iter().map(|c| (c.x, c.z)).collect();
+        let mut engine = mem::take(&mut self.light);
+        engine.initialize(self, &chunks);
+        self.light = engine;
+    }
+
+    /// Spreads the effect of the block changes on light and sends the changed light to the
+    /// players
+    fn update_light(&mut self) {
+        for chunk in &mut self.chunks {
+            self.light.collect_pending(chunk);
+        }
+        if self.light.has_work() {
+            let mut engine = mem::take(&mut self.light);
+            engine.run(self, Some(LIGHT_UPDATE_BUDGET));
+            self.light = engine;
+        }
+        for chunk in &mut self.chunks {
+            if let Some(packet) = chunk.encode_light_update() {
+                for player in &self.packet_senders {
+                    player.send_packet(&packet);
+                }
+            }
+        }
+    }
+
     fn get_chunk_index_for_chunk(&self, chunk_x: i32, chunk_z: i32) -> usize {
         let local_x = chunk_x - self.x * PLOT_WIDTH;
         let local_z = chunk_z - self.z * PLOT_WIDTH;
         (local_x * PLOT_WIDTH + local_z).unsigned_abs() as usize
+    }
+
+    fn contains_chunk(&self, chunk_x: i32, chunk_z: i32) -> bool {
+        (0..PLOT_WIDTH).contains(&(chunk_x - self.x * PLOT_WIDTH))
+            && (0..PLOT_WIDTH).contains(&(chunk_z - self.z * PLOT_WIDTH))
     }
 
     fn get_chunk_index_for_block(&self, block_x: i32, block_z: i32) -> Option<usize> {
@@ -217,10 +257,16 @@ impl World for PlotWorld {
     }
 
     fn get_chunk(&self, x: i32, z: i32) -> Option<&Chunk> {
+        if !self.contains_chunk(x, z) {
+            return None;
+        }
         self.chunks.get(self.get_chunk_index_for_chunk(x, z))
     }
 
     fn get_chunk_mut(&mut self, x: i32, z: i32) -> Option<&mut Chunk> {
+        if !self.contains_chunk(x, z) {
+            return None;
+        }
         let chunk_idx = self.get_chunk_index_for_chunk(x, z);
         self.chunks.get_mut(chunk_idx)
     }
@@ -286,6 +332,7 @@ impl World for PlotWorld {
         for chunk in &mut self.chunks {
             chunk.reset_multi_blocks();
         }
+        self.update_light();
         for (_, block_entity) in self.pending_block_entities.drain() {
             let encoded = block_entity.encode();
             for player in &self.packet_senders {
@@ -645,7 +692,11 @@ impl Plot {
                 None,
                 interaction::BlockHit {
                     face: block_face,
-                    cursor: (use_item_on.cursor_x, use_item_on.cursor_y, use_item_on.cursor_z),
+                    cursor: (
+                        use_item_on.cursor_x,
+                        use_item_on.cursor_y,
+                        use_item_on.cursor_z,
+                    ),
                 },
             );
             self.world.flush_block_changes();
@@ -1197,6 +1248,7 @@ impl Plot {
                 }
             }
         }
+        chunk.reset_light();
         chunk
     }
 
@@ -1227,7 +1279,7 @@ impl Plot {
             let possible_scale = (chunks.len() as f64).sqrt().log2();
             error!("Note: it most likely came from a server running plot scale {}, this server is running a plot scale of {}", possible_scale, PLOT_SCALE);
         }
-        let world = PlotWorld {
+        let mut world = PlotWorld {
             x,
             z,
             chunks,
@@ -1238,7 +1290,9 @@ impl Plot {
             pending_sounds: FxHashMap::default(),
             pending_ignitions: Default::default(),
             pending_falling: Default::default(),
+            light: Default::default(),
         };
+        world.initialize_light();
         let tps = plot_data.tps;
         Plot {
             last_player_time: Instant::now(),
