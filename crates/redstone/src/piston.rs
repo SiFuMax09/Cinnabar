@@ -50,7 +50,11 @@ fn offset(pos: BlockPos, face: BlockFace, amount: i32) -> BlockPos {
         BlockFace::West => (-1, 0, 0),
         BlockFace::East => (1, 0, 0),
     };
-    BlockPos::new(pos.x + dx * amount, pos.y + dy * amount, pos.z + dz * amount)
+    BlockPos::new(
+        pos.x + dx * amount,
+        pos.y + dy * amount,
+        pos.z + dz * amount,
+    )
 }
 
 fn face_name(face: BlockFace) -> &'static str {
@@ -277,7 +281,12 @@ impl StructureResolver {
         true
     }
 
-    fn add_block_line(&mut self, world: &impl World, start: BlockPos, direction: BlockFace) -> bool {
+    fn add_block_line(
+        &mut self,
+        world: &impl World,
+        start: BlockPos,
+        direction: BlockFace,
+    ) -> bool {
         let mut next = state(world, start);
         if is_air(next) {
             return true;
@@ -335,8 +344,14 @@ impl StructureResolver {
             if is_air(next) {
                 return true;
             }
-            if !is_pushable(world, pos, next, self.push_direction, true, self.push_direction)
-                || pos == self.piston_pos
+            if !is_pushable(
+                world,
+                pos,
+                next,
+                self.push_direction,
+                true,
+                self.push_direction,
+            ) || pos == self.piston_pos
             {
                 return false;
             }
@@ -430,7 +445,11 @@ pub fn check_if_extend(world: &mut impl World, pos: BlockPos) {
         let drops = is_moving_piston(state(world, pushed_pos))
             && moving_entity(world, pushed_pos)
                 .is_some_and(|moving| moving.extending && moving.facing == direction as u8);
-        if drops { 2 } else { 1 }
+        if drops {
+            2
+        } else {
+            1
+        }
     } else {
         return;
     };
@@ -520,7 +539,14 @@ fn trigger_event<W: World>(world: &mut W, event: PistonEvent, notify: Notify<W>)
             if !piston_piece {
                 let pullable = event.ty == 1
                     && !is_air(two_state)
-                    && is_pushable(world, two_pos, two_state, direction.opposite(), false, direction)
+                    && is_pushable(
+                        world,
+                        two_pos,
+                        two_state,
+                        direction.opposite(),
+                        false,
+                        direction,
+                    )
                     && (generic::push_reaction(two_state) == PushReaction::Normal
                         || piston_base(two_state).is_some());
                 if pullable {

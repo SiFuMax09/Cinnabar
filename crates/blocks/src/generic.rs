@@ -59,7 +59,10 @@ static BLOCKS: LazyLock<Vec<GenericBlock>> = LazyLock::new(|| {
             for i in (0..props.len().saturating_sub(1)).rev() {
                 strides[i] = strides[i + 1] * props[i + 1].1.len() as u32;
             }
-            let num_states = props.iter().map(|(_, values)| values.len() as u32).product();
+            let num_states = props
+                .iter()
+                .map(|(_, values)| values.len() as u32)
+                .product();
             GenericBlock {
                 name,
                 first_id,
@@ -97,8 +100,11 @@ static PISTON: &[u8] = include_bytes!("../../../mc_data/block_piston.bin");
 const FLAG_SOLID: u8 = 1;
 const FLAG_STURDY_TOP: u8 = 2;
 
-static ITEM_NAMES: LazyLock<Vec<&'static str>> =
-    LazyLock::new(|| include_str!("../../../mc_data/item_names.txt").lines().collect());
+static ITEM_NAMES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+    include_str!("../../../mc_data/item_names.txt")
+        .lines()
+        .collect()
+});
 
 static ITEM_IDS: LazyLock<HashMap<&'static str, u32>> = LazyLock::new(|| {
     ITEM_NAMES
@@ -268,7 +274,10 @@ pub fn item_id(name: &str) -> Option<u32> {
 }
 
 pub fn item_name(id: u32) -> &'static str {
-    ITEM_NAMES.get(id as usize).copied().unwrap_or("minecraft:air")
+    ITEM_NAMES
+        .get(id as usize)
+        .copied()
+        .unwrap_or("minecraft:air")
 }
 
 /// Whether the item places a block with the same name

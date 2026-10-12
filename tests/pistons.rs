@@ -205,7 +205,10 @@ fn push_limit() {
     assert_eq!(resolver.to_push[0], pos(2));
 
     world.set_block(pos(14), block("minecraft:stone", &[]));
-    assert!(resolve(&world, true, "east").is_none(), "13 blocks are too many");
+    assert!(
+        resolve(&world, true, "east").is_none(),
+        "13 blocks are too many"
+    );
 }
 
 #[test]
@@ -252,7 +255,10 @@ fn destroyed_blocks_end_the_line() {
 fn extended_pistons_can_not_be_pushed() {
     let mut world = TestWorld::new(1, 1, 1);
     world.set_block(pos(1), piston(false, "east"));
-    let extended = block("minecraft:piston", &[("facing", "north"), ("extended", "true")]);
+    let extended = block(
+        "minecraft:piston",
+        &[("facing", "north"), ("extended", "true")],
+    );
     world.set_block(pos(2), extended);
     assert!(resolve(&world, true, "east").is_none());
     world.set_block(pos(2), piston(false, "north"));
@@ -264,44 +270,74 @@ fn slime_pulls_neighbors_along() {
     let mut world = TestWorld::new(1, 1, 1);
     world.set_block(pos(1), piston(false, "east"));
     world.set_block(pos(2), block("minecraft:slime_block", &[]));
-    // Stone next to the slime block is not stuck to it
-    world.set_block(BlockPos::new(2, Y, Z + 1), block("minecraft:stone", &[]));
     let resolver = resolve(&world, true, "east").unwrap();
     assert_eq!(resolver.to_push, vec![pos(2)]);
 
-    // A second slime block next to it is, and so are the blocks in front of that one
-    world.set_block(BlockPos::new(2, Y, Z + 1), block("minecraft:slime_block", &[]));
+    // Any block next to the slime block is pulled along
+    world.set_block(BlockPos::new(2, Y, Z + 1), block("minecraft:stone", &[]));
+    let resolver = resolve(&world, true, "east").unwrap();
+    assert_eq!(resolver.to_push.len(), 2);
+
+    // A second slime block pulls the blocks in front of it along as well
+    world.set_block(
+        BlockPos::new(2, Y, Z + 1),
+        block("minecraft:slime_block", &[]),
+    );
     world.set_block(BlockPos::new(3, Y, Z + 1), block("minecraft:stone", &[]));
     let resolver = resolve(&world, true, "east").unwrap();
     assert_eq!(resolver.to_push.len(), 3);
     assert!(resolver.to_push.contains(&BlockPos::new(3, Y, Z + 1)));
 
     // Slime and honey don't stick together
-    world.set_block(BlockPos::new(2, Y, Z + 1), block("minecraft:honey_block", &[]));
+    world.set_block(BlockPos::new(3, Y, Z + 1), Block::Air);
+    world.set_block(
+        BlockPos::new(2, Y, Z + 1),
+        block("minecraft:honey_block", &[]),
+    );
     let resolver = resolve(&world, true, "east").unwrap();
     assert_eq!(resolver.to_push, vec![pos(2)]);
 }
 
 #[test]
 fn slime_counts_towards_the_limit() {
-    let mut world = TestWorld::new(1, 1, 1);
+    let mut world = TestWorld::new(1, 1, 2);
     world.set_block(pos(1), piston(false, "east"));
     world.set_block(pos(2), block("minecraft:slime_block", &[]));
     // 2 blocks in front of the piston plus a row of 11 attached to the slime block
     for z in 1..=11 {
-        world.set_block(BlockPos::new(2, Y, Z + z), block("minecraft:slime_block", &[]));
+        world.set_block(
+            BlockPos::new(2, Y, Z + z),
+            block("minecraft:slime_block", &[]),
+        );
     }
     assert!(resolve(&world, true, "east").is_some());
-    world.set_block(BlockPos::new(2, Y, Z + 12), block("minecraft:slime_block", &[]));
+    world.set_block(
+        BlockPos::new(2, Y, Z + 12),
+        block("minecraft:slime_block", &[]),
+    );
     assert!(resolve(&world, true, "east").is_none());
 }
 
 #[test]
 fn retracting_sticky_piston_resolves_the_pulled_blocks() {
     let mut world = TestWorld::new(1, 1, 1);
-    world.set_block(pos(1), block("minecraft:sticky_piston", &[("facing", "east"), ("extended", "true")]));
-    world.set_block(pos(2), block("minecraft:piston_head", &[("facing", "east"), ("type", "sticky")]));
+    world.set_block(
+        pos(1),
+        block(
+            "minecraft:sticky_piston",
+            &[("facing", "east"), ("extended", "true")],
+        ),
+    );
+    world.set_block(
+        pos(2),
+        block(
+            "minecraft:piston_head",
+            &[("facing", "east"), ("type", "sticky")],
+        ),
+    );
     world.set_block(pos(3), block("minecraft:stone", &[]));
+    // The piston removes its head before it looks for the blocks to pull
+    world.set_block(pos(2), Block::Air);
     let mut resolver = StructureResolver::new(pos(1), mchprs_blocks::BlockFace::East, false);
     assert!(resolver.resolve(&world));
     assert_eq!(resolver.to_push, vec![pos(3)]);

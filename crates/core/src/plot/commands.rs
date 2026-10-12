@@ -186,6 +186,11 @@ impl Plot {
                 }
 
                 self.reset_redpiler();
+                if self.plot_has_pistons() {
+                    self.players[player]
+                        .send_error_message("Redpiler can't compile plots that contain pistons.");
+                    return;
+                }
                 self.start_redpiler(options);
                 self.publish_world();
 
