@@ -141,6 +141,8 @@ fn read_decompressed<T: PacketDecoderExt>(
             0x09 => Box::new(SChatMessage::decode(reader)?),
             0x0E => Box::new(SClientInformation::decode(reader)?),
             0x0F => Box::new(SCommandSuggestionsRequest::decode(reader)?),
+            0x12 => Box::new(SContainerClick::decode(reader)?),
+            0x13 => Box::new(SContainerClose::decode(reader)?),
             0x16 => Box::new(SPluginMessage::decode(reader)?),
             0x1C => Box::new(SKeepAlive::decode(reader)?),
             0x1E => Box::new(SSetPlayerPosition::decode(reader)?),

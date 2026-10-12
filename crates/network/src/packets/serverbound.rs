@@ -50,6 +50,8 @@ pub trait ServerBoundPacketHandler {
     fn handle_set_held_item(&mut self, _packet: SSetHeldItem, _player_idx: usize) {}
     fn handle_set_creative_mode_slot(&mut self, _packet: SSetCreativeModeSlot, _player_idx: usize) {
     }
+    fn handle_container_click(&mut self, _packet: SContainerClick, _player_idx: usize) {}
+    fn handle_container_close(&mut self, _packet: SContainerClose, _player_idx: usize) {}
     fn handle_update_sign(&mut self, _packet: SUpdateSign, _player_idx: usize) {}
     fn handle_unknown(&mut self, _packet: SUnknown, _player_idx: usize) {}
 }
@@ -744,5 +746,51 @@ impl ServerBoundPacket for SUpdateSign {
 
     fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
         handler.handle_update_sign(*self, player_idx);
+    }
+}
+
+/// A click in a container screen. The hashed stacks the client sends along to verify its
+/// prediction follow the fields below and are not read, the server answers every click with the
+/// contents of the screen instead.
+#[derive(Debug)]
+pub struct SContainerClick {
+    pub window_id: i32,
+    pub state_id: i32,
+    pub slot: i16,
+    pub button: i8,
+    /// `ContainerInput` in the game
+    pub mode: i32,
+}
+
+impl ServerBoundPacket for SContainerClick {
+    fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
+        Ok(SContainerClick {
+            window_id: decoder.read_varint()?,
+            state_id: decoder.read_varint()?,
+            slot: decoder.read_short()?,
+            button: decoder.read_byte()?,
+            mode: decoder.read_varint()?,
+        })
+    }
+
+    fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
+        handler.handle_container_click(*self, player_idx);
+    }
+}
+
+#[derive(Debug)]
+pub struct SContainerClose {
+    pub window_id: i32,
+}
+
+impl ServerBoundPacket for SContainerClose {
+    fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
+        Ok(SContainerClose {
+            window_id: decoder.read_varint()?,
+        })
+    }
+
+    fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
+        handler.handle_container_close(*self, player_idx);
     }
 }
