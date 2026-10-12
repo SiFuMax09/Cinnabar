@@ -5,6 +5,7 @@
 pub mod comparator;
 pub mod noteblock;
 pub mod piston;
+pub mod rail;
 pub mod repeater;
 pub mod sculk;
 pub mod transport;
@@ -57,6 +58,7 @@ fn get_weak_power(
             }
         }
         Block::Generic(id) if sculk::is_sensor(id) => sculk::weak_power(id, side),
+        Block::Generic(id) if rail::is_detector_powered(id) && side == BlockFace::Bottom => 15,
         Block::RedstoneWire(wire) if dust_power => match side {
             BlockFace::Top => wire.power,
             BlockFace::Bottom => 0,
@@ -120,6 +122,7 @@ fn get_strong_power(
             } && powered,
         ),
         Block::Generic(id) if sculk::is_sensor(id) => sculk::strong_power(id, side),
+        Block::Generic(id) if rail::is_detector_powered(id) && side == BlockFace::Bottom => 15,
         Block::RedstoneWire { .. } => get_weak_power(block, world, pos, side, dust_power),
         Block::Repeater(_) => get_weak_power(block, world, pos, side, dust_power),
         Block::Comparator(_) => get_weak_power(block, world, pos, side, dust_power),
@@ -215,6 +218,10 @@ fn diode_get_input_strength(world: &impl World, pos: BlockPos, facing: BlockDire
 fn update_generic(id: u32, world: &mut impl World, pos: BlockPos) {
     use mchprs_blocks::generic;
 
+    if rail::is_rail(id) {
+        rail::on_redstone_update(world, pos, id);
+        return;
+    }
     if piston::piston_base(id).is_some() {
         piston::check_if_extend(world, pos);
         return;

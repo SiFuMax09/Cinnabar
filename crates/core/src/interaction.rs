@@ -374,6 +374,11 @@ pub fn place_in_world(
         world.set_block_entity(pos, block_entity);
     };
     world.set_block(pos, block);
+    if let Block::Generic(id) = block
+        && mchprs_redstone::rail::is_rail(id)
+    {
+        mchprs_redstone::rail::on_placed(world, pos);
+    }
     if let Block::Hopper { .. } = block {
         redstone::update(block, world, pos);
     }
@@ -446,6 +451,12 @@ pub fn is_valid_position(block: Block, world: &impl World, pos: BlockPos) -> boo
         return true;
     }
 
+    if let Block::Generic(id) = block
+        && mchprs_redstone::rail::is_rail(id)
+    {
+        return mchprs_redstone::rail::is_supported(world, pos, id);
+    }
+
     let check_bottom = matches!(
         block,
         Block::RedstoneWire(_)
@@ -514,6 +525,11 @@ pub fn change(block: Block, world: &mut impl World, pos: BlockPos, direction: Bl
     if !is_valid_position(block, world, pos) {
         destroy(block, world, pos);
         return;
+    }
+    if let Block::Generic(id) = block
+        && mchprs_redstone::rail::is_rail(id)
+    {
+        mchprs_redstone::rail::on_neighbor_changed(world, pos);
     }
     if let Block::RedstoneWire(wire) = block {
         let new_state = redstone::wire::on_neighbor_changed(wire, world, pos, direction);
