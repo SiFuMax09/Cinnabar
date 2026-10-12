@@ -1461,6 +1461,7 @@ dependencies = [
  "hematite-nbt",
  "mchprs_blocks",
  "mchprs_network",
+ "mchprs_world",
  "rustc-hash",
  "serde",
 ]

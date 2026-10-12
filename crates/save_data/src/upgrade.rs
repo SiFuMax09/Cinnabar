@@ -61,12 +61,7 @@ fn upgrade_chunk(chunk_data: ChunkData) -> ChunkData {
     }
 
     // The position of the chunk is not stored in the chunk data
-    ChunkData::new(&mut Chunk {
-        x: 0,
-        z: 0,
-        sections,
-        block_entities,
-    })
+    ChunkData::new(&mut Chunk::new(0, 0, sections, block_entities))
 }
 
 /// Upgrades all ids in a plot saved by the 1.20.4 version

@@ -1,3 +1,4 @@
+use crate::light::ChunkLight;
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::BlockPos;
 use rustc_hash::FxHashMap;
@@ -6,8 +7,8 @@ use std::mem;
 #[cfg(feature = "networking")]
 use mchprs_network::packets::{
     clientbound::{
-        CChunkData, CChunkDataBlockEntity, CChunkDataSection, CUpdateSectionBlocks,
-        CUpdateSectionBlocksRecord, ClientBoundPacket,
+        CChunkData, CChunkDataBlockEntity, CChunkDataSection, CLightUpdate, CUpdateSectionBlocks,
+        CUpdateSectionBlocksRecord, ClientBoundPacket, LightData, LightSection,
     },
     PacketEncoder, PalettedContainer,
 };
@@ -214,6 +215,11 @@ impl PalettedBitBuffer {
         }
     }
 
+    fn any_state(&self, f: impl Fn(u32) -> bool) -> bool {
+        // States are stored directly without a palette once there are too many of them
+        !self.use_palette || self.palette.iter().any(|&state| f(state))
+    }
+
     pub fn entries(&self) -> usize {
         self.data.entries
     }
@@ -360,6 +366,12 @@ impl ChunkSection {
         }
     }
 
+    /// Whether the section might contain a block state for which the function returns true.
+    /// May return true even if there is none.
+    pub fn any_state(&self, f: impl Fn(u32) -> bool) -> bool {
+        self.changed_blocks.is_some() || self.buffer.any_state(f)
+    }
+
     fn changed(&self) -> bool {
         self.changed_blocks.is_some()
     }
@@ -410,9 +422,26 @@ pub struct Chunk {
     pub x: i32,
     pub z: i32,
     pub block_entities: FxHashMap<BlockPos, BlockEntity>,
+    pub light: ChunkLight,
 }
 
 impl Chunk {
+    /// Creates a chunk from its parts. The light is not calculated, see `reset_light`.
+    pub fn new(
+        x: i32,
+        z: i32,
+        sections: Vec<ChunkSection>,
+        block_entities: FxHashMap<BlockPos, BlockEntity>,
+    ) -> Chunk {
+        Chunk {
+            light: ChunkLight::new(sections.len()),
+            sections,
+            x,
+            z,
+            block_entities,
+        }
+    }
+
     #[cfg(feature = "networking")]
     pub fn encode_packet(&self) -> PacketEncoder {
         let block_height = self.sections.len() * 16;
@@ -456,6 +485,7 @@ impl Chunk {
             chunk_z: self.z,
             heightmaps,
             block_entities,
+            light: self.light.encode(None, None),
         }
         .encode()
     }
@@ -482,6 +512,11 @@ impl Chunk {
             chunk_z: z,
             heightmaps: vec![],
             block_entities: vec![],
+            // Without blocks the sky shines everywhere
+            light: LightData {
+                sky: vec![LightSection::Data(Box::new([0xFF; 2048])); num_sections + 2],
+                block: vec![LightSection::Empty; num_sections + 2],
+            },
         }
         .encode()
     }
@@ -504,7 +539,35 @@ impl Chunk {
     pub fn set_block(&mut self, x: u32, y: u32, z: u32, block_id: u32) -> bool {
         let section_y = (y >> 4) as usize;
         let section = &mut self.sections[section_y];
-        section.set_block(x, y & 0xF, z, block_id)
+        let old_block = section.get_block(x, y & 0xF, z);
+        let changed = section.set_block(x, y & 0xF, z, block_id);
+        if changed {
+            let sections = &self.sections;
+            let height = sections.len() as i32 * 16;
+            self.light
+                .block_changed((x, y, z), old_block, block_id, |y| {
+                    if (0..height).contains(&y) {
+                        sections[(y >> 4) as usize].get_block(x, (y & 15) as u32, z)
+                    } else {
+                        0
+                    }
+                });
+        }
+        changed
+    }
+
+    /// The light update packet for the sections that changed since the last call, if any
+    #[cfg(feature = "networking")]
+    pub fn encode_light_update(&mut self) -> Option<PacketEncoder> {
+        let (sky, block) = self.light.take_dirty()?;
+        Some(
+            CLightUpdate {
+                chunk_x: self.x,
+                chunk_z: self.z,
+                light: self.light.encode(Some(sky), Some(block)),
+            }
+            .encode(),
+        )
     }
 
     pub fn get_block(&self, x: u32, y: u32, z: u32) -> u32 {
@@ -534,12 +597,12 @@ impl Chunk {
     }
 
     pub fn empty(x: i32, z: i32, num_sections: usize) -> Chunk {
-        Chunk {
-            sections: (0..num_sections).map(|_| Default::default()).collect(),
+        Chunk::new(
             x,
             z,
-            block_entities: FxHashMap::default(),
-        }
+            (0..num_sections).map(|_| Default::default()).collect(),
+            FxHashMap::default(),
+        )
     }
 
     #[cfg(feature = "networking")]

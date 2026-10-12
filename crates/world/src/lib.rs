@@ -1,3 +1,4 @@
+pub mod light;
 pub mod storage;
 #[cfg(feature = "testing")]
 pub mod testing;

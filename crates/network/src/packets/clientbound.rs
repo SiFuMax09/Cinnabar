@@ -1,8 +1,6 @@
 use super::{PacketEncoder, PacketEncoderExt, PalettedContainer, PlayerProperty, SlotData};
 use crate::nbt_util::NBTCompound;
 use crate::registry_entries::{SYNCED_REGISTRIES, TAGS};
-use bitvec::bits;
-use bitvec::prelude::Lsb0;
 use mchprs_proc_macros::protocol_id;
 use mchprs_text::TextComponent;
 
@@ -194,7 +192,10 @@ fn plot_biome() -> nbt::Value {
         ("has_precipitation", nbt_bool(false)),
         ("temperature", nbt::Value::Float(0.5)),
         ("downfall", nbt::Value::Float(0.5)),
-        ("effects", nbt_compound([("water_color", nbt_str("#3f76e4"))])),
+        (
+            "effects",
+            nbt_compound([("water_color", nbt_str("#3f76e4"))]),
+        ),
     ])
 }
 
@@ -248,12 +249,14 @@ impl CRegistryData {
                 ],
             },
         ];
-        registries.extend(SYNCED_REGISTRIES.iter().map(|(registry, entries)| {
-            CRegistryData {
-                registry: (*registry).to_owned(),
-                entries: entries.iter().map(|e| ((*e).to_owned(), None)).collect(),
-            }
-        }));
+        registries.extend(
+            SYNCED_REGISTRIES
+                .iter()
+                .map(|(registry, entries)| CRegistryData {
+                    registry: (*registry).to_owned(),
+                    entries: entries.iter().map(|e| ((*e).to_owned(), None)).collect(),
+                }),
+        );
         registries
     }
 }
@@ -632,6 +635,83 @@ pub struct CChunkData {
     pub heightmaps: Vec<(i32, Vec<i64>)>,
     pub chunk_sections: Vec<CChunkDataSection>,
     pub block_entities: Vec<CChunkDataBlockEntity>,
+    pub light: LightData,
+}
+
+/// What the client should do with the light of one section
+#[derive(Clone)]
+pub enum LightSection {
+    /// The light of the section is not part of the packet and stays as it is
+    Unchanged,
+    /// The light of the section is 0 everywhere
+    Empty,
+    /// 4 bits per block, in the order y, z, x with x changing the fastest
+    Data(Box<[u8; 2048]>),
+}
+
+/// The light of a chunk. Both lists have one entry per light section, which are the sections of
+/// the chunk and one more below and above, starting at the lowest.
+#[derive(Clone, Default)]
+pub struct LightData {
+    pub sky: Vec<LightSection>,
+    pub block: Vec<LightSection>,
+}
+
+impl LightData {
+    fn write_masks(
+        buf: &mut Vec<u8>,
+        sections: &[LightSection],
+        select: fn(&LightSection) -> bool,
+    ) {
+        let mut longs = vec![0u64; sections.len().div_ceil(64)];
+        for (i, section) in sections.iter().enumerate() {
+            if select(section) {
+                longs[i / 64] |= 1 << (i % 64);
+            }
+        }
+        while longs.last() == Some(&0) {
+            longs.pop();
+        }
+        buf.write_varint(longs.len() as i32);
+        longs.iter().for_each(|&x| buf.write_long(x as i64));
+    }
+
+    fn write(&self, buf: &mut Vec<u8>) {
+        let has_data = |section: &LightSection| matches!(section, LightSection::Data(_));
+        let is_empty = |section: &LightSection| matches!(section, LightSection::Empty);
+        Self::write_masks(buf, &self.sky, has_data);
+        Self::write_masks(buf, &self.block, has_data);
+        Self::write_masks(buf, &self.sky, is_empty);
+        Self::write_masks(buf, &self.block, is_empty);
+        for sections in [&self.sky, &self.block] {
+            let arrays = sections.iter().filter_map(|section| match section {
+                LightSection::Data(data) => Some(data),
+                _ => None,
+            });
+            buf.write_varint(arrays.clone().count() as i32);
+            for data in arrays {
+                buf.write_varint(2048);
+                buf.write_bytes(&data[..]);
+            }
+        }
+    }
+}
+
+/// Updates the light of a chunk that the client already has
+pub struct CLightUpdate {
+    pub chunk_x: i32,
+    pub chunk_z: i32,
+    pub light: LightData,
+}
+
+impl ClientBoundPacket for CLightUpdate {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        buf.write_varint(self.chunk_x);
+        buf.write_varint(self.chunk_z);
+        self.light.write(&mut buf);
+        PacketEncoder::new(buf, 0x30)
+    }
 }
 
 impl ClientBoundPacket for CChunkData {
@@ -692,28 +772,7 @@ impl ClientBoundPacket for CChunkData {
             buf.write_nbt(&block_entity.data);
         }
 
-        // Plots are fully lit by the sky: every section, including the one below and the one above
-        // the chunk, gets sky light level 15 and block light is left unset.
-        let light_sections = self.chunk_sections.len() + 2;
-        let sky_mask = bits![u64, Lsb0; 1].repeat(light_sections);
-        let longs = sky_mask.as_raw_slice();
-        // Sky Light Mask
-        buf.write_varint(longs.len() as i32);
-        longs.iter().for_each(|&x| buf.write_long(x as i64));
-        // Block Light Mask
-        buf.write_varint(0);
-        // Empty Sky Light Mask
-        buf.write_varint(0);
-        // Empty Block Light Mask
-        buf.write_varint(0);
-        // Sky Light arrays
-        buf.write_varint(light_sections as i32);
-        for _ in 0..light_sections {
-            buf.write_varint(2048);
-            buf.write_bytes(&[0xFF; 2048]);
-        }
-        // Block Light arrays
-        buf.write_varint(0);
+        self.light.write(&mut buf);
         PacketEncoder::new(buf, 0x2d)
     }
 }
@@ -762,7 +821,9 @@ impl ClientBoundPacket for CExplode {
         };
         buf.write_varint(particle);
         // Sound, which is encoded as the id plus one
-        buf.write_varint(protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1);
+        buf.write_varint(
+            protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1,
+        );
         // Block particles
         buf.write_varint(0);
         PacketEncoder::new(buf, 0x24)

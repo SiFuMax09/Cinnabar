@@ -23,3 +23,7 @@ hematite-nbt = { workspace = true }
 [features]
 networking = ["dep:mchprs_network"]
 testing = []
+
+[dev-dependencies]
+# The light tests need the test world
+mchprs_world = { path = ".", features = ["testing"] }
