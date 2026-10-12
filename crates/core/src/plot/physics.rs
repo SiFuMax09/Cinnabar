@@ -192,12 +192,11 @@ pub struct RayHit {
     pub point: Vec3,
 }
 
-/// Whether a block is water or lava, which can be targeted when ray casting for fluids
+/// Whether a block is water or lava, which can be targeted when ray casting for fluids. The water
+/// of a waterlogged block counts too.
 fn is_fluid(world: &impl World, pos: BlockPos) -> bool {
-    matches!(
-        world.get_block(pos).get_name(),
-        "minecraft:water" | "minecraft:lava"
-    )
+    let block = world.get_block(pos);
+    block.is_waterlogged() || matches!(block.get_name(), "minecraft:water" | "minecraft:lava")
 }
 
 /// The distance along the ray where it enters the box, and the face it enters through
@@ -274,9 +273,8 @@ pub fn raycast(
     }
 
     loop {
-        let hit = if let Some(bb) = block_box(world, cell) {
-            ray_box(origin, dir, &bb)
-        } else if fluids && is_fluid(world, cell) {
+        let block_hit = block_box(world, cell).and_then(|bb| ray_box(origin, dir, &bb));
+        let fluid_hit = if fluids && is_fluid(world, cell) {
             let (x, y, z) = (cell.x as f64, cell.y as f64, cell.z as f64);
             ray_box(
                 origin,
@@ -288,6 +286,11 @@ pub fn raycast(
             )
         } else {
             None
+        };
+        // A waterlogged block has water in the whole cell, so the nearer of the two counts
+        let hit = match (block_hit, fluid_hit) {
+            (Some(block), Some(fluid)) => Some(if fluid.0 < block.0 { fluid } else { block }),
+            (hit, None) | (None, hit) => hit,
         };
         if let Some((distance, face)) = hit
             && distance <= max_distance

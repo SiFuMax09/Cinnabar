@@ -429,7 +429,13 @@ pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
             }
         }
         _ => {
-            world.set_block(pos, Block::Air);
+            if block.is_waterlogged() {
+                // The water stays where the block was
+                world.set_block(pos, fluids::water_source());
+                world.schedule_fluid_tick(pos);
+            } else {
+                world.set_block(pos, Block::Air);
+            }
             change_surrounding_blocks(world, pos);
             redstone::update_surrounding_blocks(world, pos);
             if block.is_sculk_sensor() {
@@ -503,9 +509,7 @@ pub fn is_valid_position(block: Block, world: &impl World, pos: BlockPos) -> boo
 }
 
 pub fn change(block: Block, world: &mut impl World, pos: BlockPos, direction: BlockFace) {
-    if let Block::Generic(id) = block
-        && fluids::holds_fluid(id)
-    {
+    if fluids::holds_fluid(block.get_id()) {
         world.schedule_fluid_tick(pos);
     }
     if generic_placement::is_gravity_block(block) {
@@ -629,18 +633,7 @@ pub fn use_item_on_block(
     }
 
     if can_place && (0..PLOT_BLOCK_HEIGHT).contains(&block_pos.y) {
-        let mut block = get_state_for_placement(world, block_pos, item.item_type, &ctx);
-        // Sculk sensors placed into water are waterlogged
-        if let Block::Generic(id) = block
-            && block.is_sculk_sensor()
-            && world.get_block(block_pos).get_name() == "minecraft:water"
-        {
-            block = Block::Generic(mchprs_blocks::generic::with_property(
-                id,
-                "waterlogged",
-                "true",
-            ));
-        }
+        let block = get_state_for_placement(world, block_pos, item.item_type, &ctx);
 
         if !CONFIG.block_in_hitbox && collides_with_player(block, block_pos, &ctx) {
             return true;

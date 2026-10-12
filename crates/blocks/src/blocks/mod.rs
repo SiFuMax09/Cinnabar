@@ -1,7 +1,7 @@
 mod props;
 
 pub use crate::generated::Block;
-use crate::{BlockDirection, BlockFacing, BlockProperty};
+use crate::{generic, BlockDirection, BlockFacing, BlockProperty};
 use mchprs_proc_macros::BlockTransform;
 pub use props::*;
 
@@ -162,6 +162,82 @@ impl Block {
                 | "minecraft:tall_grass"
                 | "minecraft:large_fern"
         )
+    }
+
+    /// The `waterlogged` field of the dedicated variants that have one
+    fn waterlogged_mut(&mut self) -> Option<&mut bool> {
+        match self {
+            Block::OakWallSign { waterlogged, .. }
+            | Block::SpruceWallSign { waterlogged, .. }
+            | Block::BirchWallSign { waterlogged, .. }
+            | Block::AcaciaWallSign { waterlogged, .. }
+            | Block::JungleWallSign { waterlogged, .. }
+            | Block::DarkOakWallSign { waterlogged, .. }
+            | Block::CrimsonWallSign { waterlogged, .. }
+            | Block::WarpedWallSign { waterlogged, .. }
+            | Block::BambooWallSign { waterlogged, .. }
+            | Block::CherryWallSign { waterlogged, .. }
+            | Block::MangroveWallSign { waterlogged, .. }
+            | Block::OakSign { waterlogged, .. }
+            | Block::SpruceSign { waterlogged, .. }
+            | Block::BirchSign { waterlogged, .. }
+            | Block::AcaciaSign { waterlogged, .. }
+            | Block::JungleSign { waterlogged, .. }
+            | Block::DarkOakSign { waterlogged, .. }
+            | Block::CrimsonSign { waterlogged, .. }
+            | Block::WarpedSign { waterlogged, .. }
+            | Block::BambooSign { waterlogged, .. }
+            | Block::CherrySign { waterlogged, .. }
+            | Block::MangroveSign { waterlogged, .. }
+            | Block::SeaPickle { waterlogged, .. }
+            | Block::SmoothStoneSlab { waterlogged, .. }
+            | Block::QuartzSlab { waterlogged, .. }
+            | Block::IronTrapdoor { waterlogged, .. } => Some(waterlogged),
+            _ => None,
+        }
+    }
+
+    /// Whether the block can hold water by being waterlogged. Double slabs can't.
+    pub fn can_be_waterlogged(self) -> bool {
+        match self {
+            Block::Generic(id) => {
+                !generic::property_values(id, "waterlogged").is_empty()
+                    && generic::get_property(id, "type") != Some("double")
+            }
+            Block::SmoothStoneSlab { ty, .. } | Block::QuartzSlab { ty, .. } => {
+                ty != SlabType::Double
+            }
+            _ => {
+                let mut block = self;
+                block.waterlogged_mut().is_some()
+            }
+        }
+    }
+
+    pub fn is_waterlogged(self) -> bool {
+        match self {
+            Block::Generic(id) => generic::get_property(id, "waterlogged") == Some("true"),
+            _ => {
+                let mut block = self;
+                block
+                    .waterlogged_mut()
+                    .is_some_and(|waterlogged| *waterlogged)
+            }
+        }
+    }
+
+    /// The block with its water set, or `None` if the block can't be waterlogged
+    pub fn with_waterlogged(mut self, waterlogged: bool) -> Option<Block> {
+        if !self.can_be_waterlogged() {
+            return None;
+        }
+        if let Block::Generic(id) = &mut self {
+            let value = if waterlogged { "true" } else { "false" };
+            *id = generic::with_property(*id, "waterlogged", value);
+        } else if let Some(field) = self.waterlogged_mut() {
+            *field = waterlogged;
+        }
+        Some(self)
     }
 
     pub(crate) fn complex_rotate(&mut self, amt: RotateAmt) {

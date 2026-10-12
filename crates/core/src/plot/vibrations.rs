@@ -14,7 +14,7 @@
 use super::Plot;
 use crate::player::{Gamemode, PlayerPos};
 use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{generic, BlockFace, BlockPos};
+use mchprs_blocks::{BlockFace, BlockPos};
 use mchprs_proc_macros::protocol_id;
 use mchprs_redstone::sculk::{self, Phase};
 use mchprs_world::game_event::{
@@ -564,10 +564,7 @@ impl Plot {
     }
 
     fn is_waterlogged(&self, pos: BlockPos) -> bool {
-        matches!(
-            self.world.get_block(pos),
-            Block::Generic(id) if generic::get_property(id, "waterlogged") == Some("true")
-        )
+        self.world.get_block(pos).is_waterlogged()
     }
 
     fn play_sensor_sound(&mut self, pos: BlockPos, sound_id: i32) {
@@ -657,6 +654,7 @@ impl Plot {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mchprs_blocks::generic;
     use mchprs_world::testing::TestWorld;
 
     const SENSOR: &str = "minecraft:sculk_sensor";
