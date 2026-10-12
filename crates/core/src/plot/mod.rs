@@ -1,10 +1,11 @@
 pub mod commands;
 mod data;
-mod entities;
-mod physics;
 pub mod database;
+mod entities;
+mod environment;
 mod monitor;
 mod packet_handlers;
+mod physics;
 mod scoreboard;
 mod selection_viz;
 pub use selection_viz::SelectionVisualizer;
@@ -101,6 +102,7 @@ pub struct Plot {
     async_rt: Runtime,
     scoreboard: Scoreboard,
     entities: entities::Entities,
+    environment: environment::Environment,
 }
 
 pub struct PlotWorld {
@@ -458,6 +460,7 @@ impl Plot {
             .packet_senders
             .push(PlayerPacketSender::new(&player.client));
         self.scoreboard.add_player(&player);
+        self.environment.sync_player(&player);
         self.players.push(player);
         self.update_view_pos_for_player(self.players.len() - 1, true);
     }
@@ -645,7 +648,11 @@ impl Plot {
                 None,
                 interaction::BlockHit {
                     face: block_face,
-                    cursor: (use_item_on.cursor_x, use_item_on.cursor_y, use_item_on.cursor_z),
+                    cursor: (
+                        use_item_on.cursor_x,
+                        use_item_on.cursor_y,
+                        use_item_on.cursor_z,
+                    ),
                 },
             );
             self.world.flush_block_changes();
@@ -1085,6 +1092,7 @@ impl Plot {
         // Only tick if there are players in the plot
         if !self.players.is_empty() {
             self.tick_entities();
+            self.tick_environment();
             self.timings.set_ticking(true);
             let now = Instant::now();
             self.last_player_time = now;
@@ -1154,6 +1162,7 @@ impl Plot {
             }
         } else {
             self.timings.set_ticking(false);
+            self.environment.pause();
             // Unload plot after 600 seconds unless the plot should be always loaded
             if self.last_player_time.elapsed().as_secs() > 600 && !self.always_running {
                 self.running = false;
@@ -1262,6 +1271,7 @@ impl Plot {
             async_rt: Plot::create_async_rt(),
             scoreboard: Default::default(),
             entities: Default::default(),
+            environment: environment::Environment::from_data(plot_data.environment),
             world,
         }
     }
@@ -1298,6 +1308,7 @@ impl Plot {
             world_send_rate: world.world_send_rate,
             chunk_data,
             pending_ticks: world.to_be_ticked.clone(),
+            environment: self.environment.data(),
         };
         data.save_to_file(format!("./world/plots/p{},{}", world.x, world.z))
             .unwrap();

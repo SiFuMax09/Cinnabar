@@ -251,7 +251,7 @@ fn tick_entity(entity: &mut Entity, world: &impl World) -> (bool, Option<Action>
 }
 
 impl Plot {
-    fn broadcast(&self, packet: &PacketEncoder) {
+    pub(super) fn broadcast(&self, packet: &PacketEncoder) {
         for player in &self.players {
             player.send_packet(packet);
         }
