@@ -555,6 +555,7 @@ pub trait PacketEncoderExt: Write {
 
 impl PacketEncoderExt for Vec<u8> {}
 
+#[derive(Debug)]
 pub struct PacketEncoder {
     buffer: Vec<u8>,
     packet_id: u32,
