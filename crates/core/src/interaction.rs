@@ -1,6 +1,7 @@
 use crate::config::CONFIG;
 use crate::generic_placement;
 use crate::player::{Player, PlayerPos};
+use crate::plot::fluids;
 use crate::plot::{PlotWorld, PLOT_BLOCK_HEIGHT};
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::items::{Item, ItemStack};
@@ -417,6 +418,11 @@ pub fn is_valid_position(block: Block, world: &impl World, pos: BlockPos) -> boo
 }
 
 pub fn change(block: Block, world: &mut impl World, pos: BlockPos, direction: BlockFace) {
+    if let Block::Generic(id) = block
+        && fluids::holds_fluid(id)
+    {
+        world.schedule_fluid_tick(pos);
+    }
     if generic_placement::is_gravity_block(block) {
         world.schedule_falling_block(pos);
     }
@@ -561,6 +567,7 @@ pub fn use_item_on_block(
             ctx.player.client.send_packet(&open_sign_editor);
         }
 
+        let block = fluids::waterlog_on_place(world, block_pos, block);
         place_in_world(block, world, block_pos, &item.nbt);
         generic_placement::after_place(world, block_pos);
         false

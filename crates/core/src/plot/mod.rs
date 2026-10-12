@@ -1,6 +1,7 @@
 pub mod commands;
 mod data;
 mod entities;
+pub(crate) mod fluids;
 mod physics;
 pub mod database;
 mod monitor;
@@ -101,6 +102,7 @@ pub struct Plot {
     async_rt: Runtime,
     scoreboard: Scoreboard,
     entities: entities::Entities,
+    fluids: fluids::Fluids,
 }
 
 pub struct PlotWorld {
@@ -116,6 +118,8 @@ pub struct PlotWorld {
     pub(super) pending_ignitions: FxHashSet<BlockPos>,
     /// Blocks that might have to start falling
     pub(super) pending_falling: FxHashSet<BlockPos>,
+    /// Fluids that might have to flow or dry up
+    pub(super) pending_fluids: FxHashSet<BlockPos>,
 }
 
 impl PlotWorld {
@@ -274,6 +278,10 @@ impl World for PlotWorld {
 
     fn schedule_falling_block(&mut self, pos: BlockPos) {
         self.pending_falling.insert(pos);
+    }
+
+    fn schedule_fluid_tick(&mut self, pos: BlockPos) {
+        self.pending_fluids.insert(pos);
     }
 
     fn flush_block_changes(&mut self) {
@@ -1085,6 +1093,7 @@ impl Plot {
         // Only tick if there are players in the plot
         if !self.players.is_empty() {
             self.tick_entities();
+            self.tick_fluids();
             self.timings.set_ticking(true);
             let now = Instant::now();
             self.last_player_time = now;
@@ -1238,6 +1247,7 @@ impl Plot {
             pending_sounds: FxHashMap::default(),
             pending_ignitions: Default::default(),
             pending_falling: Default::default(),
+            pending_fluids: Default::default(),
         };
         let tps = plot_data.tps;
         Plot {
@@ -1262,6 +1272,7 @@ impl Plot {
             async_rt: Plot::create_async_rt(),
             scoreboard: Default::default(),
             entities: Default::default(),
+            fluids: Default::default(),
             world,
         }
     }
