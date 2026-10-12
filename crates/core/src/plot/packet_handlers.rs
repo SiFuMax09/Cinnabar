@@ -182,7 +182,7 @@ impl ServerBoundPacketHandler for Plot {
         player.skin_parts =
             SkinParts::from_bits_truncate(client_settings.displayed_skin_parts as u32);
         let metadata_entry = CSetEntityMetadataEntry {
-            index: 17,
+            index: 16,
             metadata_type: 0,
             value: vec![player.skin_parts.bits() as u8],
         };
@@ -366,44 +366,21 @@ impl ServerBoundPacketHandler for Plot {
 
     fn handle_player_command(&mut self, entity_action: SPlayerCommand, player: usize) {
         match entity_action.action_id {
-            0 => self.players[player].crouching = true,
-            1 => self.players[player].crouching = false,
-            3 => self.players[player].sprinting = true,
-            4 => self.players[player].sprinting = false,
-            _ => {}
+            // Start sprinting
+            1 => self.players[player].sprinting = true,
+            // Stop sprinting
+            2 => self.players[player].sprinting = false,
+            _ => return,
         }
-        let mut bitfield = 0;
-        if self.players[player].crouching {
-            bitfield |= 0x02;
-        };
-        if self.players[player].sprinting {
-            bitfield |= 0x08;
-        };
-        let metadata_entries = vec![
-            CSetEntityMetadataEntry {
-                index: 0,
-                metadata_type: 0,
-                value: vec![bitfield],
-            },
-            CSetEntityMetadataEntry {
-                index: 6,
-                metadata_type: 20,
-                value: vec![if self.players[player].crouching { 5 } else { 0 }],
-            },
-        ];
-        let entity_metadata = CSetEntityMetadata {
-            entity_id: self.players[player].entity_id as i32,
-            metadata: metadata_entries,
+        self.broadcast_player_state(player);
+    }
+
+    fn handle_player_input(&mut self, input: SPlayerInput, player: usize) {
+        if self.players[player].crouching == input.shift {
+            return;
         }
-        .encode();
-        for other_player in 0..self.players.len() {
-            if player == other_player {
-                continue;
-            };
-            self.players[other_player]
-                .client
-                .send_packet(&entity_metadata);
-        }
+        self.players[player].crouching = input.shift;
+        self.broadcast_player_state(player);
     }
 
     fn handle_set_held_item(&mut self, held_item_change: SSetHeldItem, player: usize) {
@@ -452,5 +429,43 @@ impl ServerBoundPacketHandler for Plot {
         self.world
             .set_block_entity(pos, BlockEntity::Sign(Box::new(block_entity)));
         self.publish_world();
+    }
+}
+
+impl Plot {
+    /// Sends the crouching and sprinting state of a player to all other players.
+    fn broadcast_player_state(&mut self, player: usize) {
+        let mut bitfield = 0;
+        if self.players[player].crouching {
+            bitfield |= 0x02;
+        };
+        if self.players[player].sprinting {
+            bitfield |= 0x08;
+        };
+        let metadata_entries = vec![
+            CSetEntityMetadataEntry {
+                index: 0,
+                metadata_type: 0,
+                value: vec![bitfield],
+            },
+            CSetEntityMetadataEntry {
+                index: 6,
+                metadata_type: 20,
+                value: vec![if self.players[player].crouching { 5 } else { 0 }],
+            },
+        ];
+        let entity_metadata = CSetEntityMetadata {
+            entity_id: self.players[player].entity_id as i32,
+            metadata: metadata_entries,
+        }
+        .encode();
+        for other_player in 0..self.players.len() {
+            if player == other_player {
+                continue;
+            };
+            self.players[other_player]
+                .client
+                .send_packet(&entity_metadata);
+        }
     }
 }

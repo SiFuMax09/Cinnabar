@@ -12,6 +12,7 @@ pub trait ServerBoundPacketHandler {
     fn handle_login_acknowledged(&mut self, _packet: SLoginAcknowledged, _player_idx: usize) {}
     // Configuration
     fn handle_client_information(&mut self, _packet: SClientInformation, _player_idx: usize) {}
+    fn handle_select_known_packs(&mut self, _packet: SSelectKnownPacks, _player_idx: usize) {}
     fn handle_acknowledge_finish_configuration(
         &mut self,
         _packet: SAcknowledgeFinishConfiguration,
@@ -40,6 +41,7 @@ pub trait ServerBoundPacketHandler {
     fn handle_set_player_on_ground(&mut self, _packet: SSetPlayerOnGround, _player_idx: usize) {}
     fn handle_player_abilities(&mut self, _packet: SPlayerAbilities, _player_idx: usize) {}
     fn handle_player_action(&mut self, _packet: SPlayerAction, _player_idx: usize) {}
+    fn handle_player_input(&mut self, _packet: SPlayerInput, _player_idx: usize) {}
     fn handle_player_command(&mut self, _packet: SPlayerCommand, _player_idx: usize) {}
     fn handle_swing_arm(&mut self, _packet: SSwingArm, _player_idx: usize) {}
     fn handle_use_item_on(&mut self, _packet: SUseItemOn, _player_idx: usize) {}
@@ -221,6 +223,7 @@ pub struct SClientInformation {
     pub main_hand: i32,
     pub enable_text_filtering: bool,
     pub allow_server_listings: bool,
+    pub particle_status: i32,
 }
 
 impl ServerBoundPacket for SClientInformation {
@@ -234,11 +237,37 @@ impl ServerBoundPacket for SClientInformation {
             main_hand: decoder.read_varint()?,
             enable_text_filtering: decoder.read_bool()?,
             allow_server_listings: decoder.read_bool()?,
+            particle_status: decoder.read_varint()?,
         })
     }
 
     fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
         handler.handle_client_information(*self, player_idx);
+    }
+}
+
+#[derive(Debug)]
+pub struct SSelectKnownPacks {
+    /// (namespace, id, version)
+    pub known_packs: Vec<(String, String, String)>,
+}
+
+impl ServerBoundPacket for SSelectKnownPacks {
+    fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
+        let len = decoder.read_varint()?;
+        let mut known_packs = Vec::new();
+        for _ in 0..len {
+            known_packs.push((
+                decoder.read_string()?,
+                decoder.read_string()?,
+                decoder.read_string()?,
+            ));
+        }
+        Ok(SSelectKnownPacks { known_packs })
+    }
+
+    fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
+        handler.handle_select_known_packs(*self, player_idx);
     }
 }
 
@@ -256,43 +285,16 @@ impl ServerBoundPacket for SAcknowledgeFinishConfiguration {
 }
 
 #[derive(Debug)]
-pub struct SChatCommandArgumentSignature {
-    pub argument_name: String,
-    pub signature: Vec<u8>,
-}
-
-#[derive(Debug)]
 pub struct SChatCommand {
     pub command: String,
-    pub timestamp: i64,
-    pub salt: i64,
-    pub argument_signatures: Vec<SChatCommandArgumentSignature>,
-    pub message_count: i32,
-    pub acknowledged: [u8; 3],
 }
 
 impl ServerBoundPacket for SChatCommand {
+    /// Used for both the unsigned and signed variants. The signatures are not needed, as
+    /// the server doesn't enforce secure chat.
     fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
-        let command = decoder.read_string()?;
-        let timestamp = decoder.read_long()?;
-        let salt = decoder.read_long()?;
-        let mut argument_signatures = Vec::new();
-        let num_signatures = decoder.read_varint()?;
-        for _ in 0..num_signatures {
-            argument_signatures.push(SChatCommandArgumentSignature {
-                argument_name: decoder.read_string()?,
-                signature: decoder.read_bytes(256)?,
-            });
-        }
-        let message_count = decoder.read_varint()?;
-        let acknowledged = decoder.read_bytes(3)?.try_into().unwrap();
         Ok(SChatCommand {
-            command,
-            timestamp,
-            salt,
-            argument_signatures,
-            message_count,
-            acknowledged,
+            command: decoder.read_string()?,
         })
     }
 
@@ -306,31 +308,14 @@ pub struct SChatMessage {
     pub message: String,
     pub timestamp: i64,
     pub salt: i64,
-    pub signature: Option<Vec<u8>>,
-    pub message_count: i32,
-    pub acknowledged: [u8; 3],
 }
 
 impl ServerBoundPacket for SChatMessage {
     fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
-        let message = decoder.read_string()?;
-        let timestamp = decoder.read_long()?;
-        let salt = decoder.read_long()?;
-        let has_signature = decoder.read_bool()?;
-        let signature = if has_signature {
-            Some(decoder.read_bytes(256)?)
-        } else {
-            None
-        };
-        let message_count = decoder.read_varint()?;
-        let acknowledged = decoder.read_bytes(3)?.try_into().unwrap();
         Ok(SChatMessage {
-            message,
-            timestamp,
-            salt,
-            signature,
-            message_count,
-            acknowledged,
+            message: decoder.read_string()?,
+            timestamp: decoder.read_long()?,
+            salt: decoder.read_long()?,
         })
     }
 
@@ -408,7 +393,7 @@ impl ServerBoundPacket for SSetPlayerPosition {
             x: decoder.read_double()?,
             y: decoder.read_double()?,
             z: decoder.read_double()?,
-            on_ground: decoder.read_bool()?,
+            on_ground: decoder.read_unsigned_byte()? & 1 != 0,
         })
     }
 
@@ -435,7 +420,7 @@ impl ServerBoundPacket for SSetPlayerPositionAndRotation {
             z: decoder.read_double()?,
             yaw: decoder.read_float()?,
             pitch: decoder.read_float()?,
-            on_ground: decoder.read_bool()?,
+            on_ground: decoder.read_unsigned_byte()? & 1 != 0,
         })
     }
 
@@ -456,7 +441,7 @@ impl ServerBoundPacket for SPlayerRotation {
         Ok(SPlayerRotation {
             yaw: decoder.read_float()?,
             pitch: decoder.read_float()?,
-            on_ground: decoder.read_bool()?,
+            on_ground: decoder.read_unsigned_byte()? & 1 != 0,
         })
     }
 
@@ -473,12 +458,42 @@ pub struct SSetPlayerOnGround {
 impl ServerBoundPacket for SSetPlayerOnGround {
     fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
         Ok(SSetPlayerOnGround {
-            on_ground: decoder.read_bool()?,
+            on_ground: decoder.read_unsigned_byte()? & 1 != 0,
         })
     }
 
     fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
         handler.handle_set_player_on_ground(*self, player_idx);
+    }
+}
+
+#[derive(Debug)]
+pub struct SPlayerInput {
+    pub forward: bool,
+    pub backward: bool,
+    pub left: bool,
+    pub right: bool,
+    pub jump: bool,
+    pub shift: bool,
+    pub sprint: bool,
+}
+
+impl ServerBoundPacket for SPlayerInput {
+    fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
+        let flags = decoder.read_unsigned_byte()?;
+        Ok(SPlayerInput {
+            forward: flags & 1 != 0,
+            backward: flags & 2 != 0,
+            left: flags & 4 != 0,
+            right: flags & 8 != 0,
+            jump: flags & 16 != 0,
+            shift: flags & 32 != 0,
+            sprint: flags & 64 != 0,
+        })
+    }
+
+    fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
+        handler.handle_player_input(*self, player_idx);
     }
 }
 
@@ -591,6 +606,8 @@ impl ServerBoundPacket for SUseItemOn {
         let cursor_y = decoder.read_float()?;
         let cursor_z = decoder.read_float()?;
         let inside_block = decoder.read_bool()?;
+        // Whether the hit was against the world border
+        decoder.read_bool()?;
         let sequence = decoder.read_varint()?;
         Ok(SUseItemOn {
             x: location.0,
@@ -637,15 +654,7 @@ pub struct SSetCreativeModeSlot {
 impl ServerBoundPacket for SSetCreativeModeSlot {
     fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
         let slot = decoder.read_short()?;
-        let clicked_item = if decoder.read_bool()? {
-            Some(SlotData {
-                item_id: decoder.read_varint()?,
-                item_count: decoder.read_byte()?,
-                nbt: decoder.read_nbt_compound()?,
-            })
-        } else {
-            None
-        };
+        let clicked_item = decoder.read_slot_data()?;
         Ok(SSetCreativeModeSlot { slot, clicked_item })
     }
 
