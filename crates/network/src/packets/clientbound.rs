@@ -194,7 +194,10 @@ fn plot_biome() -> nbt::Value {
         ("has_precipitation", nbt_bool(false)),
         ("temperature", nbt::Value::Float(0.5)),
         ("downfall", nbt::Value::Float(0.5)),
-        ("effects", nbt_compound([("water_color", nbt_str("#3f76e4"))])),
+        (
+            "effects",
+            nbt_compound([("water_color", nbt_str("#3f76e4"))]),
+        ),
     ])
 }
 
@@ -248,12 +251,14 @@ impl CRegistryData {
                 ],
             },
         ];
-        registries.extend(SYNCED_REGISTRIES.iter().map(|(registry, entries)| {
-            CRegistryData {
-                registry: (*registry).to_owned(),
-                entries: entries.iter().map(|e| ((*e).to_owned(), None)).collect(),
-            }
-        }));
+        registries.extend(
+            SYNCED_REGISTRIES
+                .iter()
+                .map(|(registry, entries)| CRegistryData {
+                    registry: (*registry).to_owned(),
+                    entries: entries.iter().map(|e| ((*e).to_owned(), None)).collect(),
+                }),
+        );
         registries
     }
 }
@@ -762,7 +767,9 @@ impl ClientBoundPacket for CExplode {
         };
         buf.write_varint(particle);
         // Sound, which is encoded as the id plus one
-        buf.write_varint(protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1);
+        buf.write_varint(
+            protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1,
+        );
         // Block particles
         buf.write_varint(0);
         PacketEncoder::new(buf, 0x24)
@@ -1586,5 +1593,70 @@ impl ClientBoundPacket for CBossEvent {
             }
         }
         PacketEncoder::new(buf, 0x0A)
+    }
+}
+
+#[cfg(test)]
+mod boss_event_tests {
+    use super::*;
+    use mchprs_text::{ColorCode, TextComponentBuilder};
+
+    const UUID: u128 = 0x0102_0304_0506_0708_090a_0b0c_0d0e_0f10;
+
+    fn bytes(packet: &CBossEvent) -> String {
+        let mut out = Vec::new();
+        packet.encode().write_uncompressed(&mut out).unwrap();
+        out.iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    fn title() -> TextComponent {
+        TextComponent {
+            extra: vec![TextComponentBuilder::new("RTPS 20.0".into())
+                .color_code(ColorCode::Green)
+                .finish()],
+            ..Default::default()
+        }
+    }
+
+    fn all() -> Vec<CBossEvent> {
+        vec![
+            CBossEvent::Add {
+                uuid: UUID,
+                title: title(),
+                progress: 0.5,
+                color: BossBarColor::Green,
+                overlay: BossBarOverlay::Progress,
+            },
+            CBossEvent::Remove { uuid: UUID },
+            CBossEvent::UpdateProgress {
+                uuid: UUID,
+                progress: 0.25,
+            },
+            CBossEvent::UpdateTitle {
+                uuid: UUID,
+                title: "hi".into(),
+            },
+            CBossEvent::UpdateStyle {
+                uuid: UUID,
+                color: BossBarColor::Red,
+                overlay: BossBarOverlay::Progress,
+            },
+        ]
+    }
+
+    /// Verified once by decoding with the real 26.2 `ClientboundBossEventPacket.STREAM_CODEC`.
+    const EXPECTED: [&str; 5] = [
+        "530a0102030405060708090a0b0c0d0e0f10000a08000474657874000009000565787472610a00000001080004746578740009525450532032302e30080005636f6c6f720005677265656e00003f000000030000",
+        "120a0102030405060708090a0b0c0d0e0f1001",
+        "160a0102030405060708090a0b0c0d0e0f10023e800000",
+        "170a0102030405060708090a0b0c0d0e0f10030800026869",
+        "140a0102030405060708090a0b0c0d0e0f10040200",
+    ];
+
+    #[test]
+    fn encodings_match_game_codec() {
+        for (packet, expected) in all().iter().zip(EXPECTED) {
+            assert_eq!(bytes(packet), expected);
+        }
     }
 }

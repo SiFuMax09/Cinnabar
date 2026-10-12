@@ -1,8 +1,8 @@
 use crate::config::CONFIG;
 use crate::player::{Gamemode, PacketSender, Player};
 use crate::plot::commands::DECLARE_COMMANDS;
-use crate::profile;
 use crate::plot::{self, database, Plot, PLOT_BLOCK_HEIGHT};
+use crate::profile;
 use crate::utils::HyphenatedUUID;
 use crate::{permissions, utils};
 use backtrace::Backtrace;
@@ -11,13 +11,14 @@ use hmac::{Hmac, Mac};
 use mchprs_network::packets::clientbound::{
     CConfigurationPluginMessage, CDisconnectLogin, CFinishConfiguration, CGameEvent,
     CGameEventType, CLogin, CLoginPluginRequest, CLoginSuccess, CPlayerInfoActions,
-    CPlayerInfoAddPlayer, CPlayerInfoUpdate, CPlayerInfoUpdatePlayer, CPong,
-    CRegistryData, CResponse, CSelectKnownPacks, CSetCompression, CSetContainerContent, CUpdateTags, CSetHeldItem, CSynchronizePlayerPosition,
-    ClientBoundPacket, UpdateTime,
+    CPlayerInfoAddPlayer, CPlayerInfoUpdate, CPlayerInfoUpdatePlayer, CPong, CRegistryData,
+    CResponse, CSelectKnownPacks, CSetCompression, CSetContainerContent, CSetHeldItem,
+    CSynchronizePlayerPosition, CUpdateTags, ClientBoundPacket, UpdateTime,
 };
 use mchprs_network::packets::serverbound::{
     SAcknowledgeFinishConfiguration, SHandshake, SLoginAcknowledged, SLoginPluginResponse,
-    SLoginStart, SPing, SRequest, SSelectKnownPacks, ServerBoundPacketHandler, VelocityResponseData,
+    SLoginStart, SPing, SRequest, SSelectKnownPacks, ServerBoundPacketHandler,
+    VelocityResponseData,
 };
 use mchprs_network::packets::{PacketEncoderExt, PlayerProperty, SlotData, COMPRESSION_THRESHOLD};
 use mchprs_network::{NetworkServer, NetworkState, PlayerPacketSender};
@@ -204,6 +205,7 @@ impl MinecraftServer {
             plot_z: 0,
             priv_message_sender: spawn_tx,
         });
+        server.publish_counts();
 
         info!("Done! Start took {:?}", start_time.elapsed());
 
@@ -222,6 +224,13 @@ impl MinecraftServer {
         }
     }
 
+    /// Publishes the counts shown by the plots' performance display
+    fn publish_counts(&self) {
+        use std::sync::atomic::Ordering::Relaxed;
+        crate::plot::perf::LOADED_PLOTS.store(self.running_plots.len(), Relaxed);
+        crate::plot::perf::ONLINE_PLAYERS.store(self.online_players.len(), Relaxed);
+    }
+
     /// Removes the plot entry from the `running_plots` list
     fn handle_plot_unload(&mut self, plot_x: i32, plot_z: i32) {
         let index = self
@@ -230,6 +239,7 @@ impl MinecraftServer {
             .position(|p| p.plot_x == plot_x && p.plot_z == plot_z);
         if let Some(index) = index {
             self.running_plots.remove(index);
+            self.publish_counts();
         }
     }
 
@@ -265,6 +275,7 @@ impl MinecraftServer {
                 gamemode: player.gamemode,
             };
             self.online_players.insert(player.uuid, player_list_entry);
+            self.publish_counts();
         } else {
             self.update_player_entry(player.uuid, plot_x, plot_z);
         }
@@ -289,6 +300,7 @@ impl MinecraftServer {
                 plot_z,
                 priv_message_sender: priv_tx,
             });
+            self.publish_counts();
         } else {
             let plot_list_entry = self
                 .running_plots
@@ -529,6 +541,7 @@ impl MinecraftServer {
                 if let Some((_, player)) = self.online_players.remove_entry(&uuid) {
                     info!("{} left the game", player.username);
                 }
+                self.publish_counts();
                 self.broadcaster
                     .broadcast(BroadcastMessage::PlayerLeft(uuid));
             }

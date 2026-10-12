@@ -207,8 +207,7 @@ pub fn state_for_placement(item: Item, ctx: &UseOnBlockContext<'_>) -> Block {
             }
         } else if state.get("face").is_some_and(|face| face == "wall")
             || on_wall
-            || (face.is_horizontal()
-                && (name.ends_with("_trapdoor") || name.ends_with("ladder")))
+            || (face.is_horizontal() && (name.ends_with("_trapdoor") || name.ends_with("ladder")))
         {
             clicked_dir
         } else if state.get("face").is_some()
@@ -314,8 +313,12 @@ pub fn use_block(
 ) -> bool {
     let name = generic::state_name(id);
     if name == "minecraft:tnt"
-        && item_in_hand
-            .is_some_and(|item| matches!(item.get_name(), "minecraft:flint_and_steel" | "minecraft:fire_charge"))
+        && item_in_hand.is_some_and(|item| {
+            matches!(
+                item.get_name(),
+                "minecraft:flint_and_steel" | "minecraft:fire_charge"
+            )
+        })
     {
         world.ignite_tnt(pos);
         return true;
@@ -604,7 +607,11 @@ fn connections(world: &impl World, pos: BlockPos, id: u32) -> u32 {
 
     for (dir, connect) in HORIZONTAL.iter().zip(connected) {
         let value = if state.has_value(dir, "low") {
-            if connect { "low" } else { "none" }
+            if connect {
+                "low"
+            } else {
+                "none"
+            }
         } else if connect {
             "true"
         } else {

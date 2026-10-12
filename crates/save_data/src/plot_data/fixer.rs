@@ -43,8 +43,9 @@ pub fn try_fix(path: impl AsRef<Path>, info: FixInfo) -> Result<Option<PlotData>
         FixInfo::OldVersion {
             version: version @ 0..=1,
         } => return Err(PlotLoadError::ConversionUnavailable(version)),
-        FixInfo::OldVersion { version: 2 } => v2_to_v3::convert_v2_to_v3(&path)?
-            .map(crate::upgrade::upgrade_plot),
+        FixInfo::OldVersion { version: 2 } => {
+            v2_to_v3::convert_v2_to_v3(&path)?.map(crate::upgrade::upgrade_plot)
+        }
         FixInfo::OldVersion { version: 3 } => v3_to_v4::convert_v3_to_v4(&path)?,
         _ => None,
     };

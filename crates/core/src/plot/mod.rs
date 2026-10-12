@@ -1,10 +1,11 @@
 pub mod commands;
 mod data;
-mod entities;
-mod physics;
 pub mod database;
+mod entities;
 mod monitor;
 mod packet_handlers;
+pub mod perf;
+mod physics;
 mod scoreboard;
 mod selection_viz;
 pub use selection_viz::SelectionVisualizer;
@@ -31,11 +32,13 @@ use mchprs_text::TextComponent;
 use mchprs_world::storage::Chunk;
 use mchprs_world::{TickEntry, TickPriority, World};
 use monitor::TimingsMonitor;
+use perf::{LOADED_PLOTS, ONLINE_PLAYERS};
 use rustc_hash::{FxHashMap, FxHashSet};
 use scoreboard::RedpilerState;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::path::Path;
+use std::sync::atomic::Ordering as AtomicOrdering;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -101,6 +104,7 @@ pub struct Plot {
     async_rt: Runtime,
     scoreboard: Scoreboard,
     entities: entities::Entities,
+    perf: perf::PerfDisplay,
 }
 
 pub struct PlotWorld {
@@ -458,6 +462,7 @@ impl Plot {
             .packet_senders
             .push(PlayerPacketSender::new(&player.client));
         self.scoreboard.add_player(&player);
+        self.perf.mark_dirty();
         self.players.push(player);
         self.update_view_pos_for_player(self.players.len() - 1, true);
     }
@@ -645,7 +650,11 @@ impl Plot {
                 None,
                 interaction::BlockHit {
                     face: block_face,
-                    cursor: (use_item_on.cursor_x, use_item_on.cursor_y, use_item_on.cursor_z),
+                    cursor: (
+                        use_item_on.cursor_x,
+                        use_item_on.cursor_y,
+                        use_item_on.cursor_z,
+                    ),
                 },
             );
             self.world.flush_block_changes();
@@ -836,6 +845,7 @@ impl Plot {
         self.destroy_entity(player.entity_id);
         self.locked_players.remove(&player.entity_id);
         self.scoreboard.remove_player(&player);
+        self.perf.remove_player(&player);
         player
     }
 
@@ -1045,6 +1055,7 @@ impl Plot {
     /// Remove disconnected players
     fn remove_dc_players(&mut self) {
         let message_sender = &mut self.message_sender;
+        let perf = &mut self.perf;
 
         let mut disconnected_players = Vec::new();
         self.players.retain(|player| {
@@ -1055,6 +1066,7 @@ impl Plot {
                     .send(Message::PlayerLeft(player.uuid))
                     .unwrap();
                 disconnected_players.push(player.entity_id);
+                perf.forget(player.uuid);
             }
             alive
         });
@@ -1080,6 +1092,7 @@ impl Plot {
     }
 
     fn update(&mut self) {
+        let update_start = Instant::now();
         self.handle_messages();
 
         // Only tick if there are players in the plot
@@ -1166,8 +1179,49 @@ impl Plot {
         // Handle commands before removing players just in case they ran a command before leaving
         self.handle_commands();
 
+        self.update_perf_display(update_start);
+
         self.remove_dc_players();
         self.remove_oob_players();
+    }
+
+    fn update_perf_display(&mut self, update_start: Instant) {
+        if self.players.is_empty() {
+            self.perf.sampler.restart();
+            return;
+        }
+        let now = Instant::now();
+        self.perf.sampler.record_update(now - update_start);
+        let counters = perf::Counters {
+            redstone_ticks: self.timings.ticks_passed(),
+            entity_ticks: self.entities.ticks_run,
+            entity_busy: self.entities.busy,
+        };
+        let sampled = self.perf.sampler.sample(now, counters);
+        if !sampled && !self.perf.is_dirty() {
+            return;
+        }
+        let sampler = &self.perf.sampler;
+        let snapshot = match (sampler.rtps, sampler.loop_hz, sampler.loop_mspt) {
+            (Some(rtps), Some(loop_hz), Some(loop_mspt)) => Some(perf::PerfSnapshot {
+                rtps,
+                target: self.tps,
+                nspt: self.last_nspt,
+                behind: self.timings.is_running_behind(),
+                loop_hz,
+                loop_mspt,
+                entity_loop: sampler.entity_tps.zip(sampler.entity_mspt),
+                redpiler_flags: self.redpiler.current_flags().map(perf::flag_letters),
+                entities: self.entities.len(),
+                players: self.players.len(),
+                online_players: ONLINE_PLAYERS.load(AtomicOrdering::Relaxed),
+                loaded_plots: LOADED_PLOTS.load(AtomicOrdering::Relaxed),
+            }),
+            _ => None,
+        };
+        // Only a completed window carries fresh numbers
+        let snapshot = snapshot.filter(|_| sampled);
+        self.perf.refresh(&self.players, snapshot);
     }
 
     fn create_async_rt() -> Runtime {
@@ -1262,6 +1316,7 @@ impl Plot {
             async_rt: Plot::create_async_rt(),
             scoreboard: Default::default(),
             entities: Default::default(),
+            perf: Default::default(),
             world,
         }
     }
