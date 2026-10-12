@@ -105,10 +105,16 @@ impl World for TestWorld {
     }
 
     fn get_chunk(&self, x: i32, z: i32) -> Option<&Chunk> {
+        if !(0..self.x_size).contains(&x) || !(0..self.z_size).contains(&z) {
+            return None;
+        }
         self.chunks.get(self.get_chunk_index_for_chunk(x, z))
     }
 
     fn get_chunk_mut(&mut self, x: i32, z: i32) -> Option<&mut Chunk> {
+        if !(0..self.x_size).contains(&x) || !(0..self.z_size).contains(&z) {
+            return None;
+        }
         let chunk_idx = self.get_chunk_index_for_chunk(x, z);
         self.chunks.get_mut(chunk_idx)
     }

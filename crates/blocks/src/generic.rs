@@ -96,6 +96,8 @@ static RESISTANCE: &[u8] = include_bytes!("../../../mc_data/block_resistance.bin
 
 /// One byte per block state, see `push_reaction`
 static PISTON: &[u8] = include_bytes!("../../../mc_data/block_piston.bin");
+/// Two bytes per block state, see `light_emission`, `light_opacity` and `light_occluding_faces`
+static LIGHT: &[u8] = include_bytes!("../../../mc_data/block_light.bin");
 
 const FLAG_SOLID: u8 = 1;
 const FLAG_STURDY_TOP: u8 = 2;
@@ -268,6 +270,24 @@ pub fn is_indestructible(id: u32) -> bool {
 /// refuse to move those.
 pub fn has_block_entity(id: u32) -> bool {
     piston_attrs(id) & 8 != 0
+}
+
+/// How much light the block state emits (0..=15)
+pub fn light_emission(id: u32) -> u8 {
+    LIGHT.get(id as usize * 2).map_or(0, |byte| byte & 0xF)
+}
+
+/// How much the block dims light passing through it (0..=15). Blocks with 0 let light and sky
+/// light straight down pass without loss.
+pub fn light_opacity(id: u32) -> u8 {
+    LIGHT.get(id as usize * 2).map_or(0, |byte| byte >> 4)
+}
+
+/// A mask of the faces of the block whose shape fully covers the face, so that light can't pass
+/// through them even if the block has no opacity. Bit n is the face in direction n in the order
+/// down, up, north, south, west, east.
+pub fn light_occluding_faces(id: u32) -> u8 {
+    LIGHT.get(id as usize * 2 + 1).copied().unwrap_or(0)
 }
 
 /// Whether redstone power can pass through the block
@@ -457,6 +477,20 @@ mod tests {
         let rotated = rotate(id, RotateAmt::Rotate90);
         assert_eq!(get_property(rotated, "east"), Some("true"));
         assert_eq!(get_property(rotated, "north"), Some("false"));
+    }
+
+    #[test]
+    fn light_properties() {
+        let id = |name| default_state(name).unwrap();
+        assert_eq!(light_emission(id("minecraft:glowstone")), 15);
+        assert_eq!(light_emission(id("minecraft:torch")), 14);
+        assert_eq!(light_emission(id("minecraft:stone")), 0);
+        assert_eq!(light_opacity(id("minecraft:stone")), 15);
+        assert_eq!(light_opacity(id("minecraft:glass")), 0);
+        assert_eq!(light_opacity(id("minecraft:air")), 0);
+        assert_eq!(light_opacity(id("minecraft:water")), 1);
+        assert_eq!(light_opacity(id("minecraft:oak_leaves")), 1);
+        assert!(light_occluding_faces(id("minecraft:oak_stairs")).count_ones() >= 1);
     }
 
     #[test]

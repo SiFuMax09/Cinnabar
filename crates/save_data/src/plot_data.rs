@@ -122,19 +122,15 @@ impl ChunkData {
     }
 
     pub fn load(self, x: i32, z: i32) -> Chunk {
-        Chunk {
-            x,
-            z,
-            sections: self
-                .sections
-                .into_iter()
-                .map(|section| match section {
-                    Some(section) => section.load(),
-                    None => Default::default(),
-                })
-                .collect(),
-            block_entities: self.block_entities,
-        }
+        let sections = self
+            .sections
+            .into_iter()
+            .map(|section| match section {
+                Some(section) => section.load(),
+                None => Default::default(),
+            })
+            .collect();
+        Chunk::new(x, z, sections, self.block_entities)
     }
 }
 
