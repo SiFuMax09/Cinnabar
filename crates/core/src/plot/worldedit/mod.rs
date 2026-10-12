@@ -507,6 +507,12 @@ static COMMANDS: LazyLock<HashMap<&'static str, WorldeditCommand>> = LazyLock::n
             mutates_world: false,
             ..Default::default()
         },
+        "/visualize" => WorldeditCommand {
+            execute_fn: execute_visualize,
+            description: "Toggle the particle outline of your selection",
+            mutates_world: false,
+            ..Default::default()
+        },
         "/sel" => WorldeditCommand {
             execute_fn: execute_sel,
             description: "Choose a region selector",
@@ -753,6 +759,7 @@ static ALIASES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(||
         "u" => "up",
         "desc" => "descend",
         "asc" => "ascend",
+        "/viz" => "/visualize",
         "/1" => "/pos1",
         "/2" => "/pos2",
         "/c" => "/copy",

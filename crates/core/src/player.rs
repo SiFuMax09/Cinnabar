@@ -1,6 +1,7 @@
 use crate::config::CONFIG;
 use crate::permissions::{self, PlayerPermissionsCache};
 use crate::plot::worldedit::WorldEditUndo;
+use crate::plot::SelectionVisualizer;
 use crate::plot::PLOT_SCALE;
 use crate::utils::{self, HyphenatedUUID};
 use byteorder::{BigEndian, ReadBytesExt};
@@ -22,7 +23,13 @@ use std::time::{Instant, SystemTime};
 use tracing::{error, warn};
 
 pub type EntityId = u32;
-static ENTITY_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
+// Entity id 0 is invalid since 26.1
+static ENTITY_ID_COUNTER: AtomicU32 = AtomicU32::new(1);
+
+/// Returns an entity id that isn't used by any other entity
+pub fn next_entity_id() -> u32 {
+    ENTITY_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
+}
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum Gamemode {
@@ -70,6 +77,43 @@ impl Default for PlayerData {
             gamemode: Gamemode::Creative,
         }
     }
+}
+
+/// Marks which Minecraft version the data in `./world` is in. A world without it was saved by the
+/// 1.20.4 version of the server.
+const DATA_VERSION_FILE: &str = "./world/data_version";
+
+/// Upgrades the item ids in the files of players that were saved by the 1.20.4 version
+pub fn upgrade_saved_players() {
+    if std::path::Path::new(DATA_VERSION_FILE).exists() {
+        return;
+    }
+
+    let entries = std::fs::read_dir("./world/players").into_iter().flatten().flatten();
+    for entry in entries {
+        let path = entry.path();
+        let Ok(bytes) = std::fs::read(&path) else {
+            continue;
+        };
+        let Ok(mut data) = bincode::deserialize::<PlayerData>(&bytes) else {
+            tracing::warn!("Could not upgrade player data in {}", path.display());
+            continue;
+        };
+        data.inventory.retain_mut(|entry| {
+            match mchprs_save_data::upgrade::upgrade_item_id(entry.id) {
+                Some(id) => {
+                    entry.id = id;
+                    true
+                }
+                None => false,
+            }
+        });
+        if let Err(err) = std::fs::write(&path, bincode::serialize(&data).unwrap()) {
+            tracing::warn!("Could not save upgraded player data in {}: {err}", path.display());
+        }
+    }
+
+    std::fs::write(DATA_VERSION_FILE, mchprs_world::MC_VERSION).unwrap();
 }
 
 bitflags! {
@@ -161,6 +205,8 @@ pub struct Player {
     pub first_position: Option<BlockPos>,
     /// The worldedit second position.
     pub second_position: Option<BlockPos>,
+    /// Particle outline of the worldedit selection for clients without WorldEditCUI.
+    pub selection_viz: SelectionVisualizer,
     /// The worldedit current clipboard.
     pub worldedit_clipboard: Option<WorldEditClipboard>,
     /// The saved sections used for worldedit //undo
@@ -243,6 +289,7 @@ impl Player {
             last_keep_alive_sent: Instant::now(),
             first_position: None,
             second_position: None,
+            selection_viz: SelectionVisualizer::default(),
             worldedit_clipboard: None,
             worldedit_undo: Vec::new(),
             worldedit_redo: Vec::new(),
@@ -588,7 +635,7 @@ impl Player {
                     value: vec![if self.crouching { 5 } else { 0 }],
                 },
                 CSetEntityMetadataEntry {
-                    index: 17,
+                    index: 16,
                     metadata_type: 0,
                     value: vec![self.skin_parts.bits() as u8],
                 },

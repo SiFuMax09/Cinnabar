@@ -71,8 +71,13 @@ gen_config! {
     whitelist: bool = false,
     schemati: bool = false,
     luckperms: Option<PermissionsConfig> = None,
-    block_in_hitbox: bool = true,
-    auto_redpiler: bool = false,
+    block_in_hitbox: bool = false,
+    max_entities: i64 = 5000,
+    auto_redpiler: bool = true,
+    // Whether the status of the redpiler is shown in a scoreboard
+    redpiler_scoreboard: bool = false,
+    // true restores the legacy road grid between plots and empty (void) neighbour chunks
+    plot_borders: bool = false,
     velocity: Option<VelocityConfig> = None
 }
 

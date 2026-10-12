@@ -1,9 +1,13 @@
 pub mod commands;
 mod data;
+mod entities;
+mod physics;
 pub mod database;
 mod monitor;
 mod packet_handlers;
 mod scoreboard;
+mod selection_viz;
+pub use selection_viz::SelectionVisualizer;
 pub mod worldedit;
 
 use crate::config::CONFIG;
@@ -27,7 +31,7 @@ use mchprs_text::TextComponent;
 use mchprs_world::storage::Chunk;
 use mchprs_world::{TickEntry, TickPriority, World};
 use monitor::TimingsMonitor;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use scoreboard::RedpilerState;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -40,6 +44,9 @@ use tracing::{debug, error, warn};
 
 use self::data::sleep_time_for_tps;
 use self::scoreboard::Scoreboard;
+
+/// How often a plot with players in it is saved to disk
+const AUTOSAVE_INTERVAL: Duration = Duration::from_secs(5 * 60);
 
 /// The width of a plot (2^n)
 pub const PLOT_SCALE: u32 = 5;
@@ -93,6 +100,7 @@ pub struct Plot {
     owner: Option<u128>,
     async_rt: Runtime,
     scoreboard: Scoreboard,
+    entities: entities::Entities,
 }
 
 pub struct PlotWorld {
@@ -104,6 +112,10 @@ pub struct PlotWorld {
     world_send_rate: WorldSendRate,
     pending_block_entities: FxHashMap<BlockPos, CBlockEntityData>,
     pending_sounds: FxHashMap<BlockPos, CSoundEffect>,
+    /// TNT blocks that received power and should become primed TNT
+    pub(super) pending_ignitions: FxHashSet<BlockPos>,
+    /// Blocks that might have to start falling
+    pub(super) pending_falling: FxHashSet<BlockPos>,
 }
 
 impl PlotWorld {
@@ -254,6 +266,14 @@ impl World for PlotWorld {
             seed: 0,
         };
         self.pending_sounds.insert(pos, sound_effect_data);
+    }
+
+    fn ignite_tnt(&mut self, pos: BlockPos) {
+        self.pending_ignitions.insert(pos);
+    }
+
+    fn schedule_falling_block(&mut self, pos: BlockPos) {
+        self.pending_falling.insert(pos);
     }
 
     fn flush_block_changes(&mut self) {
@@ -426,6 +446,10 @@ impl Plot {
             player.client.send_packet(&other_metadata);
         }
 
+        for packet in self.entities.spawn_packets() {
+            player.client.send_packet(&packet);
+        }
+
         player.send_system_message(&format!(
             "Entering plot ({}, {})",
             self.world.x, self.world.z
@@ -457,9 +481,12 @@ impl Plot {
             // self.players[player_idx].client.send_packet(&unload_chunk);
         } else if !was_loaded && should_be_loaded {
             if !Plot::chunk_in_plot_bounds(self.world.x, self.world.z, chunk_x, chunk_z) {
-                self.players[player_idx]
-                    .client
-                    .send_packet(&Chunk::encode_empty_packet(chunk_x, chunk_z, PLOT_SECTIONS));
+                let packet = if Plot::show_neighbour_terrain(chunk_x, chunk_z) {
+                    Plot::generate_chunk(8, chunk_x, chunk_z).encode_packet()
+                } else {
+                    Chunk::encode_empty_packet(chunk_x, chunk_z, PLOT_SECTIONS)
+                };
+                self.players[player_idx].client.send_packet(&packet);
             } else {
                 let chunk_idx = self.world.get_chunk_index_for_chunk(chunk_x, chunk_z);
                 let chunk_data = self.world.chunks[chunk_idx].encode_packet();
@@ -529,7 +556,7 @@ impl Plot {
         };
 
         if !Plot::in_plot_bounds(self.world.x, self.world.z, block_pos.x, block_pos.z) {
-            self.players[player].send_system_message("Can't interact with blocks outside of plot");
+            self.send_outside_plot_message(player, block_pos, "interact with");
             cancel(self);
             return;
         }
@@ -588,8 +615,17 @@ impl Plot {
                 UseOnBlockContext {
                     block_face,
                     block_pos,
+                    other_players: self
+                        .players
+                        .iter()
+                        .enumerate()
+                        .filter(|(idx, _)| *idx != player)
+                        .map(|(_, other)| other.pos)
+                        .collect(),
                     player: &mut self.players[player],
+                    cursor_x: use_item_on.cursor_x,
                     cursor_y: use_item_on.cursor_y,
+                    cursor_z: use_item_on.cursor_z,
                 },
             );
             if cancelled {
@@ -607,6 +643,10 @@ impl Plot {
                 &mut self.players[player],
                 block_pos,
                 None,
+                interaction::BlockHit {
+                    face: block_face,
+                    cursor: (use_item_on.cursor_x, use_item_on.cursor_y, use_item_on.cursor_z),
+                },
             );
             self.world.flush_block_changes();
         }
@@ -616,7 +656,7 @@ impl Plot {
         let block = self.world.get_block(block_pos);
 
         if !Plot::in_plot_bounds(self.world.x, self.world.z, block_pos.x, block_pos.z) {
-            self.players[player].send_system_message("Can't break blocks outside of plot");
+            self.send_outside_plot_message(player, block_pos, "break");
             return;
         }
 
@@ -797,6 +837,38 @@ impl Plot {
         self.locked_players.remove(&player.entity_id);
         self.scoreboard.remove_player(&player);
         player
+    }
+
+    /// The plot that contains the given block column
+    pub fn plot_of_block(x: i32, z: i32) -> (i32, i32) {
+        (
+            x.div_euclid(PLOT_BLOCK_WIDTH),
+            z.div_euclid(PLOT_BLOCK_WIDTH),
+        )
+    }
+
+    /// Whether a chunk outside of the current plot is drawn as default terrain instead of void.
+    /// Only plots that have never been saved are known to still be pristine; a saved neighbour may
+    /// contain builds that this plot thread can't see, so it stays empty rather than showing a lie.
+    fn show_neighbour_terrain(chunk_x: i32, chunk_z: i32) -> bool {
+        if CONFIG.plot_borders {
+            return false;
+        }
+        let (x, z) = (chunk_x >> PLOT_SCALE, chunk_z >> PLOT_SCALE);
+        !Path::new(&format!("./world/plots/p{},{}", x, z)).exists()
+    }
+
+    fn send_outside_plot_message(&mut self, player: usize, pos: BlockPos, action: &str) {
+        let msg = if CONFIG.plot_borders {
+            format!("Can't {} blocks outside of plot", action)
+        } else {
+            let (x, z) = Plot::plot_of_block(pos.x, pos.z);
+            format!(
+                "That block belongs to plot {},{}; step over the edge to {} it",
+                x, z, action
+            )
+        };
+        self.players[player].send_system_message(&msg);
     }
 
     fn chunk_in_plot_bounds(plot_x: i32, plot_z: i32, chunk_x: i32, chunk_z: i32) -> bool {
@@ -1002,6 +1074,9 @@ impl Plot {
         for player_idx in 0..self.players.len() {
             self.handle_packets_for_player(player_idx);
         }
+        for player_idx in 0..self.players.len() {
+            self.update_selection_visuals(player_idx);
+        }
     }
 
     fn update(&mut self) {
@@ -1009,6 +1084,7 @@ impl Plot {
 
         // Only tick if there are players in the plot
         if !self.players.is_empty() {
+            self.tick_entities();
             self.timings.set_ticking(true);
             let now = Instant::now();
             self.last_player_time = now;
@@ -1107,10 +1183,11 @@ impl Plot {
                     let block_x = (x << 4) | rx;
                     let block_z = (z << 4) | rz;
 
-                    let block = if block_x % PLOT_BLOCK_WIDTH == 0
-                        || block_z % PLOT_BLOCK_WIDTH == 0
-                        || (block_x + 1) % PLOT_BLOCK_WIDTH == 0
-                        || (block_z + 1) % PLOT_BLOCK_WIDTH == 0
+                    let block = if CONFIG.plot_borders
+                        && (block_x % PLOT_BLOCK_WIDTH == 0
+                            || block_z % PLOT_BLOCK_WIDTH == 0
+                            || (block_x + 1) % PLOT_BLOCK_WIDTH == 0
+                            || (block_z + 1) % PLOT_BLOCK_WIDTH == 0)
                     {
                         Block::StoneBricks
                     } else {
@@ -1159,6 +1236,8 @@ impl Plot {
             world_send_rate: plot_data.world_send_rate,
             pending_block_entities: FxHashMap::default(),
             pending_sounds: FxHashMap::default(),
+            pending_ignitions: Default::default(),
+            pending_falling: Default::default(),
         };
         let tps = plot_data.tps;
         Plot {
@@ -1182,6 +1261,7 @@ impl Plot {
             owner: database::get_plot_owner(x, z).map(|s| s.parse::<HyphenatedUUID>().unwrap().0),
             async_rt: Plot::create_async_rt(),
             scoreboard: Default::default(),
+            entities: Default::default(),
             world,
         }
     }
@@ -1232,7 +1312,15 @@ impl Plot {
             self.enter_plot(player);
         }
 
+        let mut last_autosave = Instant::now();
         while self.running {
+            if last_autosave.elapsed() >= AUTOSAVE_INTERVAL {
+                last_autosave = Instant::now();
+                if !self.players.is_empty() {
+                    self.save();
+                }
+            }
+
             // Fast path, for super high RTPS
             if self.sleep_time <= Duration::from_millis(5) && !self.players.is_empty() {
                 self.update();
@@ -1342,4 +1430,35 @@ fn chunk_save_and_load_test() {
     assert_eq!(loaded_chunk.get_block(13, 63, 12), 332);
     assert_eq!(loaded_chunk.get_block(13, 62, 12), 331);
     assert_eq!(loaded_chunk.get_block(13, 64, 12), 0);
+}
+
+#[cfg(test)]
+mod bounds_tests {
+    use super::*;
+
+    #[test]
+    fn plot_of_block_matches_bounds() {
+        for &(x, z) in &[
+            (0, 0),
+            (511, 511),
+            (512, 0),
+            (-1, -1),
+            (-512, 513),
+            (1023, -513),
+        ] {
+            let (px, pz) = Plot::plot_of_block(x, z);
+            assert!(Plot::in_plot_bounds(px, pz, x, z));
+            assert!(!Plot::in_plot_bounds(px + 1, pz, x, z));
+        }
+        assert_eq!(Plot::plot_of_block(-1, 512), (-1, 1));
+    }
+
+    #[test]
+    fn plot_of_block_matches_player_plot() {
+        let pos = PlayerPos::new(-0.5, 64.0, 700.0);
+        assert_eq!(
+            pos.plot_pos(),
+            Plot::plot_of_block(pos.x.floor() as i32, pos.z.floor() as i32)
+        );
+    }
 }

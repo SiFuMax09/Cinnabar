@@ -1,0 +1,1196 @@
+minecraft:air 0 0 
+minecraft:stone 1 1 
+minecraft:granite 2 2 
+minecraft:polished_granite 3 3 
+minecraft:diorite 4 4 
+minecraft:polished_diorite 5 5 
+minecraft:andesite 6 6 
+minecraft:polished_andesite 7 7 
+minecraft:grass_block 8 9 snowy=true,false
+minecraft:dirt 10 10 
+minecraft:coarse_dirt 11 11 
+minecraft:podzol 12 13 snowy=true,false
+minecraft:cobblestone 14 14 
+minecraft:oak_planks 15 15 
+minecraft:spruce_planks 16 16 
+minecraft:birch_planks 17 17 
+minecraft:jungle_planks 18 18 
+minecraft:acacia_planks 19 19 
+minecraft:cherry_planks 20 20 
+minecraft:dark_oak_planks 21 21 
+minecraft:pale_oak_wood 22 23 axis=x,y,z
+minecraft:pale_oak_planks 25 25 
+minecraft:mangrove_planks 26 26 
+minecraft:bamboo_planks 27 27 
+minecraft:bamboo_mosaic 28 28 
+minecraft:oak_sapling 29 29 stage=0,1
+minecraft:spruce_sapling 31 31 stage=0,1
+minecraft:birch_sapling 33 33 stage=0,1
+minecraft:jungle_sapling 35 35 stage=0,1
+minecraft:acacia_sapling 37 37 stage=0,1
+minecraft:cherry_sapling 39 39 stage=0,1
+minecraft:dark_oak_sapling 41 41 stage=0,1
+minecraft:pale_oak_sapling 43 43 stage=0,1
+minecraft:mangrove_propagule 45 50 age=0,1,2,3,4;hanging=true,false;stage=0,1;waterlogged=true,false
+minecraft:bedrock 85 85 
+minecraft:water 86 86 level=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:lava 102 102 level=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:sand 118 118 
+minecraft:suspicious_sand 119 119 dusted=0,1,2,3
+minecraft:red_sand 123 123 
+minecraft:gravel 124 124 
+minecraft:suspicious_gravel 125 125 dusted=0,1,2,3
+minecraft:gold_ore 129 129 
+minecraft:deepslate_gold_ore 130 130 
+minecraft:iron_ore 131 131 
+minecraft:deepslate_iron_ore 132 132 
+minecraft:coal_ore 133 133 
+minecraft:deepslate_coal_ore 134 134 
+minecraft:nether_gold_ore 135 135 
+minecraft:oak_log 136 137 axis=x,y,z
+minecraft:spruce_log 139 140 axis=x,y,z
+minecraft:birch_log 142 143 axis=x,y,z
+minecraft:jungle_log 145 146 axis=x,y,z
+minecraft:acacia_log 148 149 axis=x,y,z
+minecraft:cherry_log 151 152 axis=x,y,z
+minecraft:dark_oak_log 154 155 axis=x,y,z
+minecraft:pale_oak_log 157 158 axis=x,y,z
+minecraft:mangrove_log 160 161 axis=x,y,z
+minecraft:mangrove_roots 163 164 waterlogged=true,false
+minecraft:muddy_mangrove_roots 165 166 axis=x,y,z
+minecraft:bamboo_block 168 169 axis=x,y,z
+minecraft:stripped_spruce_log 171 172 axis=x,y,z
+minecraft:stripped_birch_log 174 175 axis=x,y,z
+minecraft:stripped_jungle_log 177 178 axis=x,y,z
+minecraft:stripped_acacia_log 180 181 axis=x,y,z
+minecraft:stripped_cherry_log 183 184 axis=x,y,z
+minecraft:stripped_dark_oak_log 186 187 axis=x,y,z
+minecraft:stripped_pale_oak_log 189 190 axis=x,y,z
+minecraft:stripped_oak_log 192 193 axis=x,y,z
+minecraft:stripped_mangrove_log 195 196 axis=x,y,z
+minecraft:stripped_bamboo_block 198 199 axis=x,y,z
+minecraft:oak_wood 201 202 axis=x,y,z
+minecraft:spruce_wood 204 205 axis=x,y,z
+minecraft:birch_wood 207 208 axis=x,y,z
+minecraft:jungle_wood 210 211 axis=x,y,z
+minecraft:acacia_wood 213 214 axis=x,y,z
+minecraft:cherry_wood 216 217 axis=x,y,z
+minecraft:dark_oak_wood 219 220 axis=x,y,z
+minecraft:mangrove_wood 222 223 axis=x,y,z
+minecraft:stripped_oak_wood 225 226 axis=x,y,z
+minecraft:stripped_spruce_wood 228 229 axis=x,y,z
+minecraft:stripped_birch_wood 231 232 axis=x,y,z
+minecraft:stripped_jungle_wood 234 235 axis=x,y,z
+minecraft:stripped_acacia_wood 237 238 axis=x,y,z
+minecraft:stripped_cherry_wood 240 241 axis=x,y,z
+minecraft:stripped_dark_oak_wood 243 244 axis=x,y,z
+minecraft:stripped_pale_oak_wood 246 247 axis=x,y,z
+minecraft:stripped_mangrove_wood 249 250 axis=x,y,z
+minecraft:oak_leaves 252 279 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:spruce_leaves 280 307 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:birch_leaves 308 335 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:jungle_leaves 336 363 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:acacia_leaves 364 391 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:cherry_leaves 392 419 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:dark_oak_leaves 420 447 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:pale_oak_leaves 448 475 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:mangrove_leaves 476 503 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:azalea_leaves 504 531 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:flowering_azalea_leaves 532 559 distance=1,2,3,4,5,6,7;persistent=true,false;waterlogged=true,false
+minecraft:sponge 560 560 
+minecraft:wet_sponge 561 561 
+minecraft:glass 562 562 
+minecraft:lapis_ore 563 563 
+minecraft:deepslate_lapis_ore 564 564 
+minecraft:lapis_block 565 565 
+minecraft:dispenser 566 567 facing=north,east,south,west,up,down;triggered=true,false
+minecraft:sandstone 578 578 
+minecraft:chiseled_sandstone 579 579 
+minecraft:cut_sandstone 580 580 
+minecraft:note_block 581 582 instrument=harp,basedrum,snare,hat,bass,flute,bell,guitar,chime,xylophone,iron_xylophone,cow_bell,didgeridoo,bit,banjo,pling,trumpet,trumpet_exposed,trumpet_oxidized,trumpet_weathered,zombie,skeleton,creeper,dragon,wither_skeleton,piglin,custom_head;note=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24;powered=true,false
+minecraft:white_bed 1931 1934 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:orange_bed 1947 1950 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:magenta_bed 1963 1966 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:light_blue_bed 1979 1982 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:yellow_bed 1995 1998 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:lime_bed 2011 2014 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:pink_bed 2027 2030 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:gray_bed 2043 2046 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:light_gray_bed 2059 2062 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:cyan_bed 2075 2078 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:purple_bed 2091 2094 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:blue_bed 2107 2110 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:brown_bed 2123 2126 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:green_bed 2139 2142 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:red_bed 2155 2158 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:black_bed 2171 2174 facing=north,south,west,east;occupied=true,false;part=head,foot
+minecraft:powered_rail 2187 2200 powered=true,false;shape=north_south,east_west,ascending_east,ascending_west,ascending_north,ascending_south;waterlogged=true,false
+minecraft:detector_rail 2211 2224 powered=true,false;shape=north_south,east_west,ascending_east,ascending_west,ascending_north,ascending_south;waterlogged=true,false
+minecraft:sticky_piston 2235 2241 extended=true,false;facing=north,east,south,west,up,down
+minecraft:cobweb 2247 2247 
+minecraft:short_grass 2248 2248 
+minecraft:fern 2249 2249 
+minecraft:dead_bush 2250 2250 
+minecraft:bush 2251 2251 
+minecraft:short_dry_grass 2252 2252 
+minecraft:tall_dry_grass 2253 2253 
+minecraft:seagrass 2254 2254 
+minecraft:tall_seagrass 2255 2256 half=upper,lower
+minecraft:piston 2257 2263 extended=true,false;facing=north,east,south,west,up,down
+minecraft:piston_head 2269 2271 facing=north,east,south,west,up,down;short=true,false;type=normal,sticky
+minecraft:white_wool 2293 2293 
+minecraft:orange_wool 2294 2294 
+minecraft:magenta_wool 2295 2295 
+minecraft:light_blue_wool 2296 2296 
+minecraft:yellow_wool 2297 2297 
+minecraft:lime_wool 2298 2298 
+minecraft:pink_wool 2299 2299 
+minecraft:gray_wool 2300 2300 
+minecraft:light_gray_wool 2301 2301 
+minecraft:cyan_wool 2302 2302 
+minecraft:purple_wool 2303 2303 
+minecraft:blue_wool 2304 2304 
+minecraft:brown_wool 2305 2305 
+minecraft:green_wool 2306 2306 
+minecraft:red_wool 2307 2307 
+minecraft:black_wool 2308 2308 
+minecraft:moving_piston 2309 2309 facing=north,east,south,west,up,down;type=normal,sticky
+minecraft:dandelion 2321 2321 
+minecraft:golden_dandelion 2322 2322 
+minecraft:torchflower 2323 2323 
+minecraft:poppy 2324 2324 
+minecraft:blue_orchid 2325 2325 
+minecraft:allium 2326 2326 
+minecraft:azure_bluet 2327 2327 
+minecraft:red_tulip 2328 2328 
+minecraft:orange_tulip 2329 2329 
+minecraft:white_tulip 2330 2330 
+minecraft:pink_tulip 2331 2331 
+minecraft:oxeye_daisy 2332 2332 
+minecraft:cornflower 2333 2333 
+minecraft:wither_rose 2334 2334 
+minecraft:lily_of_the_valley 2335 2335 
+minecraft:brown_mushroom 2336 2336 
+minecraft:red_mushroom 2337 2337 
+minecraft:gold_block 2338 2338 
+minecraft:iron_block 2339 2339 
+minecraft:bricks 2340 2340 
+minecraft:tnt 2341 2342 unstable=true,false
+minecraft:bookshelf 2343 2343 
+minecraft:chiseled_bookshelf 2344 2407 facing=north,south,west,east;slot_0_occupied=true,false;slot_1_occupied=true,false;slot_2_occupied=true,false;slot_3_occupied=true,false;slot_4_occupied=true,false;slot_5_occupied=true,false
+minecraft:acacia_shelf 2600 2609 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:bamboo_shelf 2664 2673 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:birch_shelf 2728 2737 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:cherry_shelf 2792 2801 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:crimson_shelf 2856 2865 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:dark_oak_shelf 2920 2929 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:jungle_shelf 2984 2993 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:mangrove_shelf 3048 3057 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:oak_shelf 3112 3121 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:pale_oak_shelf 3176 3185 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:spruce_shelf 3240 3249 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:warped_shelf 3304 3313 facing=north,south,west,east;powered=true,false;side_chain=unconnected,right,center,left;waterlogged=true,false
+minecraft:mossy_cobblestone 3368 3368 
+minecraft:obsidian 3369 3369 
+minecraft:torch 3370 3370 
+minecraft:wall_torch 3371 3371 facing=north,south,west,east
+minecraft:fire 3375 3406 age=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;east=true,false;north=true,false;south=true,false;up=true,false;west=true,false
+minecraft:soul_fire 3887 3887 
+minecraft:spawner 3888 3888 
+minecraft:creaking_heart 3889 3896 axis=x,y,z;creaking_heart_state=uprooted,dormant,awake;natural=true,false
+minecraft:oak_stairs 3907 3918 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:chest 3987 3988 facing=north,south,west,east;type=single,left,right;waterlogged=true,false
+minecraft:redstone_wire 4011 5171 east=up,side,none;north=up,side,none;power=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;south=up,side,none;west=up,side,none
+minecraft:diamond_ore 5307 5307 
+minecraft:deepslate_diamond_ore 5308 5308 
+minecraft:diamond_block 5309 5309 
+minecraft:crafting_table 5310 5310 
+minecraft:wheat 5311 5311 age=0,1,2,3,4,5,6,7
+minecraft:farmland 5319 5319 moisture=0,1,2,3,4,5,6,7
+minecraft:furnace 5327 5328 facing=north,south,west,east;lit=true,false
+minecraft:oak_sign 5335 5352 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:spruce_sign 5367 5384 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:birch_sign 5399 5416 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:acacia_sign 5431 5448 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:cherry_sign 5463 5480 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:jungle_sign 5495 5512 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:dark_oak_sign 5527 5544 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:pale_oak_sign 5559 5576 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:mangrove_sign 5591 5608 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:bamboo_sign 5623 5640 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:oak_door 5655 5666 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:ladder 5719 5720 facing=north,south,west,east;waterlogged=true,false
+minecraft:rail 5727 5728 shape=north_south,east_west,ascending_east,ascending_west,ascending_north,ascending_south,south_east,south_west,north_west,north_east;waterlogged=true,false
+minecraft:cobblestone_stairs 5747 5758 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:oak_wall_sign 5827 5828 facing=north,south,west,east;waterlogged=true,false
+minecraft:spruce_wall_sign 5835 5836 facing=north,south,west,east;waterlogged=true,false
+minecraft:birch_wall_sign 5843 5844 facing=north,south,west,east;waterlogged=true,false
+minecraft:acacia_wall_sign 5851 5852 facing=north,south,west,east;waterlogged=true,false
+minecraft:cherry_wall_sign 5859 5860 facing=north,south,west,east;waterlogged=true,false
+minecraft:jungle_wall_sign 5867 5868 facing=north,south,west,east;waterlogged=true,false
+minecraft:dark_oak_wall_sign 5875 5876 facing=north,south,west,east;waterlogged=true,false
+minecraft:pale_oak_wall_sign 5883 5884 facing=north,south,west,east;waterlogged=true,false
+minecraft:mangrove_wall_sign 5891 5892 facing=north,south,west,east;waterlogged=true,false
+minecraft:bamboo_wall_sign 5899 5900 facing=north,south,west,east;waterlogged=true,false
+minecraft:oak_hanging_sign 5907 5956 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:spruce_hanging_sign 5971 6020 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:birch_hanging_sign 6035 6084 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:acacia_hanging_sign 6099 6148 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:cherry_hanging_sign 6163 6212 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:jungle_hanging_sign 6227 6276 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:dark_oak_hanging_sign 6291 6340 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:pale_oak_hanging_sign 6355 6404 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:crimson_hanging_sign 6419 6468 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:warped_hanging_sign 6483 6532 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:mangrove_hanging_sign 6547 6596 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:bamboo_hanging_sign 6611 6660 attached=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:oak_wall_hanging_sign 6675 6676 facing=north,south,west,east;waterlogged=true,false
+minecraft:spruce_wall_hanging_sign 6683 6684 facing=north,south,west,east;waterlogged=true,false
+minecraft:birch_wall_hanging_sign 6691 6692 facing=north,south,west,east;waterlogged=true,false
+minecraft:acacia_wall_hanging_sign 6699 6700 facing=north,south,west,east;waterlogged=true,false
+minecraft:cherry_wall_hanging_sign 6707 6708 facing=north,south,west,east;waterlogged=true,false
+minecraft:jungle_wall_hanging_sign 6715 6716 facing=north,south,west,east;waterlogged=true,false
+minecraft:dark_oak_wall_hanging_sign 6723 6724 facing=north,south,west,east;waterlogged=true,false
+minecraft:pale_oak_wall_hanging_sign 6731 6732 facing=north,south,west,east;waterlogged=true,false
+minecraft:mangrove_wall_hanging_sign 6739 6740 facing=north,south,west,east;waterlogged=true,false
+minecraft:crimson_wall_hanging_sign 6747 6748 facing=north,south,west,east;waterlogged=true,false
+minecraft:warped_wall_hanging_sign 6755 6756 facing=north,south,west,east;waterlogged=true,false
+minecraft:bamboo_wall_hanging_sign 6763 6764 facing=north,south,west,east;waterlogged=true,false
+minecraft:lever 6771 6780 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:stone_pressure_plate 6795 6796 powered=true,false
+minecraft:iron_door 6797 6808 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:oak_pressure_plate 6861 6862 powered=true,false
+minecraft:spruce_pressure_plate 6863 6864 powered=true,false
+minecraft:birch_pressure_plate 6865 6866 powered=true,false
+minecraft:jungle_pressure_plate 6867 6868 powered=true,false
+minecraft:acacia_pressure_plate 6869 6870 powered=true,false
+minecraft:cherry_pressure_plate 6871 6872 powered=true,false
+minecraft:dark_oak_pressure_plate 6873 6874 powered=true,false
+minecraft:pale_oak_pressure_plate 6875 6876 powered=true,false
+minecraft:mangrove_pressure_plate 6877 6878 powered=true,false
+minecraft:bamboo_pressure_plate 6879 6880 powered=true,false
+minecraft:redstone_ore 6881 6882 lit=true,false
+minecraft:deepslate_redstone_ore 6883 6884 lit=true,false
+minecraft:redstone_torch 6885 6885 lit=true,false
+minecraft:redstone_wall_torch 6887 6887 facing=north,south,west,east;lit=true,false
+minecraft:stone_button 6895 6904 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:snow 6919 6919 layers=1,2,3,4,5,6,7,8
+minecraft:ice 6927 6927 
+minecraft:snow_block 6928 6928 
+minecraft:cactus 6929 6929 age=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:cactus_flower 6945 6945 
+minecraft:clay 6946 6946 
+minecraft:sugar_cane 6947 6947 age=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:jukebox 6963 6964 has_record=true,false
+minecraft:oak_fence 6965 6996 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:netherrack 6997 6997 
+minecraft:soul_sand 6998 6998 
+minecraft:soul_soil 6999 6999 
+minecraft:basalt 7000 7001 axis=x,y,z
+minecraft:polished_basalt 7003 7004 axis=x,y,z
+minecraft:soul_torch 7006 7006 
+minecraft:soul_wall_torch 7007 7007 facing=north,south,west,east
+minecraft:copper_torch 7011 7011 
+minecraft:copper_wall_torch 7012 7012 facing=north,south,west,east
+minecraft:glowstone 7016 7016 
+minecraft:nether_portal 7017 7017 axis=x,z
+minecraft:carved_pumpkin 7019 7019 facing=north,south,west,east
+minecraft:jack_o_lantern 7023 7023 facing=north,south,west,east
+minecraft:cake 7027 7027 bites=0,1,2,3,4,5,6
+minecraft:repeater 7034 7037 delay=1,2,3,4;facing=north,south,west,east;locked=true,false;powered=true,false
+minecraft:white_stained_glass 7098 7098 
+minecraft:orange_stained_glass 7099 7099 
+minecraft:magenta_stained_glass 7100 7100 
+minecraft:light_blue_stained_glass 7101 7101 
+minecraft:yellow_stained_glass 7102 7102 
+minecraft:lime_stained_glass 7103 7103 
+minecraft:pink_stained_glass 7104 7104 
+minecraft:gray_stained_glass 7105 7105 
+minecraft:light_gray_stained_glass 7106 7106 
+minecraft:cyan_stained_glass 7107 7107 
+minecraft:purple_stained_glass 7108 7108 
+minecraft:blue_stained_glass 7109 7109 
+minecraft:brown_stained_glass 7110 7110 
+minecraft:green_stained_glass 7111 7111 
+minecraft:red_stained_glass 7112 7112 
+minecraft:black_stained_glass 7113 7113 
+minecraft:oak_trapdoor 7114 7129 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:spruce_trapdoor 7178 7193 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:birch_trapdoor 7242 7257 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:jungle_trapdoor 7306 7321 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:acacia_trapdoor 7370 7385 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:cherry_trapdoor 7434 7449 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:dark_oak_trapdoor 7498 7513 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:pale_oak_trapdoor 7562 7577 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:mangrove_trapdoor 7626 7641 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:bamboo_trapdoor 7690 7705 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:stone_bricks 7754 7754 
+minecraft:mossy_stone_bricks 7755 7755 
+minecraft:cracked_stone_bricks 7756 7756 
+minecraft:chiseled_stone_bricks 7757 7757 
+minecraft:packed_mud 7758 7758 
+minecraft:mud_bricks 7759 7759 
+minecraft:infested_stone 7760 7760 
+minecraft:infested_cobblestone 7761 7761 
+minecraft:infested_stone_bricks 7762 7762 
+minecraft:infested_mossy_stone_bricks 7763 7763 
+minecraft:infested_cracked_stone_bricks 7764 7764 
+minecraft:infested_chiseled_stone_bricks 7765 7765 
+minecraft:brown_mushroom_block 7766 7766 down=true,false;east=true,false;north=true,false;south=true,false;up=true,false;west=true,false
+minecraft:red_mushroom_block 7830 7830 down=true,false;east=true,false;north=true,false;south=true,false;up=true,false;west=true,false
+minecraft:mushroom_stem 7894 7894 down=true,false;east=true,false;north=true,false;south=true,false;up=true,false;west=true,false
+minecraft:iron_bars 7958 7989 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:copper_bars 7990 8021 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:exposed_copper_bars 8022 8053 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:weathered_copper_bars 8054 8085 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:oxidized_copper_bars 8086 8117 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:waxed_copper_bars 8118 8149 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:waxed_exposed_copper_bars 8150 8181 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:waxed_weathered_copper_bars 8182 8213 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:waxed_oxidized_copper_bars 8214 8245 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:iron_chain 8246 8249 axis=x,y,z;waterlogged=true,false
+minecraft:copper_chain 8252 8255 axis=x,y,z;waterlogged=true,false
+minecraft:exposed_copper_chain 8258 8261 axis=x,y,z;waterlogged=true,false
+minecraft:weathered_copper_chain 8264 8267 axis=x,y,z;waterlogged=true,false
+minecraft:oxidized_copper_chain 8270 8273 axis=x,y,z;waterlogged=true,false
+minecraft:waxed_copper_chain 8276 8279 axis=x,y,z;waterlogged=true,false
+minecraft:waxed_exposed_copper_chain 8282 8285 axis=x,y,z;waterlogged=true,false
+minecraft:waxed_weathered_copper_chain 8288 8291 axis=x,y,z;waterlogged=true,false
+minecraft:waxed_oxidized_copper_chain 8294 8297 axis=x,y,z;waterlogged=true,false
+minecraft:glass_pane 8300 8331 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:pumpkin 8332 8332 
+minecraft:melon 8333 8333 
+minecraft:attached_pumpkin_stem 8334 8334 facing=north,south,west,east
+minecraft:attached_melon_stem 8338 8338 facing=north,south,west,east
+minecraft:pumpkin_stem 8342 8342 age=0,1,2,3,4,5,6,7
+minecraft:melon_stem 8350 8350 age=0,1,2,3,4,5,6,7
+minecraft:vine 8358 8389 east=true,false;north=true,false;south=true,false;up=true,false;west=true,false
+minecraft:glow_lichen 8390 8517 down=true,false;east=true,false;north=true,false;south=true,false;up=true,false;waterlogged=true,false;west=true,false
+minecraft:resin_clump 8518 8645 down=true,false;east=true,false;north=true,false;south=true,false;up=true,false;waterlogged=true,false;west=true,false
+minecraft:oak_fence_gate 8646 8653 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:brick_stairs 8678 8689 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:stone_brick_stairs 8758 8769 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:mud_brick_stairs 8838 8849 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:mycelium 8918 8919 snowy=true,false
+minecraft:lily_pad 8920 8920 
+minecraft:resin_block 8921 8921 
+minecraft:resin_bricks 8922 8922 
+minecraft:resin_brick_stairs 8923 8934 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:resin_brick_slab 9003 9006 type=top,bottom,double;waterlogged=true,false
+minecraft:resin_brick_wall 9009 9012 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:chiseled_resin_bricks 9333 9333 
+minecraft:nether_bricks 9334 9334 
+minecraft:nether_brick_fence 9335 9366 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:nether_brick_stairs 9367 9378 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:nether_wart 9447 9447 age=0,1,2,3
+minecraft:enchanting_table 9451 9451 
+minecraft:brewing_stand 9452 9459 has_bottle_0=true,false;has_bottle_1=true,false;has_bottle_2=true,false
+minecraft:cauldron 9460 9460 
+minecraft:water_cauldron 9461 9461 level=1,2,3
+minecraft:lava_cauldron 9464 9464 
+minecraft:powder_snow_cauldron 9465 9465 level=1,2,3
+minecraft:end_portal 9468 9468 
+minecraft:end_portal_frame 9469 9473 eye=true,false;facing=north,south,west,east
+minecraft:end_stone 9477 9477 
+minecraft:dragon_egg 9478 9478 
+minecraft:redstone_lamp 9479 9480 lit=true,false
+minecraft:cocoa 9481 9481 age=0,1,2;facing=north,south,west,east
+minecraft:sandstone_stairs 9493 9504 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:emerald_ore 9573 9573 
+minecraft:deepslate_emerald_ore 9574 9574 
+minecraft:ender_chest 9575 9576 facing=north,south,west,east;waterlogged=true,false
+minecraft:tripwire_hook 9583 9592 attached=true,false;facing=north,south,west,east;powered=true,false
+minecraft:tripwire 9599 9726 attached=true,false;disarmed=true,false;east=true,false;north=true,false;powered=true,false;south=true,false;west=true,false
+minecraft:emerald_block 9727 9727 
+minecraft:spruce_stairs 9728 9739 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:birch_stairs 9808 9819 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:jungle_stairs 9888 9899 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:command_block 9968 9974 conditional=true,false;facing=north,east,south,west,up,down
+minecraft:beacon 9980 9980 
+minecraft:cobblestone_wall 9981 9984 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:mossy_cobblestone_wall 10305 10308 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:flower_pot 10629 10629 
+minecraft:potted_torchflower 10630 10630 
+minecraft:potted_oak_sapling 10631 10631 
+minecraft:potted_spruce_sapling 10632 10632 
+minecraft:potted_birch_sapling 10633 10633 
+minecraft:potted_jungle_sapling 10634 10634 
+minecraft:potted_acacia_sapling 10635 10635 
+minecraft:potted_cherry_sapling 10636 10636 
+minecraft:potted_dark_oak_sapling 10637 10637 
+minecraft:potted_pale_oak_sapling 10638 10638 
+minecraft:potted_mangrove_propagule 10639 10639 
+minecraft:potted_fern 10640 10640 
+minecraft:potted_dandelion 10641 10641 
+minecraft:potted_golden_dandelion 10642 10642 
+minecraft:potted_poppy 10643 10643 
+minecraft:potted_blue_orchid 10644 10644 
+minecraft:potted_allium 10645 10645 
+minecraft:potted_azure_bluet 10646 10646 
+minecraft:potted_red_tulip 10647 10647 
+minecraft:potted_orange_tulip 10648 10648 
+minecraft:potted_white_tulip 10649 10649 
+minecraft:potted_pink_tulip 10650 10650 
+minecraft:potted_oxeye_daisy 10651 10651 
+minecraft:potted_cornflower 10652 10652 
+minecraft:potted_lily_of_the_valley 10653 10653 
+minecraft:potted_wither_rose 10654 10654 
+minecraft:potted_red_mushroom 10655 10655 
+minecraft:potted_brown_mushroom 10656 10656 
+minecraft:potted_dead_bush 10657 10657 
+minecraft:potted_cactus 10658 10658 
+minecraft:carrots 10659 10659 age=0,1,2,3,4,5,6,7
+minecraft:potatoes 10667 10667 age=0,1,2,3,4,5,6,7
+minecraft:oak_button 10675 10684 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:spruce_button 10699 10708 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:birch_button 10723 10732 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:jungle_button 10747 10756 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:acacia_button 10771 10780 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:cherry_button 10795 10804 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:dark_oak_button 10819 10828 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:pale_oak_button 10843 10852 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:mangrove_button 10867 10876 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:bamboo_button 10891 10900 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:skeleton_skull 10915 10931 powered=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:skeleton_wall_skull 10947 10948 facing=north,south,west,east;powered=true,false
+minecraft:wither_skeleton_skull 10955 10971 powered=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:wither_skeleton_wall_skull 10987 10988 facing=north,south,west,east;powered=true,false
+minecraft:zombie_head 10995 11011 powered=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:zombie_wall_head 11027 11028 facing=north,south,west,east;powered=true,false
+minecraft:player_head 11035 11051 powered=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:player_wall_head 11067 11068 facing=north,south,west,east;powered=true,false
+minecraft:creeper_head 11075 11091 powered=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:creeper_wall_head 11107 11108 facing=north,south,west,east;powered=true,false
+minecraft:dragon_head 11115 11131 powered=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:dragon_wall_head 11147 11148 facing=north,south,west,east;powered=true,false
+minecraft:piglin_head 11155 11171 powered=true,false;rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:piglin_wall_head 11187 11188 facing=north,south,west,east;powered=true,false
+minecraft:anvil 11195 11195 facing=north,south,west,east
+minecraft:chipped_anvil 11199 11199 facing=north,south,west,east
+minecraft:damaged_anvil 11203 11203 facing=north,south,west,east
+minecraft:trapped_chest 11207 11208 facing=north,south,west,east;type=single,left,right;waterlogged=true,false
+minecraft:light_weighted_pressure_plate 11231 11231 power=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:heavy_weighted_pressure_plate 11247 11247 power=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:comparator 11263 11264 facing=north,south,west,east;mode=compare,subtract;powered=true,false
+minecraft:daylight_detector 11279 11295 inverted=true,false;power=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:redstone_block 11311 11311 
+minecraft:nether_quartz_ore 11312 11312 
+minecraft:hopper 11313 11313 enabled=true,false;facing=down,north,south,west,east
+minecraft:quartz_block 11323 11323 
+minecraft:chiseled_quartz_block 11324 11324 
+minecraft:quartz_pillar 11325 11326 axis=x,y,z
+minecraft:quartz_stairs 11328 11339 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:activator_rail 11408 11421 powered=true,false;shape=north_south,east_west,ascending_east,ascending_west,ascending_north,ascending_south;waterlogged=true,false
+minecraft:dropper 11432 11433 facing=north,east,south,west,up,down;triggered=true,false
+minecraft:white_terracotta 11444 11444 
+minecraft:orange_terracotta 11445 11445 
+minecraft:magenta_terracotta 11446 11446 
+minecraft:light_blue_terracotta 11447 11447 
+minecraft:yellow_terracotta 11448 11448 
+minecraft:lime_terracotta 11449 11449 
+minecraft:pink_terracotta 11450 11450 
+minecraft:gray_terracotta 11451 11451 
+minecraft:light_gray_terracotta 11452 11452 
+minecraft:cyan_terracotta 11453 11453 
+minecraft:purple_terracotta 11454 11454 
+minecraft:blue_terracotta 11455 11455 
+minecraft:brown_terracotta 11456 11456 
+minecraft:green_terracotta 11457 11457 
+minecraft:red_terracotta 11458 11458 
+minecraft:black_terracotta 11459 11459 
+minecraft:white_stained_glass_pane 11460 11491 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:orange_stained_glass_pane 11492 11523 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:magenta_stained_glass_pane 11524 11555 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:light_blue_stained_glass_pane 11556 11587 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:yellow_stained_glass_pane 11588 11619 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:lime_stained_glass_pane 11620 11651 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:pink_stained_glass_pane 11652 11683 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:gray_stained_glass_pane 11684 11715 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:light_gray_stained_glass_pane 11716 11747 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:cyan_stained_glass_pane 11748 11779 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:purple_stained_glass_pane 11780 11811 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:blue_stained_glass_pane 11812 11843 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:brown_stained_glass_pane 11844 11875 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:green_stained_glass_pane 11876 11907 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:red_stained_glass_pane 11908 11939 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:black_stained_glass_pane 11940 11971 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:acacia_stairs 11972 11983 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:cherry_stairs 12052 12063 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:dark_oak_stairs 12132 12143 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:pale_oak_stairs 12212 12223 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:mangrove_stairs 12292 12303 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:bamboo_stairs 12372 12383 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:bamboo_mosaic_stairs 12452 12463 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:slime_block 12532 12532 
+minecraft:barrier 12533 12534 waterlogged=true,false
+minecraft:light 12535 12566 level=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:iron_trapdoor 12567 12582 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:prismarine 12631 12631 
+minecraft:prismarine_bricks 12632 12632 
+minecraft:dark_prismarine 12633 12633 
+minecraft:prismarine_stairs 12634 12645 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:prismarine_brick_stairs 12714 12725 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:dark_prismarine_stairs 12794 12805 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:prismarine_slab 12874 12877 type=top,bottom,double;waterlogged=true,false
+minecraft:prismarine_brick_slab 12880 12883 type=top,bottom,double;waterlogged=true,false
+minecraft:dark_prismarine_slab 12886 12889 type=top,bottom,double;waterlogged=true,false
+minecraft:sea_lantern 12892 12892 
+minecraft:hay_block 12893 12894 axis=x,y,z
+minecraft:white_carpet 12896 12896 
+minecraft:orange_carpet 12897 12897 
+minecraft:magenta_carpet 12898 12898 
+minecraft:light_blue_carpet 12899 12899 
+minecraft:yellow_carpet 12900 12900 
+minecraft:lime_carpet 12901 12901 
+minecraft:pink_carpet 12902 12902 
+minecraft:gray_carpet 12903 12903 
+minecraft:light_gray_carpet 12904 12904 
+minecraft:cyan_carpet 12905 12905 
+minecraft:purple_carpet 12906 12906 
+minecraft:blue_carpet 12907 12907 
+minecraft:brown_carpet 12908 12908 
+minecraft:green_carpet 12909 12909 
+minecraft:red_carpet 12910 12910 
+minecraft:black_carpet 12911 12911 
+minecraft:terracotta 12912 12912 
+minecraft:coal_block 12913 12913 
+minecraft:packed_ice 12914 12914 
+minecraft:sunflower 12915 12916 half=upper,lower
+minecraft:lilac 12917 12918 half=upper,lower
+minecraft:rose_bush 12919 12920 half=upper,lower
+minecraft:peony 12921 12922 half=upper,lower
+minecraft:tall_grass 12923 12924 half=upper,lower
+minecraft:large_fern 12925 12926 half=upper,lower
+minecraft:white_banner 12927 12935 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:orange_banner 12943 12951 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:magenta_banner 12959 12967 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:light_blue_banner 12975 12983 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:yellow_banner 12991 12999 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:lime_banner 13007 13015 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:pink_banner 13023 13031 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:gray_banner 13039 13047 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:light_gray_banner 13055 13063 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:cyan_banner 13071 13079 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:purple_banner 13087 13095 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:blue_banner 13103 13111 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:brown_banner 13119 13127 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:green_banner 13135 13143 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:red_banner 13151 13159 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:black_banner 13167 13175 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:white_wall_banner 13183 13183 facing=north,south,west,east
+minecraft:orange_wall_banner 13187 13187 facing=north,south,west,east
+minecraft:magenta_wall_banner 13191 13191 facing=north,south,west,east
+minecraft:light_blue_wall_banner 13195 13195 facing=north,south,west,east
+minecraft:yellow_wall_banner 13199 13199 facing=north,south,west,east
+minecraft:lime_wall_banner 13203 13203 facing=north,south,west,east
+minecraft:pink_wall_banner 13207 13207 facing=north,south,west,east
+minecraft:gray_wall_banner 13211 13211 facing=north,south,west,east
+minecraft:light_gray_wall_banner 13215 13215 facing=north,south,west,east
+minecraft:cyan_wall_banner 13219 13219 facing=north,south,west,east
+minecraft:purple_wall_banner 13223 13223 facing=north,south,west,east
+minecraft:blue_wall_banner 13227 13227 facing=north,south,west,east
+minecraft:brown_wall_banner 13231 13231 facing=north,south,west,east
+minecraft:green_wall_banner 13235 13235 facing=north,south,west,east
+minecraft:red_wall_banner 13239 13239 facing=north,south,west,east
+minecraft:black_wall_banner 13243 13243 facing=north,south,west,east
+minecraft:red_sandstone 13247 13247 
+minecraft:chiseled_red_sandstone 13248 13248 
+minecraft:cut_red_sandstone 13249 13249 
+minecraft:red_sandstone_stairs 13250 13261 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:oak_slab 13330 13333 type=top,bottom,double;waterlogged=true,false
+minecraft:spruce_slab 13336 13339 type=top,bottom,double;waterlogged=true,false
+minecraft:birch_slab 13342 13345 type=top,bottom,double;waterlogged=true,false
+minecraft:jungle_slab 13348 13351 type=top,bottom,double;waterlogged=true,false
+minecraft:acacia_slab 13354 13357 type=top,bottom,double;waterlogged=true,false
+minecraft:cherry_slab 13360 13363 type=top,bottom,double;waterlogged=true,false
+minecraft:dark_oak_slab 13366 13369 type=top,bottom,double;waterlogged=true,false
+minecraft:pale_oak_slab 13372 13375 type=top,bottom,double;waterlogged=true,false
+minecraft:mangrove_slab 13378 13381 type=top,bottom,double;waterlogged=true,false
+minecraft:bamboo_slab 13384 13387 type=top,bottom,double;waterlogged=true,false
+minecraft:bamboo_mosaic_slab 13390 13393 type=top,bottom,double;waterlogged=true,false
+minecraft:stone_slab 13396 13399 type=top,bottom,double;waterlogged=true,false
+minecraft:smooth_stone_slab 13402 13405 type=top,bottom,double;waterlogged=true,false
+minecraft:sandstone_slab 13408 13411 type=top,bottom,double;waterlogged=true,false
+minecraft:cut_sandstone_slab 13414 13417 type=top,bottom,double;waterlogged=true,false
+minecraft:petrified_oak_slab 13420 13423 type=top,bottom,double;waterlogged=true,false
+minecraft:cobblestone_slab 13426 13429 type=top,bottom,double;waterlogged=true,false
+minecraft:brick_slab 13432 13435 type=top,bottom,double;waterlogged=true,false
+minecraft:stone_brick_slab 13438 13441 type=top,bottom,double;waterlogged=true,false
+minecraft:mud_brick_slab 13444 13447 type=top,bottom,double;waterlogged=true,false
+minecraft:nether_brick_slab 13450 13453 type=top,bottom,double;waterlogged=true,false
+minecraft:quartz_slab 13456 13459 type=top,bottom,double;waterlogged=true,false
+minecraft:red_sandstone_slab 13462 13465 type=top,bottom,double;waterlogged=true,false
+minecraft:cut_red_sandstone_slab 13468 13471 type=top,bottom,double;waterlogged=true,false
+minecraft:purpur_slab 13474 13477 type=top,bottom,double;waterlogged=true,false
+minecraft:smooth_stone 13480 13480 
+minecraft:smooth_sandstone 13481 13481 
+minecraft:smooth_quartz 13482 13482 
+minecraft:smooth_red_sandstone 13483 13483 
+minecraft:spruce_fence_gate 13484 13491 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:birch_fence_gate 13516 13523 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:jungle_fence_gate 13548 13555 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:acacia_fence_gate 13580 13587 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:cherry_fence_gate 13612 13619 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:dark_oak_fence_gate 13644 13651 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:pale_oak_fence_gate 13676 13683 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:mangrove_fence_gate 13708 13715 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:bamboo_fence_gate 13740 13747 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:spruce_fence 13772 13803 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:birch_fence 13804 13835 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:jungle_fence 13836 13867 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:acacia_fence 13868 13899 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:cherry_fence 13900 13931 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:dark_oak_fence 13932 13963 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:pale_oak_fence 13964 13995 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:mangrove_fence 13996 14027 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:bamboo_fence 14028 14059 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:spruce_door 14060 14071 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:birch_door 14124 14135 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:jungle_door 14188 14199 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:acacia_door 14252 14263 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:cherry_door 14316 14327 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:dark_oak_door 14380 14391 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:pale_oak_door 14444 14455 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:mangrove_door 14508 14519 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:bamboo_door 14572 14583 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:end_rod 14636 14640 facing=north,east,south,west,up,down
+minecraft:chorus_plant 14642 14705 down=true,false;east=true,false;north=true,false;south=true,false;up=true,false;west=true,false
+minecraft:chorus_flower 14706 14706 age=0,1,2,3,4,5
+minecraft:purpur_block 14712 14712 
+minecraft:purpur_pillar 14713 14714 axis=x,y,z
+minecraft:purpur_stairs 14716 14727 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:end_stone_bricks 14796 14796 
+minecraft:torchflower_crop 14797 14797 age=0,1
+minecraft:pitcher_crop 14799 14800 age=0,1,2,3,4;half=upper,lower
+minecraft:pitcher_plant 14809 14810 half=upper,lower
+minecraft:beetroots 14811 14811 age=0,1,2,3
+minecraft:dirt_path 14815 14815 
+minecraft:end_gateway 14816 14816 
+minecraft:repeating_command_block 14817 14823 conditional=true,false;facing=north,east,south,west,up,down
+minecraft:chain_command_block 14829 14835 conditional=true,false;facing=north,east,south,west,up,down
+minecraft:frosted_ice 14841 14841 age=0,1,2,3
+minecraft:magma_block 14845 14845 
+minecraft:nether_wart_block 14846 14846 
+minecraft:red_nether_bricks 14847 14847 
+minecraft:bone_block 14848 14849 axis=x,y,z
+minecraft:structure_void 14851 14851 
+minecraft:observer 14852 14857 facing=north,east,south,west,up,down;powered=true,false
+minecraft:shulker_box 14864 14868 facing=north,east,south,west,up,down
+minecraft:white_shulker_box 14870 14874 facing=north,east,south,west,up,down
+minecraft:orange_shulker_box 14876 14880 facing=north,east,south,west,up,down
+minecraft:magenta_shulker_box 14882 14886 facing=north,east,south,west,up,down
+minecraft:light_blue_shulker_box 14888 14892 facing=north,east,south,west,up,down
+minecraft:yellow_shulker_box 14894 14898 facing=north,east,south,west,up,down
+minecraft:lime_shulker_box 14900 14904 facing=north,east,south,west,up,down
+minecraft:pink_shulker_box 14906 14910 facing=north,east,south,west,up,down
+minecraft:gray_shulker_box 14912 14916 facing=north,east,south,west,up,down
+minecraft:light_gray_shulker_box 14918 14922 facing=north,east,south,west,up,down
+minecraft:cyan_shulker_box 14924 14928 facing=north,east,south,west,up,down
+minecraft:purple_shulker_box 14930 14934 facing=north,east,south,west,up,down
+minecraft:blue_shulker_box 14936 14940 facing=north,east,south,west,up,down
+minecraft:brown_shulker_box 14942 14946 facing=north,east,south,west,up,down
+minecraft:green_shulker_box 14948 14952 facing=north,east,south,west,up,down
+minecraft:red_shulker_box 14954 14958 facing=north,east,south,west,up,down
+minecraft:black_shulker_box 14960 14964 facing=north,east,south,west,up,down
+minecraft:white_glazed_terracotta 14966 14966 facing=north,south,west,east
+minecraft:orange_glazed_terracotta 14970 14970 facing=north,south,west,east
+minecraft:magenta_glazed_terracotta 14974 14974 facing=north,south,west,east
+minecraft:light_blue_glazed_terracotta 14978 14978 facing=north,south,west,east
+minecraft:yellow_glazed_terracotta 14982 14982 facing=north,south,west,east
+minecraft:lime_glazed_terracotta 14986 14986 facing=north,south,west,east
+minecraft:pink_glazed_terracotta 14990 14990 facing=north,south,west,east
+minecraft:gray_glazed_terracotta 14994 14994 facing=north,south,west,east
+minecraft:light_gray_glazed_terracotta 14998 14998 facing=north,south,west,east
+minecraft:cyan_glazed_terracotta 15002 15002 facing=north,south,west,east
+minecraft:purple_glazed_terracotta 15006 15006 facing=north,south,west,east
+minecraft:blue_glazed_terracotta 15010 15010 facing=north,south,west,east
+minecraft:brown_glazed_terracotta 15014 15014 facing=north,south,west,east
+minecraft:green_glazed_terracotta 15018 15018 facing=north,south,west,east
+minecraft:red_glazed_terracotta 15022 15022 facing=north,south,west,east
+minecraft:black_glazed_terracotta 15026 15026 facing=north,south,west,east
+minecraft:white_concrete 15030 15030 
+minecraft:orange_concrete 15031 15031 
+minecraft:magenta_concrete 15032 15032 
+minecraft:light_blue_concrete 15033 15033 
+minecraft:yellow_concrete 15034 15034 
+minecraft:lime_concrete 15035 15035 
+minecraft:pink_concrete 15036 15036 
+minecraft:gray_concrete 15037 15037 
+minecraft:light_gray_concrete 15038 15038 
+minecraft:cyan_concrete 15039 15039 
+minecraft:purple_concrete 15040 15040 
+minecraft:blue_concrete 15041 15041 
+minecraft:brown_concrete 15042 15042 
+minecraft:green_concrete 15043 15043 
+minecraft:red_concrete 15044 15044 
+minecraft:black_concrete 15045 15045 
+minecraft:white_concrete_powder 15046 15046 
+minecraft:orange_concrete_powder 15047 15047 
+minecraft:magenta_concrete_powder 15048 15048 
+minecraft:light_blue_concrete_powder 15049 15049 
+minecraft:yellow_concrete_powder 15050 15050 
+minecraft:lime_concrete_powder 15051 15051 
+minecraft:pink_concrete_powder 15052 15052 
+minecraft:gray_concrete_powder 15053 15053 
+minecraft:light_gray_concrete_powder 15054 15054 
+minecraft:cyan_concrete_powder 15055 15055 
+minecraft:purple_concrete_powder 15056 15056 
+minecraft:blue_concrete_powder 15057 15057 
+minecraft:brown_concrete_powder 15058 15058 
+minecraft:green_concrete_powder 15059 15059 
+minecraft:red_concrete_powder 15060 15060 
+minecraft:black_concrete_powder 15061 15061 
+minecraft:kelp 15062 15062 age=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25
+minecraft:kelp_plant 15088 15088 
+minecraft:dried_kelp_block 15089 15089 
+minecraft:turtle_egg 15090 15090 eggs=1,2,3,4;hatch=0,1,2
+minecraft:sniffer_egg 15102 15102 hatch=0,1,2
+minecraft:dried_ghast 15105 15106 facing=north,south,west,east;hydration=0,1,2,3;waterlogged=true,false
+minecraft:dead_tube_coral_block 15137 15137 
+minecraft:dead_brain_coral_block 15138 15138 
+minecraft:dead_bubble_coral_block 15139 15139 
+minecraft:dead_fire_coral_block 15140 15140 
+minecraft:dead_horn_coral_block 15141 15141 
+minecraft:tube_coral_block 15142 15142 
+minecraft:brain_coral_block 15143 15143 
+minecraft:bubble_coral_block 15144 15144 
+minecraft:fire_coral_block 15145 15145 
+minecraft:horn_coral_block 15146 15146 
+minecraft:dead_tube_coral 15147 15147 waterlogged=true,false
+minecraft:dead_brain_coral 15149 15149 waterlogged=true,false
+minecraft:dead_bubble_coral 15151 15151 waterlogged=true,false
+minecraft:dead_fire_coral 15153 15153 waterlogged=true,false
+minecraft:dead_horn_coral 15155 15155 waterlogged=true,false
+minecraft:tube_coral 15157 15157 waterlogged=true,false
+minecraft:brain_coral 15159 15159 waterlogged=true,false
+minecraft:bubble_coral 15161 15161 waterlogged=true,false
+minecraft:fire_coral 15163 15163 waterlogged=true,false
+minecraft:horn_coral 15165 15165 waterlogged=true,false
+minecraft:dead_tube_coral_fan 15167 15167 waterlogged=true,false
+minecraft:dead_brain_coral_fan 15169 15169 waterlogged=true,false
+minecraft:dead_bubble_coral_fan 15171 15171 waterlogged=true,false
+minecraft:dead_fire_coral_fan 15173 15173 waterlogged=true,false
+minecraft:dead_horn_coral_fan 15175 15175 waterlogged=true,false
+minecraft:tube_coral_fan 15177 15177 waterlogged=true,false
+minecraft:brain_coral_fan 15179 15179 waterlogged=true,false
+minecraft:bubble_coral_fan 15181 15181 waterlogged=true,false
+minecraft:fire_coral_fan 15183 15183 waterlogged=true,false
+minecraft:horn_coral_fan 15185 15185 waterlogged=true,false
+minecraft:dead_tube_coral_wall_fan 15187 15187 facing=north,south,west,east;waterlogged=true,false
+minecraft:dead_brain_coral_wall_fan 15195 15195 facing=north,south,west,east;waterlogged=true,false
+minecraft:dead_bubble_coral_wall_fan 15203 15203 facing=north,south,west,east;waterlogged=true,false
+minecraft:dead_fire_coral_wall_fan 15211 15211 facing=north,south,west,east;waterlogged=true,false
+minecraft:dead_horn_coral_wall_fan 15219 15219 facing=north,south,west,east;waterlogged=true,false
+minecraft:tube_coral_wall_fan 15227 15227 facing=north,south,west,east;waterlogged=true,false
+minecraft:brain_coral_wall_fan 15235 15235 facing=north,south,west,east;waterlogged=true,false
+minecraft:bubble_coral_wall_fan 15243 15243 facing=north,south,west,east;waterlogged=true,false
+minecraft:fire_coral_wall_fan 15251 15251 facing=north,south,west,east;waterlogged=true,false
+minecraft:horn_coral_wall_fan 15259 15259 facing=north,south,west,east;waterlogged=true,false
+minecraft:sea_pickle 15267 15267 pickles=1,2,3,4;waterlogged=true,false
+minecraft:blue_ice 15275 15275 
+minecraft:conduit 15276 15276 waterlogged=true,false
+minecraft:bamboo_sapling 15278 15278 
+minecraft:bamboo 15279 15279 age=0,1;leaves=none,small,large;stage=0,1
+minecraft:potted_bamboo 15291 15291 
+minecraft:void_air 15292 15292 
+minecraft:cave_air 15293 15293 
+minecraft:bubble_column 15294 15294 drag=true,false
+minecraft:polished_granite_stairs 15296 15307 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:smooth_red_sandstone_stairs 15376 15387 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:mossy_stone_brick_stairs 15456 15467 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:polished_diorite_stairs 15536 15547 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:mossy_cobblestone_stairs 15616 15627 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:end_stone_brick_stairs 15696 15707 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:stone_stairs 15776 15787 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:smooth_sandstone_stairs 15856 15867 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:smooth_quartz_stairs 15936 15947 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:granite_stairs 16016 16027 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:andesite_stairs 16096 16107 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:red_nether_brick_stairs 16176 16187 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:polished_andesite_stairs 16256 16267 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:diorite_stairs 16336 16347 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:polished_granite_slab 16416 16419 type=top,bottom,double;waterlogged=true,false
+minecraft:smooth_red_sandstone_slab 16422 16425 type=top,bottom,double;waterlogged=true,false
+minecraft:mossy_stone_brick_slab 16428 16431 type=top,bottom,double;waterlogged=true,false
+minecraft:polished_diorite_slab 16434 16437 type=top,bottom,double;waterlogged=true,false
+minecraft:mossy_cobblestone_slab 16440 16443 type=top,bottom,double;waterlogged=true,false
+minecraft:end_stone_brick_slab 16446 16449 type=top,bottom,double;waterlogged=true,false
+minecraft:smooth_sandstone_slab 16452 16455 type=top,bottom,double;waterlogged=true,false
+minecraft:smooth_quartz_slab 16458 16461 type=top,bottom,double;waterlogged=true,false
+minecraft:granite_slab 16464 16467 type=top,bottom,double;waterlogged=true,false
+minecraft:andesite_slab 16470 16473 type=top,bottom,double;waterlogged=true,false
+minecraft:red_nether_brick_slab 16476 16479 type=top,bottom,double;waterlogged=true,false
+minecraft:polished_andesite_slab 16482 16485 type=top,bottom,double;waterlogged=true,false
+minecraft:diorite_slab 16488 16491 type=top,bottom,double;waterlogged=true,false
+minecraft:brick_wall 16494 16497 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:prismarine_wall 16818 16821 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:red_sandstone_wall 17142 17145 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:mossy_stone_brick_wall 17466 17469 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:granite_wall 17790 17793 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:stone_brick_wall 18114 18117 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:mud_brick_wall 18438 18441 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:nether_brick_wall 18762 18765 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:andesite_wall 19086 19089 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:red_nether_brick_wall 19410 19413 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:sandstone_wall 19734 19737 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:end_stone_brick_wall 20058 20061 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:diorite_wall 20382 20385 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:scaffolding 20706 20737 bottom=true,false;distance=0,1,2,3,4,5,6,7;waterlogged=true,false
+minecraft:loom 20738 20738 facing=north,south,west,east
+minecraft:barrel 20742 20743 facing=north,east,south,west,up,down;open=true,false
+minecraft:smoker 20754 20755 facing=north,south,west,east;lit=true,false
+minecraft:blast_furnace 20762 20763 facing=north,south,west,east;lit=true,false
+minecraft:cartography_table 20770 20770 
+minecraft:fletching_table 20771 20771 
+minecraft:grindstone 20772 20776 face=floor,wall,ceiling;facing=north,south,west,east
+minecraft:lectern 20784 20787 facing=north,south,west,east;has_book=true,false;powered=true,false
+minecraft:smithing_table 20800 20800 
+minecraft:stonecutter 20801 20801 facing=north,south,west,east
+minecraft:bell 20805 20806 attachment=floor,ceiling,single_wall,double_wall;facing=north,south,west,east;powered=true,false
+minecraft:lantern 20837 20840 hanging=true,false;waterlogged=true,false
+minecraft:soul_lantern 20841 20844 hanging=true,false;waterlogged=true,false
+minecraft:copper_lantern 20845 20848 hanging=true,false;waterlogged=true,false
+minecraft:exposed_copper_lantern 20849 20852 hanging=true,false;waterlogged=true,false
+minecraft:weathered_copper_lantern 20853 20856 hanging=true,false;waterlogged=true,false
+minecraft:oxidized_copper_lantern 20857 20860 hanging=true,false;waterlogged=true,false
+minecraft:waxed_copper_lantern 20861 20864 hanging=true,false;waterlogged=true,false
+minecraft:waxed_exposed_copper_lantern 20865 20868 hanging=true,false;waterlogged=true,false
+minecraft:waxed_weathered_copper_lantern 20869 20872 hanging=true,false;waterlogged=true,false
+minecraft:waxed_oxidized_copper_lantern 20873 20876 hanging=true,false;waterlogged=true,false
+minecraft:campfire 20877 20880 facing=north,south,west,east;lit=true,false;signal_fire=true,false;waterlogged=true,false
+minecraft:soul_campfire 20909 20912 facing=north,south,west,east;lit=true,false;signal_fire=true,false;waterlogged=true,false
+minecraft:sweet_berry_bush 20941 20941 age=0,1,2,3
+minecraft:warped_stem 20945 20946 axis=x,y,z
+minecraft:stripped_warped_stem 20948 20949 axis=x,y,z
+minecraft:warped_hyphae 20951 20952 axis=x,y,z
+minecraft:stripped_warped_hyphae 20954 20955 axis=x,y,z
+minecraft:warped_nylium 20957 20957 
+minecraft:warped_fungus 20958 20958 
+minecraft:warped_wart_block 20959 20959 
+minecraft:warped_roots 20960 20960 
+minecraft:nether_sprouts 20961 20961 
+minecraft:crimson_stem 20962 20963 axis=x,y,z
+minecraft:stripped_crimson_stem 20965 20966 axis=x,y,z
+minecraft:crimson_hyphae 20968 20969 axis=x,y,z
+minecraft:stripped_crimson_hyphae 20971 20972 axis=x,y,z
+minecraft:crimson_nylium 20974 20974 
+minecraft:crimson_fungus 20975 20975 
+minecraft:shroomlight 20976 20976 
+minecraft:weeping_vines 20977 20977 age=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25
+minecraft:weeping_vines_plant 21003 21003 
+minecraft:twisting_vines 21004 21004 age=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25
+minecraft:twisting_vines_plant 21030 21030 
+minecraft:crimson_roots 21031 21031 
+minecraft:crimson_planks 21032 21032 
+minecraft:warped_planks 21033 21033 
+minecraft:crimson_slab 21034 21037 type=top,bottom,double;waterlogged=true,false
+minecraft:warped_slab 21040 21043 type=top,bottom,double;waterlogged=true,false
+minecraft:crimson_pressure_plate 21046 21047 powered=true,false
+minecraft:warped_pressure_plate 21048 21049 powered=true,false
+minecraft:crimson_fence 21050 21081 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:warped_fence 21082 21113 east=true,false;north=true,false;south=true,false;waterlogged=true,false;west=true,false
+minecraft:crimson_trapdoor 21114 21129 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:warped_trapdoor 21178 21193 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:crimson_fence_gate 21242 21249 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:warped_fence_gate 21274 21281 facing=north,south,west,east;in_wall=true,false;open=true,false;powered=true,false
+minecraft:crimson_stairs 21306 21317 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:warped_stairs 21386 21397 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:crimson_button 21466 21475 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:warped_button 21490 21499 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:crimson_door 21514 21525 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:warped_door 21578 21589 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:crimson_sign 21642 21659 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:warped_sign 21674 21691 rotation=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;waterlogged=true,false
+minecraft:crimson_wall_sign 21706 21707 facing=north,south,west,east;waterlogged=true,false
+minecraft:warped_wall_sign 21714 21715 facing=north,south,west,east;waterlogged=true,false
+minecraft:structure_block 21722 21723 mode=save,load,corner,data
+minecraft:jigsaw 21726 21736 orientation=down_east,down_north,down_south,down_west,up_east,up_north,up_south,up_west,west_up,east_up,north_up,south_up
+minecraft:test_block 21738 21738 mode=start,log,fail,accept
+minecraft:test_instance_block 21742 21742 
+minecraft:composter 21743 21743 level=0,1,2,3,4,5,6,7,8
+minecraft:target 21752 21752 power=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+minecraft:bee_nest 21768 21768 facing=north,south,west,east;honey_level=0,1,2,3,4,5
+minecraft:beehive 21792 21792 facing=north,south,west,east;honey_level=0,1,2,3,4,5
+minecraft:honey_block 21816 21816 
+minecraft:honeycomb_block 21817 21817 
+minecraft:netherite_block 21818 21818 
+minecraft:ancient_debris 21819 21819 
+minecraft:crying_obsidian 21820 21820 
+minecraft:respawn_anchor 21821 21821 charges=0,1,2,3,4
+minecraft:potted_crimson_fungus 21826 21826 
+minecraft:potted_warped_fungus 21827 21827 
+minecraft:potted_crimson_roots 21828 21828 
+minecraft:potted_warped_roots 21829 21829 
+minecraft:lodestone 21830 21830 
+minecraft:blackstone 21831 21831 
+minecraft:blackstone_stairs 21832 21843 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:blackstone_wall 21912 21915 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:blackstone_slab 22236 22239 type=top,bottom,double;waterlogged=true,false
+minecraft:polished_blackstone 22242 22242 
+minecraft:polished_blackstone_bricks 22243 22243 
+minecraft:cracked_polished_blackstone_bricks 22244 22244 
+minecraft:chiseled_polished_blackstone 22245 22245 
+minecraft:polished_blackstone_brick_slab 22246 22249 type=top,bottom,double;waterlogged=true,false
+minecraft:polished_blackstone_brick_stairs 22252 22263 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:polished_blackstone_brick_wall 22332 22335 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:gilded_blackstone 22656 22656 
+minecraft:polished_blackstone_stairs 22657 22668 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:polished_blackstone_slab 22737 22740 type=top,bottom,double;waterlogged=true,false
+minecraft:polished_blackstone_pressure_plate 22743 22744 powered=true,false
+minecraft:polished_blackstone_button 22745 22754 face=floor,wall,ceiling;facing=north,south,west,east;powered=true,false
+minecraft:polished_blackstone_wall 22769 22772 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:chiseled_nether_bricks 23093 23093 
+minecraft:cracked_nether_bricks 23094 23094 
+minecraft:quartz_bricks 23095 23095 
+minecraft:candle 23096 23099 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:white_candle 23112 23115 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:orange_candle 23128 23131 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:magenta_candle 23144 23147 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:light_blue_candle 23160 23163 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:yellow_candle 23176 23179 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:lime_candle 23192 23195 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:pink_candle 23208 23211 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:gray_candle 23224 23227 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:light_gray_candle 23240 23243 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:cyan_candle 23256 23259 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:purple_candle 23272 23275 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:blue_candle 23288 23291 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:brown_candle 23304 23307 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:green_candle 23320 23323 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:red_candle 23336 23339 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:black_candle 23352 23355 candles=1,2,3,4;lit=true,false;waterlogged=true,false
+minecraft:candle_cake 23368 23369 lit=true,false
+minecraft:white_candle_cake 23370 23371 lit=true,false
+minecraft:orange_candle_cake 23372 23373 lit=true,false
+minecraft:magenta_candle_cake 23374 23375 lit=true,false
+minecraft:light_blue_candle_cake 23376 23377 lit=true,false
+minecraft:yellow_candle_cake 23378 23379 lit=true,false
+minecraft:lime_candle_cake 23380 23381 lit=true,false
+minecraft:pink_candle_cake 23382 23383 lit=true,false
+minecraft:gray_candle_cake 23384 23385 lit=true,false
+minecraft:light_gray_candle_cake 23386 23387 lit=true,false
+minecraft:cyan_candle_cake 23388 23389 lit=true,false
+minecraft:purple_candle_cake 23390 23391 lit=true,false
+minecraft:blue_candle_cake 23392 23393 lit=true,false
+minecraft:brown_candle_cake 23394 23395 lit=true,false
+minecraft:green_candle_cake 23396 23397 lit=true,false
+minecraft:red_candle_cake 23398 23399 lit=true,false
+minecraft:black_candle_cake 23400 23401 lit=true,false
+minecraft:amethyst_block 23402 23402 
+minecraft:budding_amethyst 23403 23403 
+minecraft:amethyst_cluster 23404 23413 facing=north,east,south,west,up,down;waterlogged=true,false
+minecraft:large_amethyst_bud 23416 23425 facing=north,east,south,west,up,down;waterlogged=true,false
+minecraft:medium_amethyst_bud 23428 23437 facing=north,east,south,west,up,down;waterlogged=true,false
+minecraft:small_amethyst_bud 23440 23449 facing=north,east,south,west,up,down;waterlogged=true,false
+minecraft:tuff 23452 23452 
+minecraft:tuff_slab 23453 23456 type=top,bottom,double;waterlogged=true,false
+minecraft:tuff_stairs 23459 23470 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:tuff_wall 23539 23542 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:polished_tuff 23863 23863 
+minecraft:polished_tuff_slab 23864 23867 type=top,bottom,double;waterlogged=true,false
+minecraft:polished_tuff_stairs 23870 23881 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:polished_tuff_wall 23950 23953 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:chiseled_tuff 24274 24274 
+minecraft:tuff_bricks 24275 24275 
+minecraft:tuff_brick_slab 24276 24279 type=top,bottom,double;waterlogged=true,false
+minecraft:tuff_brick_stairs 24282 24293 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:tuff_brick_wall 24362 24365 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:chiseled_tuff_bricks 24686 24686 
+minecraft:sulfur 24687 24687 
+minecraft:potent_sulfur 24688 24688 potent_sulfur_state=dry,wet,dormant,erupting,continuous
+minecraft:sulfur_slab 24693 24696 type=top,bottom,double;waterlogged=true,false
+minecraft:sulfur_stairs 24699 24710 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:sulfur_wall 24779 24782 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:polished_sulfur 25103 25103 
+minecraft:polished_sulfur_slab 25104 25107 type=top,bottom,double;waterlogged=true,false
+minecraft:polished_sulfur_stairs 25110 25121 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:polished_sulfur_wall 25190 25193 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:sulfur_bricks 25514 25514 
+minecraft:sulfur_brick_slab 25515 25518 type=top,bottom,double;waterlogged=true,false
+minecraft:sulfur_brick_stairs 25521 25532 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:sulfur_brick_wall 25601 25604 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:chiseled_sulfur 25925 25925 
+minecraft:cinnabar 25926 25926 
+minecraft:cinnabar_slab 25927 25930 type=top,bottom,double;waterlogged=true,false
+minecraft:cinnabar_stairs 25933 25944 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:cinnabar_wall 26013 26016 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:polished_cinnabar 26337 26337 
+minecraft:polished_cinnabar_slab 26338 26341 type=top,bottom,double;waterlogged=true,false
+minecraft:polished_cinnabar_stairs 26344 26355 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:polished_cinnabar_wall 26424 26427 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:cinnabar_bricks 26748 26748 
+minecraft:cinnabar_brick_slab 26749 26752 type=top,bottom,double;waterlogged=true,false
+minecraft:cinnabar_brick_stairs 26755 26766 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:cinnabar_brick_wall 26835 26838 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:chiseled_cinnabar 27159 27159 
+minecraft:calcite 27160 27160 
+minecraft:tinted_glass 27161 27161 
+minecraft:powder_snow 27162 27162 
+minecraft:sculk_sensor 27163 27164 power=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;sculk_sensor_phase=inactive,active,cooldown;waterlogged=true,false
+minecraft:calibrated_sculk_sensor 27259 27260 facing=north,south,west,east;power=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;sculk_sensor_phase=inactive,active,cooldown;waterlogged=true,false
+minecraft:sculk 27643 27643 
+minecraft:sculk_vein 27644 27771 down=true,false;east=true,false;north=true,false;south=true,false;up=true,false;waterlogged=true,false;west=true,false
+minecraft:sculk_catalyst 27772 27773 bloom=true,false
+minecraft:sculk_shrieker 27774 27781 can_summon=true,false;shrieking=true,false;waterlogged=true,false
+minecraft:copper_block 27782 27782 
+minecraft:exposed_copper 27783 27783 
+minecraft:weathered_copper 27784 27784 
+minecraft:oxidized_copper 27785 27785 
+minecraft:waxed_copper_block 27786 27786 
+minecraft:waxed_exposed_copper 27787 27787 
+minecraft:waxed_weathered_copper 27788 27788 
+minecraft:waxed_oxidized_copper 27789 27789 
+minecraft:copper_ore 27790 27790 
+minecraft:deepslate_copper_ore 27791 27791 
+minecraft:cut_copper 27792 27792 
+minecraft:exposed_cut_copper 27793 27793 
+minecraft:weathered_cut_copper 27794 27794 
+minecraft:oxidized_cut_copper 27795 27795 
+minecraft:waxed_cut_copper 27796 27796 
+minecraft:waxed_exposed_cut_copper 27797 27797 
+minecraft:waxed_weathered_cut_copper 27798 27798 
+minecraft:waxed_oxidized_cut_copper 27799 27799 
+minecraft:chiseled_copper 27800 27800 
+minecraft:exposed_chiseled_copper 27801 27801 
+minecraft:weathered_chiseled_copper 27802 27802 
+minecraft:oxidized_chiseled_copper 27803 27803 
+minecraft:waxed_chiseled_copper 27804 27804 
+minecraft:waxed_exposed_chiseled_copper 27805 27805 
+minecraft:waxed_weathered_chiseled_copper 27806 27806 
+minecraft:waxed_oxidized_chiseled_copper 27807 27807 
+minecraft:cut_copper_stairs 27808 27819 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:exposed_cut_copper_stairs 27888 27899 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:weathered_cut_copper_stairs 27968 27979 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:oxidized_cut_copper_stairs 28048 28059 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:waxed_cut_copper_stairs 28128 28139 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:waxed_exposed_cut_copper_stairs 28208 28219 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:waxed_weathered_cut_copper_stairs 28288 28299 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:waxed_oxidized_cut_copper_stairs 28368 28379 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:cut_copper_slab 28448 28451 type=top,bottom,double;waterlogged=true,false
+minecraft:exposed_cut_copper_slab 28454 28457 type=top,bottom,double;waterlogged=true,false
+minecraft:weathered_cut_copper_slab 28460 28463 type=top,bottom,double;waterlogged=true,false
+minecraft:oxidized_cut_copper_slab 28466 28469 type=top,bottom,double;waterlogged=true,false
+minecraft:waxed_cut_copper_slab 28472 28475 type=top,bottom,double;waterlogged=true,false
+minecraft:waxed_exposed_cut_copper_slab 28478 28481 type=top,bottom,double;waterlogged=true,false
+minecraft:waxed_weathered_cut_copper_slab 28484 28487 type=top,bottom,double;waterlogged=true,false
+minecraft:waxed_oxidized_cut_copper_slab 28490 28493 type=top,bottom,double;waterlogged=true,false
+minecraft:copper_door 28496 28507 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:exposed_copper_door 28560 28571 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:weathered_copper_door 28624 28635 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:oxidized_copper_door 28688 28699 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:waxed_copper_door 28752 28763 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:waxed_exposed_copper_door 28816 28827 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:waxed_weathered_copper_door 28880 28891 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:waxed_oxidized_copper_door 28944 28955 facing=north,south,west,east;half=upper,lower;hinge=left,right;open=true,false;powered=true,false
+minecraft:copper_trapdoor 29008 29023 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:exposed_copper_trapdoor 29072 29087 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:weathered_copper_trapdoor 29136 29151 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:oxidized_copper_trapdoor 29200 29215 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:waxed_copper_trapdoor 29264 29279 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:waxed_exposed_copper_trapdoor 29328 29343 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:waxed_weathered_copper_trapdoor 29392 29407 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:waxed_oxidized_copper_trapdoor 29456 29471 facing=north,south,west,east;half=top,bottom;open=true,false;powered=true,false;waterlogged=true,false
+minecraft:copper_grate 29520 29521 waterlogged=true,false
+minecraft:exposed_copper_grate 29522 29523 waterlogged=true,false
+minecraft:weathered_copper_grate 29524 29525 waterlogged=true,false
+minecraft:oxidized_copper_grate 29526 29527 waterlogged=true,false
+minecraft:waxed_copper_grate 29528 29529 waterlogged=true,false
+minecraft:waxed_exposed_copper_grate 29530 29531 waterlogged=true,false
+minecraft:waxed_weathered_copper_grate 29532 29533 waterlogged=true,false
+minecraft:waxed_oxidized_copper_grate 29534 29535 waterlogged=true,false
+minecraft:copper_bulb 29536 29539 lit=true,false;powered=true,false
+minecraft:exposed_copper_bulb 29540 29543 lit=true,false;powered=true,false
+minecraft:weathered_copper_bulb 29544 29547 lit=true,false;powered=true,false
+minecraft:oxidized_copper_bulb 29548 29551 lit=true,false;powered=true,false
+minecraft:waxed_copper_bulb 29552 29555 lit=true,false;powered=true,false
+minecraft:waxed_exposed_copper_bulb 29556 29559 lit=true,false;powered=true,false
+minecraft:waxed_weathered_copper_bulb 29560 29563 lit=true,false;powered=true,false
+minecraft:waxed_oxidized_copper_bulb 29564 29567 lit=true,false;powered=true,false
+minecraft:copper_chest 29568 29569 facing=north,south,west,east;type=single,left,right;waterlogged=true,false
+minecraft:exposed_copper_chest 29592 29593 facing=north,south,west,east;type=single,left,right;waterlogged=true,false
+minecraft:weathered_copper_chest 29616 29617 facing=north,south,west,east;type=single,left,right;waterlogged=true,false
+minecraft:oxidized_copper_chest 29640 29641 facing=north,south,west,east;type=single,left,right;waterlogged=true,false
+minecraft:waxed_copper_chest 29664 29665 facing=north,south,west,east;type=single,left,right;waterlogged=true,false
+minecraft:waxed_exposed_copper_chest 29688 29689 facing=north,south,west,east;type=single,left,right;waterlogged=true,false
+minecraft:waxed_weathered_copper_chest 29712 29713 facing=north,south,west,east;type=single,left,right;waterlogged=true,false
+minecraft:waxed_oxidized_copper_chest 29736 29737 facing=north,south,west,east;type=single,left,right;waterlogged=true,false
+minecraft:copper_golem_statue 29760 29761 copper_golem_pose=standing,sitting,running,star;facing=north,south,west,east;waterlogged=true,false
+minecraft:exposed_copper_golem_statue 29792 29793 copper_golem_pose=standing,sitting,running,star;facing=north,south,west,east;waterlogged=true,false
+minecraft:weathered_copper_golem_statue 29824 29825 copper_golem_pose=standing,sitting,running,star;facing=north,south,west,east;waterlogged=true,false
+minecraft:oxidized_copper_golem_statue 29856 29857 copper_golem_pose=standing,sitting,running,star;facing=north,south,west,east;waterlogged=true,false
+minecraft:waxed_copper_golem_statue 29888 29889 copper_golem_pose=standing,sitting,running,star;facing=north,south,west,east;waterlogged=true,false
+minecraft:waxed_exposed_copper_golem_statue 29920 29921 copper_golem_pose=standing,sitting,running,star;facing=north,south,west,east;waterlogged=true,false
+minecraft:waxed_weathered_copper_golem_statue 29952 29953 copper_golem_pose=standing,sitting,running,star;facing=north,south,west,east;waterlogged=true,false
+minecraft:waxed_oxidized_copper_golem_statue 29984 29985 copper_golem_pose=standing,sitting,running,star;facing=north,south,west,east;waterlogged=true,false
+minecraft:lightning_rod 30016 30035 facing=north,east,south,west,up,down;powered=true,false;waterlogged=true,false
+minecraft:exposed_lightning_rod 30040 30059 facing=north,east,south,west,up,down;powered=true,false;waterlogged=true,false
+minecraft:weathered_lightning_rod 30064 30083 facing=north,east,south,west,up,down;powered=true,false;waterlogged=true,false
+minecraft:oxidized_lightning_rod 30088 30107 facing=north,east,south,west,up,down;powered=true,false;waterlogged=true,false
+minecraft:waxed_lightning_rod 30112 30131 facing=north,east,south,west,up,down;powered=true,false;waterlogged=true,false
+minecraft:waxed_exposed_lightning_rod 30136 30155 facing=north,east,south,west,up,down;powered=true,false;waterlogged=true,false
+minecraft:waxed_weathered_lightning_rod 30160 30179 facing=north,east,south,west,up,down;powered=true,false;waterlogged=true,false
+minecraft:waxed_oxidized_lightning_rod 30184 30203 facing=north,east,south,west,up,down;powered=true,false;waterlogged=true,false
+minecraft:dripstone_block 30208 30208 
+minecraft:pointed_dripstone 30209 30214 thickness=tip_merge,tip,frustum,middle,base;vertical_direction=up,down;waterlogged=true,false
+minecraft:sulfur_spike 30229 30234 thickness=tip_merge,tip,frustum,middle,base;vertical_direction=up,down;waterlogged=true,false
+minecraft:cave_vines 30249 30250 age=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25;berries=true,false
+minecraft:cave_vines_plant 30301 30302 berries=true,false
+minecraft:spore_blossom 30303 30303 
+minecraft:azalea 30304 30304 
+minecraft:flowering_azalea 30305 30305 
+minecraft:moss_carpet 30306 30306 
+minecraft:pink_petals 30307 30307 facing=north,south,west,east;flower_amount=1,2,3,4
+minecraft:wildflowers 30323 30323 facing=north,south,west,east;flower_amount=1,2,3,4
+minecraft:leaf_litter 30339 30339 facing=north,south,west,east;segment_amount=1,2,3,4
+minecraft:moss_block 30355 30355 
+minecraft:big_dripleaf 30356 30357 facing=north,south,west,east;tilt=none,unstable,partial,full;waterlogged=true,false
+minecraft:big_dripleaf_stem 30388 30389 facing=north,south,west,east;waterlogged=true,false
+minecraft:small_dripleaf 30396 30399 facing=north,south,west,east;half=upper,lower;waterlogged=true,false
+minecraft:hanging_roots 30412 30413 waterlogged=true,false
+minecraft:rooted_dirt 30414 30414 
+minecraft:mud 30415 30415 
+minecraft:deepslate 30416 30417 axis=x,y,z
+minecraft:cobbled_deepslate 30419 30419 
+minecraft:cobbled_deepslate_stairs 30420 30431 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:cobbled_deepslate_slab 30500 30503 type=top,bottom,double;waterlogged=true,false
+minecraft:cobbled_deepslate_wall 30506 30509 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:polished_deepslate 30830 30830 
+minecraft:polished_deepslate_stairs 30831 30842 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:polished_deepslate_slab 30911 30914 type=top,bottom,double;waterlogged=true,false
+minecraft:polished_deepslate_wall 30917 30920 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:deepslate_tiles 31241 31241 
+minecraft:deepslate_tile_stairs 31242 31253 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:deepslate_tile_slab 31322 31325 type=top,bottom,double;waterlogged=true,false
+minecraft:deepslate_tile_wall 31328 31331 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:deepslate_bricks 31652 31652 
+minecraft:deepslate_brick_stairs 31653 31664 facing=north,south,west,east;half=top,bottom;shape=straight,inner_left,inner_right,outer_left,outer_right;waterlogged=true,false
+minecraft:deepslate_brick_slab 31733 31736 type=top,bottom,double;waterlogged=true,false
+minecraft:deepslate_brick_wall 31739 31742 east=none,low,tall;north=none,low,tall;south=none,low,tall;up=true,false;waterlogged=true,false;west=none,low,tall
+minecraft:chiseled_deepslate 32063 32063 
+minecraft:cracked_deepslate_bricks 32064 32064 
+minecraft:cracked_deepslate_tiles 32065 32065 
+minecraft:infested_deepslate 32066 32067 axis=x,y,z
+minecraft:smooth_basalt 32069 32069 
+minecraft:raw_iron_block 32070 32070 
+minecraft:raw_copper_block 32071 32071 
+minecraft:raw_gold_block 32072 32072 
+minecraft:potted_azalea_bush 32073 32073 
+minecraft:potted_flowering_azalea_bush 32074 32074 
+minecraft:ochre_froglight 32075 32076 axis=x,y,z
+minecraft:verdant_froglight 32078 32079 axis=x,y,z
+minecraft:pearlescent_froglight 32081 32082 axis=x,y,z
+minecraft:frogspawn 32084 32084 
+minecraft:reinforced_deepslate 32085 32085 
+minecraft:decorated_pot 32086 32095 cracked=true,false;facing=north,south,west,east;waterlogged=true,false
+minecraft:crafter 32102 32147 crafting=true,false;orientation=down_east,down_north,down_south,down_west,up_east,up_north,up_south,up_west,west_up,east_up,north_up,south_up;triggered=true,false
+minecraft:trial_spawner 32150 32156 ominous=true,false;trial_spawner_state=inactive,waiting_for_players,active,waiting_for_reward_ejection,ejecting_reward,cooldown
+minecraft:vault 32162 32166 facing=north,south,west,east;ominous=true,false;vault_state=inactive,active,unlocking,ejecting
+minecraft:heavy_core 32194 32195 waterlogged=true,false
+minecraft:pale_moss_block 32196 32196 
+minecraft:pale_moss_carpet 32197 32197 bottom=true,false;east=none,low,tall;north=none,low,tall;south=none,low,tall;west=none,low,tall
+minecraft:pale_hanging_moss 32359 32359 tip=true,false
+minecraft:open_eyeblossom 32361 32361 
+minecraft:closed_eyeblossom 32362 32362 
+minecraft:potted_open_eyeblossom 32363 32363 
+minecraft:potted_closed_eyeblossom 32364 32364 
+minecraft:firefly_bush 32365 32365 

@@ -26,16 +26,17 @@ fn get_power_on_sides(comp: Comparator, world: &impl World, pos: BlockPos) -> u8
 }
 
 pub fn has_override(block: Block) -> bool {
-    matches!(
-        block,
-        Block::Barrel { .. }
-            | Block::Furnace { .. }
-            | Block::Hopper { .. }
-            | Block::Cauldron
-            | Block::Composter { .. }
-            | Block::Cake { .. }
-            | Block::EndPortalFrame { eye: true, .. }
-    )
+    block.is_chiseled_bookshelf()
+        || matches!(
+            block,
+            Block::Barrel { .. }
+                | Block::Furnace { .. }
+                | Block::Hopper { .. }
+                | Block::Cauldron
+                | Block::Composter { .. }
+                | Block::Cake { .. }
+                | Block::EndPortalFrame { eye: true, .. }
+        )
 }
 
 pub fn get_override(block: Block, world: &impl World, pos: BlockPos) -> u8 {
@@ -52,6 +53,15 @@ pub fn get_override(block: Block, world: &impl World, pos: BlockPos) -> u8 {
                 }
                 // Empty containers may not have any block entity data
                 None => 0,
+            }
+        }
+        Block::Generic(_) if block.is_chiseled_bookshelf() => {
+            match world.get_block_entity(pos) {
+                // The comparator outputs the number of the slot that was interacted with last
+                Some(BlockEntity::ChiseledBookshelf {
+                    last_interacted_slot,
+                }) => (*last_interacted_slot + 1).max(0) as u8,
+                _ => 0,
             }
         }
         Block::WaterCauldron { level } => level,

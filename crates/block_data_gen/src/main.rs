@@ -253,6 +253,8 @@ fn generate_block_enum(blocks: &[ProcessedBlock]) -> TokenStream {
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
         pub enum Block {
             #(#block_variants,)*
+            /// Any block state that has no dedicated variant, see the `generic` module
+            Generic(u32),
         }
     }
 }
@@ -269,7 +271,8 @@ fn generate_get_name(blocks: &[ProcessedBlock]) -> TokenStream {
     quote! {
         pub fn get_name(self) -> &'static str {
             match self {
-                #( #match_arms ),*
+                #( #match_arms, )*
+                Block::Generic(id) => generic::state_name(id),
             }
         }
     }
@@ -300,10 +303,16 @@ fn generate_is_attr(
         }
     });
     let fn_ident = ident(fn_name);
+    let generic_arm = if matches!(fn_name, "is_solid" | "is_cube" | "is_transparent") {
+        Some(quote! { Block::Generic(id) => generic::#fn_ident(id), })
+    } else {
+        None
+    };
     quote! {
         pub fn #fn_ident(self) -> bool {
             match self {
                 #( #match_arms )*
+                #generic_arm
                 _ => false,
             }
         }
@@ -343,7 +352,7 @@ fn generate_from_name(blocks: &[ProcessedBlock]) -> TokenStream {
         pub fn from_name(name: &str) -> Option<Block> {
             Some(match name {
                 #( #match_arms )*
-                _ => return None,
+                _ => return generic::default_state(name).map(Block::Generic),
             })
         }
     }
@@ -368,6 +377,7 @@ fn generate_set_props(blocks: &[ProcessedBlock]) -> TokenStream {
         pub fn set_properties(&mut self, props: HashMap<&str, &str>) {
             match self {
                 #( #match_arms )*
+                Block::Generic(id) => *id = generic::set_properties(*id, &props),
             }
         }
     }
@@ -393,6 +403,11 @@ fn generate_gen_props(blocks: &[ProcessedBlock]) -> TokenStream {
             let mut props = HashMap::new();
             match self {
                 #( #match_arms )*
+                Block::Generic(id) => {
+                    for (name, value) in generic::properties(*id) {
+                        props.insert(name, value.to_owned());
+                    }
+                }
             }
             props
         }
@@ -423,6 +438,7 @@ fn generate_rotate(blocks: &[ProcessedBlock]) -> TokenStream {
         pub fn rotate(&mut self, amt: RotateAmt) {
             match self {
                 #( #match_arms )*
+                Block::Generic(id) => *id = generic::rotate(*id, amt),
             }
         }
     }
@@ -452,6 +468,7 @@ fn generate_flip(blocks: &[ProcessedBlock]) -> TokenStream {
         pub fn flip(&mut self, dir: FlipDirection) {
             match self {
                 #( #match_arms )*
+                Block::Generic(id) => *id = generic::flip(*id, dir),
             }
         }
     }
@@ -503,6 +520,7 @@ fn generate_get_id(blocks: &[ProcessedBlock]) -> TokenStream {
         pub fn get_id(self) -> u32 {
             match self {
                 #( #match_arms )*
+                Block::Generic(id) => id,
             }
         }
     }
@@ -554,7 +572,7 @@ fn generate_from_id(blocks: &[ProcessedBlock]) -> TokenStream {
         pub fn from_id(mut id: u32) -> Block {
             match id {
                 #( #match_arms )*
-                _ => Block::Air,
+                _ => Block::Generic(id),
             }
         }
     }
@@ -701,7 +719,7 @@ fn generate_item_from_name(items: &[ProcessedItem]) -> TokenStream {
         pub fn from_name(name: &str) -> Option<Item> {
             Some(match name {
                 #( #match_arms )*
-                _ => return None,
+                _ => return generic::item_id(name).map(Item::Unknown),
             })
         }
     }
@@ -719,7 +737,7 @@ fn generate_item_get_name(items: &[ProcessedItem]) -> TokenStream {
         pub fn get_name(self) -> &'static str {
             match self {
                 #( #match_arms )*
-                Item::Unknown(_) => "minecraft:redstone",
+                Item::Unknown(id) => generic::item_name(id),
             }
         }
     }
@@ -757,7 +775,7 @@ fn generate_item_is_block(items: &[ProcessedItem]) -> TokenStream {
         pub fn is_block(self) -> bool {
             match self {
                 #( #match_arms )*
-                Item::Unknown(_) => false,
+                Item::Unknown(id) => generic::item_is_block(id),
             }
         }
     }

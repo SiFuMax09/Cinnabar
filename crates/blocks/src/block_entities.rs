@@ -80,6 +80,11 @@ pub enum BlockEntity {
         ty: ContainerType,
     },
     Sign(Box<SignBlockEntity>),
+    /// The slot of a chiseled bookshelf that was interacted with last, which is what a
+    /// comparator reads from it
+    ChiseledBookshelf {
+        last_interacted_slot: i8,
+    },
 }
 
 impl BlockEntity {
@@ -93,11 +98,14 @@ impl BlockEntity {
         match self {
             BlockEntity::Comparator { .. } => block_entity_id!("minecraft:comparator"),
             BlockEntity::Container { ty, .. } => match ty {
-                ContainerType::Furnace => block_entity_id!("minecraft:comparator"),
+                ContainerType::Furnace => block_entity_id!("minecraft:furnace"),
                 ContainerType::Barrel => block_entity_id!("minecraft:barrel"),
                 ContainerType::Hopper => block_entity_id!("minecraft:hopper"),
             },
             BlockEntity::Sign(_) => block_entity_id!("minecraft:sign"),
+            BlockEntity::ChiseledBookshelf { .. } => {
+                block_entity_id!("minecraft:chiseled_bookshelf")
+            }
         }
     }
 
@@ -108,7 +116,9 @@ impl BlockEntity {
         let mut inventory = Vec::new();
         for item in slots_nbt {
             let item_compound = nbt_unwrap_val!(item, Value::Compound);
-            let count = nbt_get_int(item_compound, "Count")? as i8;
+            // Item stacks save their count as `count` since 1.20.5
+            let count = nbt_get_int(item_compound, "Count")
+                .or_else(|| nbt_get_int(item_compound, "count"))? as i8;
             let slot = nbt_get_int(item_compound, "Slot")? as i8;
             let namespaced_name =
                 nbt_unwrap_val!(nbt_case_insensitive(item_compound, "Id")?, Value::String);
@@ -157,6 +167,9 @@ impl BlockEntity {
         match id.trim_start_matches("minecraft:") {
             "comparator" => Some(BlockEntity::Comparator {
                 output_strength: *nbt_unwrap_val!(&nbt["OutputSignal"], Value::Int) as u8,
+            }),
+            "chiseled_bookshelf" => Some(BlockEntity::ChiseledBookshelf {
+                last_interacted_slot: nbt_get_int(nbt, "last_interacted_slot").unwrap_or(-1) as i8,
             }),
             "furnace" => BlockEntity::load_container(
                 nbt_unwrap_val!(&nbt["Items"], Value::List),
@@ -213,9 +226,23 @@ impl BlockEntity {
 
         use nbt::Value;
         match self {
+            BlockEntity::ChiseledBookshelf {
+                last_interacted_slot,
+            } => Some(nbt::Blob::with_content(map! {
+                "last_interacted_slot" => Value::Int(*last_interacted_slot as i32),
+                "id" => Value::String("minecraft:chiseled_bookshelf".to_owned())
+            })),
             BlockEntity::Sign(sign) => Some({
-                let front = sign.front_rows.iter().map(|str| Value::String(str.clone()));
-                let back = sign.front_rows.iter().map(|str| Value::String(str.clone()));
+                // Text components are sent as NBT over the network, while they are saved as JSON
+                let text = |row: &String| {
+                    if sign_only {
+                        sign_row_to_nbt(row)
+                    } else {
+                        Value::String(row.clone())
+                    }
+                };
+                let front = sign.front_rows.iter().map(text);
+                let back = sign.back_rows.iter().map(text);
                 nbt::Blob::with_content(map! {
                     "is_waxed" => Value::Byte(0),
                     "front_text" => Value::Compound(map! {
@@ -257,6 +284,18 @@ impl BlockEntity {
                 })
             }),
         }
+    }
+}
+
+/// Converts a line of a sign saved as a JSON text component to the NBT format of text components
+fn sign_row_to_nbt(row: &str) -> nbt::Value {
+    match serde_json::from_str::<serde_json::Value>(row) {
+        Ok(serde_json::Value::String(text)) => nbt::Value::String(text),
+        Ok(serde_json::Value::Object(object)) => match object.get("text") {
+            Some(serde_json::Value::String(text)) => nbt::Value::String(text.clone()),
+            _ => nbt::Value::String(String::new()),
+        },
+        _ => nbt::Value::String(row.to_owned()),
     }
 }
 

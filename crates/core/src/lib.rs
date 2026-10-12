@@ -3,6 +3,7 @@
 #[macro_use]
 mod utils;
 mod config;
+mod generic_placement;
 mod interaction;
 mod permissions;
 mod player;

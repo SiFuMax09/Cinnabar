@@ -1,6 +1,7 @@
 use crate::config::CONFIG;
 use crate::player::{Gamemode, PacketSender, Player};
 use crate::plot::commands::DECLARE_COMMANDS;
+use crate::profile;
 use crate::plot::{self, database, Plot, PLOT_BLOCK_HEIGHT};
 use crate::utils::HyphenatedUUID;
 use crate::{permissions, utils};
@@ -10,19 +11,17 @@ use hmac::{Hmac, Mac};
 use mchprs_network::packets::clientbound::{
     CConfigurationPluginMessage, CDisconnectLogin, CFinishConfiguration, CGameEvent,
     CGameEventType, CLogin, CLoginPluginRequest, CLoginSuccess, CPlayerInfoActions,
-    CPlayerInfoAddPlayer, CPlayerInfoUpdate, CPlayerInfoUpdatePlayer, CPong, CRegistryBiome,
-    CRegistryBiomeEffects, CRegistryData, CRegistryDataCodec, CRegistryDimensionType, CResponse,
-    CSetCompression, CSetContainerContent, CSetHeldItem, CSynchronizePlayerPosition,
+    CPlayerInfoAddPlayer, CPlayerInfoUpdate, CPlayerInfoUpdatePlayer, CPong,
+    CRegistryData, CResponse, CSelectKnownPacks, CSetCompression, CSetContainerContent, CUpdateTags, CSetHeldItem, CSynchronizePlayerPosition,
     ClientBoundPacket, UpdateTime,
 };
 use mchprs_network::packets::serverbound::{
     SAcknowledgeFinishConfiguration, SHandshake, SLoginAcknowledged, SLoginPluginResponse,
-    SLoginStart, SPing, SRequest, ServerBoundPacketHandler, VelocityResponseData,
+    SLoginStart, SPing, SRequest, SSelectKnownPacks, ServerBoundPacketHandler, VelocityResponseData,
 };
 use mchprs_network::packets::{PacketEncoderExt, PlayerProperty, SlotData, COMPRESSION_THRESHOLD};
 use mchprs_network::{NetworkServer, NetworkState, PlayerPacketSender};
 use mchprs_text::TextComponent;
-use mchprs_utils::map;
 use mchprs_world::{MC_VERSION, PROTOCOL_VERSION};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -147,6 +146,7 @@ impl MinecraftServer {
         fs::create_dir_all("./world/players").unwrap();
         fs::create_dir_all("./world/plots").unwrap();
         fs::create_dir_all("./schems").unwrap();
+        crate::player::upgrade_saved_players();
 
         plot::database::init();
 
@@ -319,7 +319,8 @@ impl MinecraftServer {
             reduced_debug_info: false,
             enable_respawn_screen: false,
             do_limited_crafting: false,
-            dimension_type: "minecraft:overworld".to_owned(),
+            // The only entry in the `minecraft:dimension_type` registry sent in configuration
+            dimension_type: 0,
             dimension_name: "minecraft:overworld".to_owned(),
             hashed_seed: 0,
             gamemode: player.gamemode.get_id() as u8,
@@ -328,6 +329,9 @@ impl MinecraftServer {
             is_flat: true,
             death_location: None,
             portal_cooldown: 0,
+            sea_level: 63,
+            online_mode: false,
+            enforces_secure_chat: false,
         }
         .encode();
         player.client.send_packet(&join_game);
@@ -449,6 +453,9 @@ impl MinecraftServer {
             clients[client_idx].send_packet(&plugin_message);
             return;
         }
+
+        // Without Velocity there is nobody who tells us the skin of the player
+        clients[client_idx].properties = profile::skin_properties(&username);
 
         self.complete_player_login(client_idx);
     }
@@ -733,61 +740,21 @@ impl ServerBoundPacketHandler for MinecraftServer {
         .encode();
         client.send_packet(&brand);
 
-        let dimension = CRegistryDimensionType {
-            fixed_time: Some(6000),
-            has_skylight: true,
-            has_ceiling: false,
-            ultrawarm: false,
-            natural: true,
-            coordinate_scale: 1.0,
-            bed_works: false,
-            respawn_anchor_works: false,
-            min_y: 0,
-            height: PLOT_BLOCK_HEIGHT,
-            logical_height: PLOT_BLOCK_HEIGHT,
-            infiniburn: "#minecraft:infiniburn_overworld".to_owned(),
-            effects: "#minecraft:overworld".to_owned(),
-            ambient_light: 1.0,
-            piglin_safe: false,
-            has_raids: false,
-            monster_spawn_block_light_limit: 0,
-            monster_spawn_light_level: 0,
-        };
+        client.send_packet(
+            &CSelectKnownPacks {
+                version: MC_VERSION.to_owned(),
+            }
+            .encode(),
+        );
+    }
 
-        let codec = CRegistryDataCodec {
-            dimension_types: map! {
-                "minecraft:overworld" => dimension.clone()
-            },
-            biomes: map! {
-                "mchprs:plot" => CRegistryBiome {
-                    has_precipitation: false,
-                    temperature: 0.5,
-                    downfall: 0.5,
-                    effects: CRegistryBiomeEffects {
-                        sky_color: 0x7BA4FF,
-                        water_fog_color: 0x050533,
-                        fog_color: 0xC0D8FF,
-                        water_color: 0x3F76E4,
-                    },
-                },
-                // Apparently the client NEEDS this to exist (MC-267103)
-                "minecraft:plains" => CRegistryBiome {
-                    has_precipitation: false,
-                    temperature: 0.8,
-                    downfall: 0.4,
-                    effects: CRegistryBiomeEffects {
-                        sky_color: 7907327,
-                        water_fog_color: 329011,
-                        fog_color: 12638463,
-                        water_color: 4159204,
-                    },
-                }
-            },
-        };
-        let registry_data = CRegistryData {
-            registry_codec: codec,
-        };
-        client.send_packet(&registry_data.encode());
+    fn handle_select_known_packs(&mut self, _packs: SSelectKnownPacks, client_idx: usize) {
+        let client = &mut self.network.handshaking_clients[client_idx];
+
+        for registry in CRegistryData::all(PLOT_BLOCK_HEIGHT) {
+            client.send_packet(&registry.encode());
+        }
+        client.send_packet(&CUpdateTags.encode());
 
         client.send_packet(&CFinishConfiguration.encode());
     }

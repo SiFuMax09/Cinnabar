@@ -17,4 +17,5 @@ include.workspace = true
 mchprs_utils = { path = "../utils" }
 mchprs_proc_macros = { path = "../proc_macros" }
 serde = { workspace = true }
+serde_json = { workspace = true }
 hematite-nbt = { workspace = true }

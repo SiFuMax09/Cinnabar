@@ -1,6 +1,7 @@
 pub mod block_entities;
 pub mod blocks;
 mod generated;
+pub mod generic;
 pub mod items;
 
 pub use mchprs_proc_macros::BlockProperty;

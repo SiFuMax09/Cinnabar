@@ -1316,6 +1316,7 @@ dependencies = [
  "mchprs_proc_macros",
  "mchprs_utils",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

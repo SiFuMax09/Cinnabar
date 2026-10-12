@@ -8,6 +8,8 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use flate2::bufread::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
+use crate::registry_entries::BLOCK_ENTITY_TYPES;
+use mchprs_proc_macros::protocol_id;
 use mchprs_text::TextComponent;
 use serde::Serialize;
 use serverbound::*;
@@ -22,8 +24,21 @@ pub const COMPRESSION_THRESHOLD: usize = 256;
 #[derive(Debug)]
 pub struct SlotData {
     pub item_id: i32,
-    pub item_count: i8,
+    pub item_count: i32,
+    /// Legacy item NBT. Only the `BlockEntityTag` (and its block entity `id`) is carried over the
+    /// network, as the `minecraft:block_entity_data` data component.
     pub nbt: Option<NBTCompound>,
+}
+
+fn block_entity_data_component_id() -> i32 {
+    protocol_id!("minecraft:data_component_type", "minecraft:block_entity_data")
+}
+
+fn block_entity_type_id(name: &str) -> Option<i32> {
+    BLOCK_ENTITY_TYPES
+        .iter()
+        .position(|&ty| ty == name)
+        .map(|id| id as i32)
 }
 
 #[derive(Debug, Clone)]
@@ -97,7 +112,8 @@ fn read_decompressed<T: PacketDecoderExt>(
             let handshake = SHandshake::decode(reader)?;
             match handshake.next_state {
                 1 => *state = NetworkState::Status,
-                2 => *state = NetworkState::Login,
+                // 3 is a transfer from another server, which is handled like a normal login
+                2 | 3 => *state = NetworkState::Login,
                 _ => {}
             }
             Box::new(handshake)
@@ -113,31 +129,38 @@ fn read_decompressed<T: PacketDecoderExt>(
         NetworkState::Configuration if packet_id == 0x00 => {
             Box::new(SClientInformation::decode(reader)?)
         }
-        NetworkState::Configuration if packet_id == 0x02 => {
+        NetworkState::Configuration if packet_id == 0x07 => {
+            Box::new(SSelectKnownPacks::decode(reader)?)
+        }
+        NetworkState::Configuration if packet_id == 0x03 => {
             *state = NetworkState::Play;
             Box::new(SAcknowledgeFinishConfiguration::decode(reader)?)
         }
-        _ => match packet_id {
-            0x04 => Box::new(SChatCommand::decode(reader)?),
-            0x05 => Box::new(SChatMessage::decode(reader)?),
-            0x09 => Box::new(SClientInformation::decode(reader)?),
-            0x0A => Box::new(SCommandSuggestionsRequest::decode(reader)?),
-            0x10 => Box::new(SPluginMessage::decode(reader)?),
-            0x15 => Box::new(SKeepAlive::decode(reader)?),
-            0x17 => Box::new(SSetPlayerPosition::decode(reader)?),
-            0x18 => Box::new(SSetPlayerPositionAndRotation::decode(reader)?),
-            0x19 => Box::new(SPlayerRotation::decode(reader)?),
-            0x1A => Box::new(SSetPlayerOnGround::decode(reader)?),
-            0x20 => Box::new(SPlayerAbilities::decode(reader)?),
-            0x21 => Box::new(SPlayerAction::decode(reader)?),
-            0x22 => Box::new(SPlayerCommand::decode(reader)?),
-            0x2C => Box::new(SSetHeldItem::decode(reader)?),
-            0x2F => Box::new(SSetCreativeModeSlot::decode(reader)?),
-            0x32 => Box::new(SUpdateSign::decode(reader)?),
-            0x33 => Box::new(SSwingArm::decode(reader)?),
-            0x35 => Box::new(SUseItemOn::decode(reader)?),
+        NetworkState::Play => match packet_id {
+            0x07 | 0x08 => Box::new(SChatCommand::decode(reader)?),
+            0x09 => Box::new(SChatMessage::decode(reader)?),
+            0x0E => Box::new(SClientInformation::decode(reader)?),
+            0x0F => Box::new(SCommandSuggestionsRequest::decode(reader)?),
+            0x16 => Box::new(SPluginMessage::decode(reader)?),
+            0x1C => Box::new(SKeepAlive::decode(reader)?),
+            0x1E => Box::new(SSetPlayerPosition::decode(reader)?),
+            0x1F => Box::new(SSetPlayerPositionAndRotation::decode(reader)?),
+            0x20 => Box::new(SPlayerRotation::decode(reader)?),
+            0x21 => Box::new(SSetPlayerOnGround::decode(reader)?),
+            0x24 => Box::new(SPickItemFromBlock::decode(reader)?),
+            0x28 => Box::new(SPlayerAbilities::decode(reader)?),
+            0x29 => Box::new(SPlayerAction::decode(reader)?),
+            0x2A => Box::new(SPlayerCommand::decode(reader)?),
+            0x2B => Box::new(SPlayerInput::decode(reader)?),
+            0x35 => Box::new(SSetHeldItem::decode(reader)?),
+            0x38 => Box::new(SSetCreativeModeSlot::decode(reader)?),
+            0x3D => Box::new(SUpdateSign::decode(reader)?),
+            0x3F => Box::new(SSwingArm::decode(reader)?),
+            0x42 => Box::new(SUseItemOn::decode(reader)?),
+            0x43 => Box::new(SUseItem::decode(reader)?),
             _ => Box::new(SUnknown),
         },
+        _ => Box::new(SUnknown),
     };
 
     trace!("Received packet with id {:#02x}: {:?}", packet_id, packet);
@@ -285,6 +308,46 @@ pub trait PacketDecoderExt: Read + Sized {
         Ok(compound)
     }
 
+    /// Reads an item stack as sent by the client, where every data component is length prefixed.
+    /// Components other than `minecraft:block_entity_data` are skipped.
+    fn read_slot_data(&mut self) -> DecodeResult<Option<SlotData>> {
+        let item_count = self.read_varint()?;
+        if item_count <= 0 {
+            return Ok(None);
+        }
+        let item_id = self.read_varint()?;
+        let added = self.read_varint()?;
+        let removed = self.read_varint()?;
+        let mut nbt = None;
+        for _ in 0..added {
+            let component = self.read_varint()?;
+            let len = self.read_varint()?;
+            let data = self.read_bytes(len as usize)?;
+            if component == block_entity_data_component_id() {
+                let mut data = Cursor::new(data);
+                let type_id = data.read_varint()?;
+                if let (Some(tag), Some(id)) = (
+                    data.read_nbt_compound()?,
+                    BLOCK_ENTITY_TYPES.get(type_id as usize),
+                ) {
+                    let mut tag = tag;
+                    tag.insert("id".to_owned(), nbt::Value::String((*id).to_owned()));
+                    let mut root = NBTCompound::new();
+                    root.insert("BlockEntityTag".to_owned(), nbt::Value::Compound(tag));
+                    nbt = Some(root);
+                }
+            }
+        }
+        for _ in 0..removed {
+            self.read_varint()?;
+        }
+        Ok(Some(SlotData {
+            item_id,
+            item_count,
+            nbt,
+        }))
+    }
+
     fn read_player_property(&mut self) -> DecodeResult<PlayerProperty> {
         Ok(PlayerProperty {
             name: self.read_string()?,
@@ -378,6 +441,33 @@ pub trait PacketEncoderExt: Write {
         self.write_long(long);
     }
 
+    /// Low precision vector, see `net.minecraft.network.LpVec3`.
+    fn write_lp_vec3(&mut self, x: f64, y: f64, z: f64) {
+        const MAX: f64 = 1.7179869183E10;
+        const MIN: f64 = 3.051944088384301E-5;
+        let sanitize = |v: f64| if v.is_nan() { 0.0 } else { v.clamp(-MAX, MAX) };
+        let (x, y, z) = (sanitize(x), sanitize(y), sanitize(z));
+        let length = x.abs().max(y.abs()).max(z.abs());
+        if length < MIN {
+            self.write_unsigned_byte(0);
+            return;
+        }
+        let scale = length.ceil() as i64;
+        let partial = (scale & 3) != scale;
+        let markers = if partial { (scale & 3) | 4 } else { scale };
+        let pack = |v: f64| ((v * 0.5 + 0.5) * 32766.0).round() as i64;
+        let buffer = markers
+            | (pack(x / scale as f64) << 3)
+            | (pack(y / scale as f64) << 18)
+            | (pack(z / scale as f64) << 33);
+        self.write_unsigned_byte(buffer as u8);
+        self.write_unsigned_byte((buffer >> 8) as u8);
+        self.write_int((buffer >> 16) as i32);
+        if partial {
+            self.write_varint((scale >> 2) as i32);
+        }
+    }
+
     fn write_bool(&mut self, val: bool) {
         self.write_u8(val as u8).unwrap();
     }
@@ -406,17 +496,36 @@ pub trait PacketEncoderExt: Write {
     where
         Self: Sized,
     {
-        if let Some(slot) = slot_data {
-            self.write_bool(true);
-            self.write_varint(slot.item_id);
-            self.write_byte(slot.item_count);
-            if let Some(nbt) = &slot.nbt {
-                self.write_nbt(nbt);
-            } else {
-                self.write_byte(0); // End tag
-            }
+        let Some(slot) = slot_data.as_ref().filter(|slot| slot.item_count > 0) else {
+            self.write_varint(0);
+            return;
+        };
+        self.write_varint(slot.item_count);
+        self.write_varint(slot.item_id);
+
+        // Data component patch
+        let block_entity_data = slot.nbt.as_ref().and_then(|nbt| {
+            let nbt::Value::Compound(tag) = nbt.get("BlockEntityTag")? else {
+                return None;
+            };
+            let id = match tag.get("id").or_else(|| tag.get("Id")).or_else(|| nbt.get("id")) {
+                Some(nbt::Value::String(id)) => id,
+                _ => return None,
+            };
+            let mut tag = tag.clone();
+            tag.remove("id");
+            tag.remove("Id");
+            Some((block_entity_type_id(id)?, tag))
+        });
+        if let Some((type_id, tag)) = block_entity_data {
+            self.write_varint(1);
+            self.write_varint(0);
+            self.write_varint(block_entity_data_component_id());
+            self.write_varint(type_id);
+            self.write_nbt(&tag);
         } else {
-            self.write_bool(false);
+            self.write_varint(0);
+            self.write_varint(0);
         }
     }
 

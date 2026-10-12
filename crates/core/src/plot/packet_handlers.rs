@@ -1,9 +1,12 @@
+use super::entities::{Entity, EntityKind};
+use super::physics::Vec3;
 use super::Plot;
 use crate::config::CONFIG;
 use crate::player::{PacketSender, PlayerPos, SkinParts};
 use crate::server::Message;
 use crate::utils::{self, HyphenatedUUID};
 use mchprs_blocks::block_entities::BlockEntity;
+use mchprs_blocks::blocks::Block;
 use mchprs_blocks::items::{Item, ItemStack};
 use mchprs_blocks::BlockPos;
 use mchprs_network::packets::clientbound::*;
@@ -182,7 +185,7 @@ impl ServerBoundPacketHandler for Plot {
         player.skin_parts =
             SkinParts::from_bits_truncate(client_settings.displayed_skin_parts as u32);
         let metadata_entry = CSetEntityMetadataEntry {
-            index: 17,
+            index: 16,
             metadata_type: 0,
             value: vec![player.skin_parts.bits() as u8],
         };
@@ -198,6 +201,8 @@ impl ServerBoundPacketHandler for Plot {
 
     fn handle_plugin_message(&mut self, plugin_message: SPluginMessage, player: usize) {
         if plugin_message.channel == "worldedit:cui" {
+            // The mod renders the selection itself, so the particle outline would be a duplicate
+            self.players[player].selection_viz.cui = true;
             self.players[player].worldedit_send_cui("s|cuboid");
         }
     }
@@ -212,6 +217,7 @@ impl ServerBoundPacketHandler for Plot {
             || (new.z - old.z).abs() > 8.0
         {
             CTeleportEntity {
+                velocity: (0.0, 0.0, 0.0),
                 entity_id: self.players[player].entity_id as i32,
                 x: new.x,
                 y: new.y,
@@ -263,6 +269,7 @@ impl ServerBoundPacketHandler for Plot {
             || (new.z - old.z).abs() > 8.0
         {
             CTeleportEntity {
+                velocity: (0.0, 0.0, 0.0),
                 entity_id: self.players[player].entity_id as i32,
                 x: new.x,
                 y: new.y,
@@ -366,44 +373,105 @@ impl ServerBoundPacketHandler for Plot {
 
     fn handle_player_command(&mut self, entity_action: SPlayerCommand, player: usize) {
         match entity_action.action_id {
-            0 => self.players[player].crouching = true,
-            1 => self.players[player].crouching = false,
-            3 => self.players[player].sprinting = true,
-            4 => self.players[player].sprinting = false,
+            // Start sprinting
+            1 => self.players[player].sprinting = true,
+            // Stop sprinting
+            2 => self.players[player].sprinting = false,
+            _ => return,
+        }
+        self.broadcast_player_state(player);
+    }
+
+    fn handle_use_item(&mut self, use_item: SUseItem, player: usize) {
+        self.players[player].send_packet(
+            &CAcknowledgeBlockChange {
+                sequence_id: use_item.sequence,
+            }
+            .encode(),
+        );
+
+        let item = if use_item.hand == 0 {
+            self.players[player].inventory[self.players[player].selected_slot as usize + 36].clone()
+        } else {
+            self.players[player].inventory[45].clone()
+        };
+        let Some(item) = item else {
+            return;
+        };
+
+        if let Some(owner) = self.owner {
+            let player = &mut self.players[player];
+            if owner != player.uuid && !player.has_permission("plots.admin.interact.other") {
+                player.send_no_permission_message();
+                return;
+            }
+        } else if !self.players[player].has_permission("plots.admin.interact.unowned") {
+            self.players[player].send_no_permission_message();
+            return;
+        }
+
+        match item.item_type.get_name() {
+            "minecraft:ender_pearl" => {
+                let owner = &self.players[player];
+                let eye_height = if owner.crouching { 1.27 } else { 1.62 };
+                let eye = Vec3::new(owner.pos.x, owner.pos.y + eye_height, owner.pos.z);
+                let dir = Vec3::from_rotation(use_item.yaw, use_item.pitch);
+                let uuid = owner.uuid;
+                self.spawn_entity(Entity::new(
+                    EntityKind::EnderPearl { owner: uuid },
+                    eye - Vec3::new(0.0, 0.1, 0.0),
+                    dir * 1.5,
+                ));
+            }
             _ => {}
         }
-        let mut bitfield = 0;
-        if self.players[player].crouching {
-            bitfield |= 0x02;
+    }
+
+    fn handle_pick_item_from_block(&mut self, pick: SPickItemFromBlock, player: usize) {
+        let block = self.world.get_block(BlockPos::new(pick.x, pick.y, pick.z));
+        let name = match block {
+            Block::RedstoneWire { .. } => "minecraft:redstone",
+            _ => block.get_name(),
         };
-        if self.players[player].sprinting {
-            bitfield |= 0x08;
+        let Some(item_type) = Item::from_name(name) else {
+            return;
         };
-        let metadata_entries = vec![
-            CSetEntityMetadataEntry {
-                index: 0,
-                metadata_type: 0,
-                value: vec![bitfield],
-            },
-            CSetEntityMetadataEntry {
-                index: 6,
-                metadata_type: 20,
-                value: vec![if self.players[player].crouching { 5 } else { 0 }],
-            },
-        ];
-        let entity_metadata = CSetEntityMetadata {
-            entity_id: self.players[player].entity_id as i32,
-            metadata: metadata_entries,
+
+        // Hotbar slots are 36..=44 in the player inventory window
+        let hotbar = |slot: usize| slot + 36;
+        let players = &mut self.players[player];
+        let existing = (0..9).find(|&slot| {
+            players.inventory[hotbar(slot)]
+                .as_ref()
+                .is_some_and(|stack| stack.item_type.get_id() == item_type.get_id())
+        });
+        let slot = match existing {
+            Some(slot) => slot,
+            None => {
+                // Prefer an empty hotbar slot, otherwise replace the selected one
+                let slot = (0..9)
+                    .find(|&slot| players.inventory[hotbar(slot)].is_none())
+                    .unwrap_or(players.selected_slot as usize);
+                let stack = ItemStack {
+                    item_type,
+                    count: 1,
+                    nbt: None,
+                };
+                players.set_inventory_slot(hotbar(slot) as u32, Some(stack));
+                slot
+            }
+        };
+
+        players.send_packet(&CSetHeldItem { slot: slot as i8 }.encode());
+        self.handle_set_held_item(SSetHeldItem { slot: slot as i16 }, player);
+    }
+
+    fn handle_player_input(&mut self, input: SPlayerInput, player: usize) {
+        if self.players[player].crouching == input.shift {
+            return;
         }
-        .encode();
-        for other_player in 0..self.players.len() {
-            if player == other_player {
-                continue;
-            };
-            self.players[other_player]
-                .client
-                .send_packet(&entity_metadata);
-        }
+        self.players[player].crouching = input.shift;
+        self.broadcast_player_state(player);
     }
 
     fn handle_set_held_item(&mut self, held_item_change: SSetHeldItem, player: usize) {
@@ -452,5 +520,43 @@ impl ServerBoundPacketHandler for Plot {
         self.world
             .set_block_entity(pos, BlockEntity::Sign(Box::new(block_entity)));
         self.publish_world();
+    }
+}
+
+impl Plot {
+    /// Sends the crouching and sprinting state of a player to all other players.
+    fn broadcast_player_state(&mut self, player: usize) {
+        let mut bitfield = 0;
+        if self.players[player].crouching {
+            bitfield |= 0x02;
+        };
+        if self.players[player].sprinting {
+            bitfield |= 0x08;
+        };
+        let metadata_entries = vec![
+            CSetEntityMetadataEntry {
+                index: 0,
+                metadata_type: 0,
+                value: vec![bitfield],
+            },
+            CSetEntityMetadataEntry {
+                index: 6,
+                metadata_type: 20,
+                value: vec![if self.players[player].crouching { 5 } else { 0 }],
+            },
+        ];
+        let entity_metadata = CSetEntityMetadata {
+            entity_id: self.players[player].entity_id as i32,
+            metadata: metadata_entries,
+        }
+        .encode();
+        for other_player in 0..self.players.len() {
+            if player == other_player {
+                continue;
+            };
+            self.players[other_player]
+                .client
+                .send_packet(&entity_metadata);
+        }
     }
 }

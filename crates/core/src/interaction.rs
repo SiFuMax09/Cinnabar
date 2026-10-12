@@ -1,5 +1,6 @@
 use crate::config::CONFIG;
-use crate::player::Player;
+use crate::generic_placement;
+use crate::player::{Player, PlayerPos};
 use crate::plot::{PlotWorld, PLOT_BLOCK_HEIGHT};
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::items::{Item, ItemStack};
@@ -10,12 +11,21 @@ use mchprs_redstone as redstone;
 use mchprs_utils::nbt_unwrap_val;
 use mchprs_world::World;
 
+/// Where a block was clicked
+#[derive(Clone, Copy)]
+pub struct BlockHit {
+    pub face: BlockFace,
+    /// The position of the click inside the block
+    pub cursor: (f32, f32, f32),
+}
+
 pub fn on_use(
     block: Block,
     world: &mut impl World,
     player: &mut Player,
     pos: BlockPos,
     item_in_hand: Option<Item>,
+    hit: BlockHit,
 ) -> ActionResult {
     if redstone::on_use(block, world, pos) {
         return ActionResult::Success;
@@ -48,6 +58,13 @@ pub fn on_use(
                 return ActionResult::Success;
             }
             ActionResult::Pass
+        }
+        Block::Generic(id) => {
+            if generic_placement::use_block(world, pos, id, item_in_hand, hit) {
+                ActionResult::Success
+            } else {
+                ActionResult::Pass
+            }
         }
         b if b.has_block_entity() => {
             // Open container
@@ -252,7 +269,7 @@ pub fn get_state_for_placement(
             eye: false,
             facing: context.player.get_direction().opposite(),
         },
-        _ => Block::Air,
+        _ => generic_placement::state_for_placement(item, context),
     };
     let block = simple_block.unwrap_or(block);
     if is_valid_position(block, world, pos) {
@@ -299,6 +316,7 @@ pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
     if block.has_block_entity() {
         world.delete_block_entity(pos);
     }
+    generic_placement::remove_partner(world, block, pos);
 
     match block {
         Block::RedstoneWire { .. } => {
@@ -332,6 +350,7 @@ pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
             world.set_block(pos, Block::Air);
             change_surrounding_blocks(world, pos);
             redstone::update_surrounding_blocks(world, pos);
+            generic_placement::after_remove(world, pos);
         }
     }
 }
@@ -398,6 +417,9 @@ pub fn is_valid_position(block: Block, world: &impl World, pos: BlockPos) -> boo
 }
 
 pub fn change(block: Block, world: &mut impl World, pos: BlockPos, direction: BlockFace) {
+    if generic_placement::is_gravity_block(block) {
+        world.schedule_falling_block(pos);
+    }
     if !is_valid_position(block, world, pos) {
         destroy(block, world, pos);
         return;
@@ -408,6 +430,13 @@ pub fn change(block: Block, world: &mut impl World, pos: BlockPos, direction: Bl
             redstone::update_wire_neighbors(world, pos);
         }
     }
+}
+
+/// Updates the blocks around a position where a block was changed by something other than a
+/// player, like an entity
+pub fn change_neighbors(world: &mut impl World, pos: BlockPos) {
+    change_surrounding_blocks(world, pos);
+    redstone::update_surrounding_blocks(world, pos);
 }
 
 fn change_surrounding_blocks(world: &mut impl World, pos: BlockPos) {
@@ -444,7 +473,34 @@ pub struct UseOnBlockContext<'a> {
     pub block_pos: BlockPos,
     pub block_face: BlockFace,
     pub player: &'a mut Player,
+    pub cursor_x: f32,
     pub cursor_y: f32,
+    pub cursor_z: f32,
+    /// The positions of the other players, which blocks can't be placed in
+    pub other_players: Vec<PlayerPos>,
+}
+
+/// Whether a block placed at the position would be inside of a player
+fn collides_with_player(block: Block, pos: BlockPos, ctx: &UseOnBlockContext<'_>) -> bool {
+    const HALF_WIDTH: f64 = 0.3;
+
+    let Some(shape) = mchprs_blocks::generic::collision_box(block.get_id()) else {
+        return false;
+    };
+    let [min_x, min_y, min_z, max_x, max_y, max_z] = shape;
+    let (x, y, z) = (pos.x as f64, pos.y as f64, pos.z as f64);
+
+    let players = std::iter::once((ctx.player.pos, ctx.player.crouching))
+        .chain(ctx.other_players.iter().map(|pos| (*pos, false)));
+    players.into_iter().any(|(player, crouching)| {
+        let height = if crouching { 1.5 } else { 1.8 };
+        player.x + HALF_WIDTH > x + min_x
+            && player.x - HALF_WIDTH < x + max_x
+            && player.y + height > y + min_y
+            && player.y < y + max_y
+            && player.z + HALF_WIDTH > z + min_z
+            && player.z - HALF_WIDTH < z + max_z
+    })
 }
 
 /// returns true if cancelled
@@ -456,12 +512,6 @@ pub fn use_item_on_block(
     let use_pos = ctx.block_pos;
     let use_block = world.get_block(use_pos);
     let block_pos = ctx.block_pos.offset(ctx.block_face);
-    let mut top_pos = ctx.player.pos.block_pos();
-    top_pos.y += 1;
-    if (block_pos == ctx.player.pos.block_pos() || block_pos == top_pos) && !CONFIG.block_in_hitbox
-    {
-        return false;
-    }
     let can_place = item.item_type.is_block() && world.get_block(block_pos).can_place_block_in();
 
     if !ctx.player.crouching
@@ -471,14 +521,28 @@ pub fn use_item_on_block(
             ctx.player,
             ctx.block_pos,
             Some(item.item_type),
+            BlockHit {
+                face: ctx.block_face,
+                cursor: (ctx.cursor_x, ctx.cursor_y, ctx.cursor_z),
+            },
         )
         .is_success()
     {
         return false;
     }
 
+    if !ctx.player.crouching
+        && generic_placement::try_make_double_slab(world, item.item_type, use_pos, ctx.block_face)
+    {
+        return false;
+    }
+
     if can_place && (0..PLOT_BLOCK_HEIGHT).contains(&block_pos.y) {
         let block = get_state_for_placement(world, block_pos, item.item_type, &ctx);
+
+        if !CONFIG.block_in_hitbox && collides_with_player(block, block_pos, &ctx) {
+            return true;
+        }
 
         if (block.is_sign() || block.is_wall_sign())
             && !item
@@ -498,6 +562,7 @@ pub fn use_item_on_block(
         }
 
         place_in_world(block, world, block_pos, &item.nbt);
+        generic_placement::after_place(world, block_pos);
         false
     } else {
         true

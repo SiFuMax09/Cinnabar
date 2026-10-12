@@ -183,6 +183,10 @@ pub enum Instrument {
     Bit,
     Banjo,
     Pling,
+    Trumpet,
+    TrumpetExposed,
+    TrumpetOxidized,
+    TrumpetWeathered,
     Zombie,
     Skeleton,
     Creeper,
@@ -214,8 +218,43 @@ impl Instrument {
             Block::EmeraldBlock => Instrument::Bit,
             Block::HayBlock { .. } => Instrument::Banjo,
             Block::Glowstone => Instrument::Pling,
+            Block::Generic(id) => Instrument::from_index(crate::generic::instrument_index(id)),
             _ => Instrument::Harp,
         }
+    }
+
+    /// The instrument at the position in this enum
+    pub fn from_index(index: usize) -> Instrument {
+        const ALL: [Instrument; 27] = [
+            Instrument::Harp,
+            Instrument::Basedrum,
+            Instrument::Snare,
+            Instrument::Hat,
+            Instrument::Bass,
+            Instrument::Flute,
+            Instrument::Bell,
+            Instrument::Guitar,
+            Instrument::Chime,
+            Instrument::Xylophone,
+            Instrument::IronXylophone,
+            Instrument::CowBell,
+            Instrument::Didgeridoo,
+            Instrument::Bit,
+            Instrument::Banjo,
+            Instrument::Pling,
+            Instrument::Trumpet,
+            Instrument::TrumpetExposed,
+            Instrument::TrumpetOxidized,
+            Instrument::TrumpetWeathered,
+            Instrument::Zombie,
+            Instrument::Skeleton,
+            Instrument::Creeper,
+            Instrument::Dragon,
+            Instrument::WitherSkeleton,
+            Instrument::Piglin,
+            Instrument::CustomHead,
+        ];
+        ALL.get(index).copied().unwrap_or(Instrument::Harp)
     }
 
     pub fn to_sound_id(&self) -> i32 {
@@ -241,6 +280,14 @@ impl Instrument {
             Instrument::Bit => sound_id!("minecraft:block.note_block.bit"),
             Instrument::Banjo => sound_id!("minecraft:block.note_block.banjo"),
             Instrument::Pling => sound_id!("minecraft:block.note_block.pling"),
+            Instrument::Trumpet => sound_id!("minecraft:block.note_block.trumpet"),
+            Instrument::TrumpetExposed => sound_id!("minecraft:block.note_block.trumpet_exposed"),
+            Instrument::TrumpetOxidized => {
+                sound_id!("minecraft:block.note_block.trumpet_oxidized")
+            }
+            Instrument::TrumpetWeathered => {
+                sound_id!("minecraft:block.note_block.trumpet_weathered")
+            }
             Instrument::Zombie => sound_id!("minecraft:block.note_block.imitate.zombie"),
             Instrument::Skeleton => sound_id!("minecraft:block.note_block.imitate.skeleton"),
             Instrument::Creeper => sound_id!("minecraft:block.note_block.imitate.creeper"),
