@@ -73,6 +73,43 @@ impl Default for PlayerData {
     }
 }
 
+/// Marks which Minecraft version the data in `./world` is in. A world without it was saved by the
+/// 1.20.4 version of the server.
+const DATA_VERSION_FILE: &str = "./world/data_version";
+
+/// Upgrades the item ids in the files of players that were saved by the 1.20.4 version
+pub fn upgrade_saved_players() {
+    if std::path::Path::new(DATA_VERSION_FILE).exists() {
+        return;
+    }
+
+    let entries = std::fs::read_dir("./world/players").into_iter().flatten().flatten();
+    for entry in entries {
+        let path = entry.path();
+        let Ok(bytes) = std::fs::read(&path) else {
+            continue;
+        };
+        let Ok(mut data) = bincode::deserialize::<PlayerData>(&bytes) else {
+            tracing::warn!("Could not upgrade player data in {}", path.display());
+            continue;
+        };
+        data.inventory.retain_mut(|entry| {
+            match mchprs_save_data::upgrade::upgrade_item_id(entry.id) {
+                Some(id) => {
+                    entry.id = id;
+                    true
+                }
+                None => false,
+            }
+        });
+        if let Err(err) = std::fs::write(&path, bincode::serialize(&data).unwrap()) {
+            tracing::warn!("Could not save upgraded player data in {}: {err}", path.display());
+        }
+    }
+
+    std::fs::write(DATA_VERSION_FILE, mchprs_world::MC_VERSION).unwrap();
+}
+
 bitflags! {
     #[derive(Debug)]
     pub struct SkinParts: u32 {

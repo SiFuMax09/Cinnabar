@@ -41,6 +41,9 @@ use tracing::{debug, error, warn};
 use self::data::sleep_time_for_tps;
 use self::scoreboard::Scoreboard;
 
+/// How often a plot with players in it is saved to disk
+const AUTOSAVE_INTERVAL: Duration = Duration::from_secs(5 * 60);
+
 /// The width of a plot (2^n)
 pub const PLOT_SCALE: u32 = 5;
 
@@ -1232,7 +1235,15 @@ impl Plot {
             self.enter_plot(player);
         }
 
+        let mut last_autosave = Instant::now();
         while self.running {
+            if last_autosave.elapsed() >= AUTOSAVE_INTERVAL {
+                last_autosave = Instant::now();
+                if !self.players.is_empty() {
+                    self.save();
+                }
+            }
+
             // Fast path, for super high RTPS
             if self.sleep_time <= Duration::from_millis(5) && !self.players.is_empty() {
                 self.update();
