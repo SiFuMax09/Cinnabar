@@ -157,6 +157,7 @@ fn read_decompressed<T: PacketDecoderExt>(
             0x3D => Box::new(SUpdateSign::decode(reader)?),
             0x3F => Box::new(SSwingArm::decode(reader)?),
             0x42 => Box::new(SUseItemOn::decode(reader)?),
+            0x43 => Box::new(SUseItem::decode(reader)?),
             _ => Box::new(SUnknown),
         },
         _ => Box::new(SUnknown),

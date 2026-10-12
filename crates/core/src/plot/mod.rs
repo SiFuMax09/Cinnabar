@@ -1,5 +1,7 @@
 pub mod commands;
 mod data;
+mod entities;
+mod physics;
 pub mod database;
 mod monitor;
 mod packet_handlers;
@@ -96,6 +98,7 @@ pub struct Plot {
     owner: Option<u128>,
     async_rt: Runtime,
     scoreboard: Scoreboard,
+    entities: entities::Entities,
 }
 
 pub struct PlotWorld {
@@ -107,6 +110,10 @@ pub struct PlotWorld {
     world_send_rate: WorldSendRate,
     pending_block_entities: FxHashMap<BlockPos, CBlockEntityData>,
     pending_sounds: FxHashMap<BlockPos, CSoundEffect>,
+    /// TNT blocks that received power and should become primed TNT
+    pub(super) pending_ignitions: Vec<BlockPos>,
+    /// Blocks that might have to start falling
+    pub(super) pending_falling: Vec<BlockPos>,
 }
 
 impl PlotWorld {
@@ -257,6 +264,18 @@ impl World for PlotWorld {
             seed: 0,
         };
         self.pending_sounds.insert(pos, sound_effect_data);
+    }
+
+    fn ignite_tnt(&mut self, pos: BlockPos) {
+        if !self.pending_ignitions.contains(&pos) {
+            self.pending_ignitions.push(pos);
+        }
+    }
+
+    fn schedule_falling_block(&mut self, pos: BlockPos) {
+        if !self.pending_falling.contains(&pos) {
+            self.pending_falling.push(pos);
+        }
     }
 
     fn flush_block_changes(&mut self) {
@@ -427,6 +446,10 @@ impl Plot {
 
             let other_metadata = other_player.metadata_packet().encode();
             player.client.send_packet(&other_metadata);
+        }
+
+        for packet in self.entities.spawn_packets() {
+            player.client.send_packet(&packet);
         }
 
         player.send_system_message(&format!(
@@ -1025,6 +1048,7 @@ impl Plot {
 
         // Only tick if there are players in the plot
         if !self.players.is_empty() {
+            self.tick_entities();
             self.timings.set_ticking(true);
             let now = Instant::now();
             self.last_player_time = now;
@@ -1175,6 +1199,8 @@ impl Plot {
             world_send_rate: plot_data.world_send_rate,
             pending_block_entities: FxHashMap::default(),
             pending_sounds: FxHashMap::default(),
+            pending_ignitions: Vec::new(),
+            pending_falling: Vec::new(),
         };
         let tps = plot_data.tps;
         Plot {
@@ -1198,6 +1224,7 @@ impl Plot {
             owner: database::get_plot_owner(x, z).map(|s| s.parse::<HyphenatedUUID>().unwrap().0),
             async_rt: Plot::create_async_rt(),
             scoreboard: Default::default(),
+            entities: Default::default(),
             world,
         }
     }

@@ -87,6 +87,14 @@ pub trait World: 'static {
     }
 
     fn flush_block_changes(&mut self) {}
+
+    /// Turns the TNT block at `pos` into a primed TNT entity
+    #[allow(unused_variables)]
+    fn ignite_tnt(&mut self, pos: BlockPos) {}
+
+    /// Notifies the world that the block at `pos` might have to start falling
+    #[allow(unused_variables)]
+    fn schedule_falling_block(&mut self, pos: BlockPos) {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

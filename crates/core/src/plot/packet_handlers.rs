@@ -1,3 +1,5 @@
+use super::entities::{Entity, EntityKind};
+use super::physics::Vec3;
 use super::Plot;
 use crate::config::CONFIG;
 use crate::player::{PacketSender, PlayerPos, SkinParts};
@@ -374,6 +376,51 @@ impl ServerBoundPacketHandler for Plot {
             _ => return,
         }
         self.broadcast_player_state(player);
+    }
+
+    fn handle_use_item(&mut self, use_item: SUseItem, player: usize) {
+        self.players[player].send_packet(
+            &CAcknowledgeBlockChange {
+                sequence_id: use_item.sequence,
+            }
+            .encode(),
+        );
+
+        let item = if use_item.hand == 0 {
+            self.players[player].inventory[self.players[player].selected_slot as usize + 36].clone()
+        } else {
+            self.players[player].inventory[45].clone()
+        };
+        let Some(item) = item else {
+            return;
+        };
+
+        if let Some(owner) = self.owner {
+            let player = &mut self.players[player];
+            if owner != player.uuid && !player.has_permission("plots.admin.interact.other") {
+                player.send_no_permission_message();
+                return;
+            }
+        } else if !self.players[player].has_permission("plots.admin.interact.unowned") {
+            self.players[player].send_no_permission_message();
+            return;
+        }
+
+        match item.item_type.get_name() {
+            "minecraft:ender_pearl" => {
+                let owner = &self.players[player];
+                let eye_height = if owner.crouching { 1.27 } else { 1.62 };
+                let eye = Vec3::new(owner.pos.x, owner.pos.y + eye_height, owner.pos.z);
+                let dir = Vec3::from_rotation(use_item.yaw, use_item.pitch);
+                let uuid = owner.uuid;
+                self.spawn_entity(Entity::new(
+                    EntityKind::EnderPearl { owner: uuid },
+                    eye - Vec3::new(0.0, 0.1, 0.0),
+                    dir * 1.5,
+                ));
+            }
+            _ => {}
+        }
     }
 
     fn handle_pick_item_from_block(&mut self, pick: SPickItemFromBlock, player: usize) {

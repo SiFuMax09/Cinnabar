@@ -417,6 +417,9 @@ pub fn is_valid_position(block: Block, world: &impl World, pos: BlockPos) -> boo
 }
 
 pub fn change(block: Block, world: &mut impl World, pos: BlockPos, direction: BlockFace) {
+    if generic_placement::is_gravity_block(block) {
+        world.schedule_falling_block(pos);
+    }
     if !is_valid_position(block, world, pos) {
         destroy(block, world, pos);
         return;
@@ -427,6 +430,13 @@ pub fn change(block: Block, world: &mut impl World, pos: BlockPos, direction: Bl
             redstone::update_wire_neighbors(world, pos);
         }
     }
+}
+
+/// Updates the blocks around a position where a block was changed by something other than a
+/// player, like an entity
+pub fn change_neighbors(world: &mut impl World, pos: BlockPos) {
+    change_surrounding_blocks(world, pos);
+    redstone::update_surrounding_blocks(world, pos);
 }
 
 fn change_surrounding_blocks(world: &mut impl World, pos: BlockPos) {

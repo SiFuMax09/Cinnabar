@@ -718,6 +718,57 @@ impl ClientBoundPacket for CChunkData {
     }
 }
 
+pub struct CSetEntityMotion {
+    pub entity_id: i32,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+impl ClientBoundPacket for CSetEntityMotion {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        buf.write_varint(self.entity_id);
+        buf.write_lp_vec3(self.x, self.y, self.z);
+        PacketEncoder::new(buf, 0x65)
+    }
+}
+
+/// An explosion. The blocks that it destroyed are not part of the packet, they are sent as block
+/// updates.
+pub struct CExplode {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub radius: f32,
+    pub block_count: i32,
+}
+
+impl ClientBoundPacket for CExplode {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        buf.write_double(self.x);
+        buf.write_double(self.y);
+        buf.write_double(self.z);
+        buf.write_float(self.radius);
+        buf.write_int(self.block_count);
+        // Knockback of the player
+        buf.write_bool(false);
+        // Particle
+        let particle = if self.radius >= 2.0 {
+            protocol_id!("minecraft:particle_type", "minecraft:explosion_emitter")
+        } else {
+            protocol_id!("minecraft:particle_type", "minecraft:explosion")
+        };
+        buf.write_varint(particle);
+        // Sound, which is encoded as the id plus one
+        buf.write_varint(protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1);
+        // Block particles
+        buf.write_varint(0);
+        PacketEncoder::new(buf, 0x24)
+    }
+}
+
 pub struct CWorldEvent {
     pub event: i32,
     pub x: i32,

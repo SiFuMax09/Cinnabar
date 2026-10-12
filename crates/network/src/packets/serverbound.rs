@@ -41,6 +41,7 @@ pub trait ServerBoundPacketHandler {
     fn handle_set_player_on_ground(&mut self, _packet: SSetPlayerOnGround, _player_idx: usize) {}
     fn handle_player_abilities(&mut self, _packet: SPlayerAbilities, _player_idx: usize) {}
     fn handle_player_action(&mut self, _packet: SPlayerAction, _player_idx: usize) {}
+    fn handle_use_item(&mut self, _packet: SUseItem, _player_idx: usize) {}
     fn handle_pick_item_from_block(&mut self, _packet: SPickItemFromBlock, _player_idx: usize) {}
     fn handle_player_input(&mut self, _packet: SPlayerInput, _player_idx: usize) {}
     fn handle_player_command(&mut self, _packet: SPlayerCommand, _player_idx: usize) {}
@@ -465,6 +466,30 @@ impl ServerBoundPacket for SSetPlayerOnGround {
 
     fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
         handler.handle_set_player_on_ground(*self, player_idx);
+    }
+}
+
+/// Sent when the player uses the item in their hand without pointing at a block
+#[derive(Debug)]
+pub struct SUseItem {
+    pub hand: i32,
+    pub sequence: i32,
+    pub yaw: f32,
+    pub pitch: f32,
+}
+
+impl ServerBoundPacket for SUseItem {
+    fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
+        Ok(SUseItem {
+            hand: decoder.read_varint()?,
+            sequence: decoder.read_varint()?,
+            yaw: decoder.read_float()?,
+            pitch: decoder.read_float()?,
+        })
+    }
+
+    fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
+        handler.handle_use_item(*self, player_idx);
     }
 }
 

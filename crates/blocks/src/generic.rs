@@ -88,6 +88,9 @@ static COLLISION: &[u8] = include_bytes!("../../../mc_data/block_collision.bin")
 
 const COLLISION_OFFSET: i32 = 16;
 
+/// Two bytes per block state, see `explosion_resistance`
+static RESISTANCE: &[u8] = include_bytes!("../../../mc_data/block_resistance.bin");
+
 const FLAG_SOLID: u8 = 1;
 const FLAG_STURDY_TOP: u8 = 2;
 
@@ -185,6 +188,18 @@ pub fn collision_box(id: u32) -> Option<[f64; 6]> {
         *value = (*byte as i32 - COLLISION_OFFSET) as f64 / 16.0;
     }
     Some(result)
+}
+
+/// How much of an explosion the block withstands. Blocks that can't be destroyed by explosions
+/// are `f32::INFINITY`.
+pub fn explosion_resistance(id: u32) -> f32 {
+    let Some(bytes) = RESISTANCE.get(id as usize * 2..id as usize * 2 + 2) else {
+        return 0.0;
+    };
+    match u16::from_le_bytes([bytes[0], bytes[1]]) {
+        u16::MAX => f32::INFINITY,
+        tenths => tenths as f32 / 10.0,
+    }
 }
 
 /// Whether redstone power can pass through the block

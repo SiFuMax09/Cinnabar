@@ -53,6 +53,8 @@ static EMPTY_PLOT: LazyLock<PlotData> = LazyLock::new(|| {
             world_send_rate: WorldSendRate::default(),
             pending_block_entities: Default::default(),
             pending_sounds: Default::default(),
+            pending_ignitions: Vec::new(),
+            pending_falling: Vec::new(),
         };
         let chunk_data: Vec<ChunkData> = world.chunks.iter_mut().map(ChunkData::new).collect();
         PlotData {

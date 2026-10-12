@@ -284,6 +284,26 @@ fn generic_id(world: &impl World, pos: BlockPos) -> Option<u32> {
     }
 }
 
+/// Blocks that fall when there is nothing below them
+pub fn is_gravity_block(block: Block) -> bool {
+    let Block::Generic(id) = block else {
+        return false;
+    };
+    let name = generic::state_name(id);
+    matches!(
+        name,
+        "minecraft:sand"
+            | "minecraft:red_sand"
+            | "minecraft:gravel"
+            | "minecraft:suspicious_sand"
+            | "minecraft:suspicious_gravel"
+            | "minecraft:anvil"
+            | "minecraft:chipped_anvil"
+            | "minecraft:damaged_anvil"
+            | "minecraft:dragon_egg"
+    ) || name.ends_with("_concrete_powder")
+}
+
 /// Opens or closes doors, trapdoors and fence gates. Returns true if the block was used.
 pub fn use_block(
     world: &mut impl World,
@@ -293,6 +313,13 @@ pub fn use_block(
     hit: BlockHit,
 ) -> bool {
     let name = generic::state_name(id);
+    if name == "minecraft:tnt"
+        && item_in_hand
+            .is_some_and(|item| matches!(item.get_name(), "minecraft:flint_and_steel" | "minecraft:fire_charge"))
+    {
+        world.ignite_tnt(pos);
+        return true;
+    }
     if name == "minecraft:chiseled_bookshelf" {
         return use_chiseled_bookshelf(world, pos, id, item_in_hand, hit);
     }
@@ -439,6 +466,10 @@ pub fn after_place(world: &mut impl World, pos: BlockPos) {
         let mut gate = State(id);
         gate.set("in_wall", if in_wall { "true" } else { "false" });
         world.set_block(pos, Block::Generic(gate.0));
+    }
+
+    if is_gravity_block(Block::Generic(id)) {
+        world.schedule_falling_block(pos);
     }
 
     if is_stairs(name) || is_pane(name) || is_fence(name) || is_wall(name) {

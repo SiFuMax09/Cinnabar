@@ -15,6 +15,8 @@ Outputs:
   block_collision.bin six bytes per block state: the bounding box of the collision shape as
                       min x, y, z and max x, y, z in sixteenths of a block plus 16, or all 0xFF without
                       collision
+  block_resistance.bin the explosion resistance of every block state in tenths, as little endian
+                      u16 clamped to 65535
   item_names.txt      the names of all items in protocol id order
 """
 import json
@@ -68,9 +70,12 @@ def main():
 
     attrs = bytearray(num_states * 2)
     collision = bytearray(b"\xff" * (num_states * 6))
+    resistances = bytearray(num_states * 2)
     seen = 0
     for line in open(attrs_path):
-        state_id, solid, sturdy, full, instrument, bounds = line.split()
+        state_id, solid, sturdy, full, instrument, bounds, resistance = line.split()
+        res = int(round(float(resistance) * 10)) if float(resistance) < 6000 else 65535
+        resistances[int(state_id) * 2:int(state_id) * 2 + 2] = res.to_bytes(2, "little")
         if bounds != "none":
             collision[int(state_id) * 6:int(state_id) * 6 + 6] = bytes(int(v) + COLLISION_OFFSET for v in bounds.split(","))
         state_id = int(state_id)
@@ -80,6 +85,7 @@ def main():
     assert seen == num_states, (seen, num_states)
     open(f"{out_dir}/block_attrs.bin", "wb").write(attrs)
     open(f"{out_dir}/block_collision.bin", "wb").write(collision)
+    open(f"{out_dir}/block_resistance.bin", "wb").write(resistances)
 
     items = sorted(registries["minecraft:item"]["entries"].items(), key=lambda kv: kv[1]["protocol_id"])
     assert [e["protocol_id"] for _, e in items] == list(range(len(items)))

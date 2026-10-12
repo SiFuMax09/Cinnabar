@@ -25,6 +25,11 @@ pub type EntityId = u32;
 // Entity id 0 is invalid since 26.1
 static ENTITY_ID_COUNTER: AtomicU32 = AtomicU32::new(1);
 
+/// Returns an entity id that isn't used by any other entity
+pub fn next_entity_id() -> u32 {
+    ENTITY_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
+}
+
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum Gamemode {
     Creative,

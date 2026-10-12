@@ -201,8 +201,52 @@ fn diode_get_input_strength(world: &impl World, pos: BlockPos, facing: BlockDire
     power
 }
 
+/// Blocks that don't have a dedicated variant but still react to redstone power
+fn update_generic(id: u32, world: &mut impl World, pos: BlockPos) {
+    use mchprs_blocks::generic;
+
+    let name = generic::state_name(id);
+    if name == "minecraft:tnt" {
+        if redstone_lamp_should_be_lit(world, pos) {
+            world.ignite_tnt(pos);
+        }
+        return;
+    }
+
+    let is_door = name.ends_with("_door");
+    let is_openable = is_door || name.ends_with("_trapdoor") || name.ends_with("_fence_gate");
+    if !is_openable || generic::property_values(id, "powered").is_empty() {
+        return;
+    }
+    let mut powered = redstone_lamp_should_be_lit(world, pos);
+    let other = match generic::get_property(id, "half") {
+        Some("lower") => pos.offset(BlockFace::Top),
+        _ => pos.offset(BlockFace::Bottom),
+    };
+    if is_door {
+        // A door is powered if either of its halves is
+        powered |= redstone_lamp_should_be_lit(world, other);
+    }
+    let was_powered = generic::get_property(id, "powered") == Some("true");
+    if powered != was_powered {
+        let value = if powered { "true" } else { "false" };
+        let new_id = generic::with_property(id, "powered", value);
+        let new_id = generic::with_property(new_id, "open", value);
+        world.set_block(pos, Block::Generic(new_id));
+
+        if is_door && let Block::Generic(other_id) = world.get_block(other) {
+            if generic::state_name(other_id) == name {
+                let other_id = generic::with_property(other_id, "powered", value);
+                let other_id = generic::with_property(other_id, "open", value);
+                world.set_block(other, Block::Generic(other_id));
+            }
+        }
+    }
+}
+
 pub fn update(block: Block, world: &mut impl World, pos: BlockPos) {
     match block {
+        Block::Generic(id) => update_generic(id, world, pos),
         Block::RedstoneWire(wire) => {
             wire::on_neighbor_updated(wire, world, pos);
         }

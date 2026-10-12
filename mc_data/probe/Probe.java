@@ -24,7 +24,7 @@ public class Probe {
                     bounds = Math.round(box.minX * 16) + "," + Math.round(box.minY * 16) + "," + Math.round(box.minZ * 16) + ","
                         + Math.round(box.maxX * 16) + "," + Math.round(box.maxY * 16) + "," + Math.round(box.maxZ * 16);
                 }
-                out.println(id + " " + (solid ? 1 : 0) + " " + (cube ? 1 : 0) + " " + (full ? 1 : 0) + " " + s.instrument().getSerializedName() + " " + bounds);
+                out.println(id + " " + (solid ? 1 : 0) + " " + (cube ? 1 : 0) + " " + (full ? 1 : 0) + " " + s.instrument().getSerializedName() + " " + bounds + " " + s.getBlock().getExplosionResistance());
             }
         }
     }
