@@ -20,7 +20,9 @@ use mchprs_network::packets::serverbound::{
     SLoginStart, SPing, SRequest, SSelectKnownPacks, ServerBoundPacketHandler,
     VelocityResponseData,
 };
-use mchprs_network::packets::{PacketEncoderExt, PlayerProperty, SlotData, COMPRESSION_THRESHOLD};
+use mchprs_network::packets::{
+    PacketEncoder, PacketEncoderExt, PlayerProperty, SlotData, COMPRESSION_THRESHOLD,
+};
 use mchprs_network::{NetworkServer, NetworkState, PlayerPacketSender};
 use mchprs_text::TextComponent;
 use mchprs_world::{MC_VERSION, PROTOCOL_VERSION};
@@ -32,6 +34,7 @@ use std::fs::{self, File};
 use std::io::Cursor;
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};
 
@@ -59,6 +62,19 @@ pub enum Message {
     WhitelistRemove(u128, PlayerPacketSender),
     /// This message is sent to the server thread when a player runs /stop.
     Shutdown,
+    /// This message is sent to the server thread when the edge chunks of a plot change (or
+    /// when it starts). Each chunk holds the encoded chunk packet, see `edge_mirror`.
+    EdgeChunks {
+        plot_x: i32,
+        plot_z: i32,
+        chunks: Vec<(i32, i32, Arc<PacketEncoder>)>,
+    },
+    /// This message is sent to the server thread when a plot needs the edge chunks of a
+    /// neighbouring plot. The neighbour is loaded if it is not running.
+    RequestEdgeChunks {
+        from_plot: (i32, i32),
+        to_plot: (i32, i32),
+    },
 }
 
 /// `BroadcastMessage` gets broadcasted from the server thread to all the plot threads.
@@ -80,6 +96,13 @@ pub enum BroadcastMessage {
     /// This message is broadcasted when the server is stopping, either through the stop
     /// command or through the ctrl+c handler.
     Shutdown,
+    /// This message is broadcasted when the edge chunks of a plot change. Only the plots
+    /// neighbouring the sender use it.
+    EdgeChunks {
+        plot_x: i32,
+        plot_z: i32,
+        chunks: Vec<(i32, i32, Arc<PacketEncoder>)>,
+    },
 }
 
 /// `PrivMessage` gets send from the server thread directly to a plot thread.
@@ -88,6 +111,8 @@ pub enum BroadcastMessage {
 pub enum PrivMessage {
     PlayerEnterPlot(Player),
     PlayerTeleportOther(Player, String),
+    /// A neighbouring plot asked for the edge chunks of this plot
+    SendEdgeChunks,
 }
 
 /// This is the data that gets sent in the `PlayerJoinedInfo` broadcast message.
@@ -241,6 +266,38 @@ impl MinecraftServer {
             self.running_plots.remove(index);
             self.publish_counts();
         }
+    }
+
+    /// Routes a request for edge chunks to the neighbouring plot, loading it when it is not running.
+    /// A plot publishes its edge chunks when it starts, so a freshly loaded plot needs no message.
+    fn handle_edge_chunks_request(&mut self, from_plot: (i32, i32), to_plot: (i32, i32)) {
+        debug!(
+            "Plot {:?} requested the edge chunks of plot {:?}",
+            from_plot, to_plot
+        );
+        if let Some(entry) = self
+            .running_plots
+            .iter()
+            .find(|p| (p.plot_x, p.plot_z) == to_plot)
+        {
+            let _ = entry.priv_message_sender.send(PrivMessage::SendEdgeChunks);
+            return;
+        }
+        let (priv_tx, priv_rx) = mpsc::channel();
+        Plot::load_and_run(
+            to_plot.0,
+            to_plot.1,
+            self.broadcaster.add_rx(),
+            self.plot_sender.clone(),
+            priv_rx,
+            false,
+            None,
+        );
+        self.running_plots.push(PlotListEntry {
+            plot_x: to_plot.0,
+            plot_z: to_plot.1,
+            priv_message_sender: priv_tx,
+        });
     }
 
     fn graceful_shutdown(&mut self) {
@@ -538,6 +595,20 @@ impl MinecraftServer {
                     .broadcast(BroadcastMessage::PlayerLeft(uuid));
             }
             Message::PlotUnload(plot_x, plot_z) => self.handle_plot_unload(plot_x, plot_z),
+            Message::EdgeChunks {
+                plot_x,
+                plot_z,
+                chunks,
+            } => {
+                self.broadcaster.broadcast(BroadcastMessage::EdgeChunks {
+                    plot_x,
+                    plot_z,
+                    chunks,
+                });
+            }
+            Message::RequestEdgeChunks { from_plot, to_plot } => {
+                self.handle_edge_chunks_request(from_plot, to_plot)
+            }
             Message::ChatInfo(uuid, username, message) => {
                 info!("<{}> {}", username, message);
                 self.broadcaster.broadcast(BroadcastMessage::Chat(

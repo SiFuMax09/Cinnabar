@@ -1,13 +1,14 @@
 pub mod commands;
 mod data;
-mod entities;
-pub(crate) mod fluids;
-mod physics;
 pub mod database;
+mod edge_mirror;
+mod entities;
 mod environment;
+pub(crate) mod fluids;
 mod monitor;
 mod packet_handlers;
 pub mod perf;
+mod physics;
 mod scoreboard;
 mod selection_viz;
 mod vibrations;
@@ -121,6 +122,8 @@ pub struct Plot {
     environment: environment::Environment,
     /// Worldedit operations that are still being worked on, see `worldedit::job`
     edit_jobs: VecDeque<worldedit::EditJob>,
+    /// The live copies of the chunks of the neighbouring plots, see `edge_mirror`
+    edge_mirror: edge_mirror::EdgeMirror,
 }
 
 pub struct PlotWorld {
@@ -152,6 +155,8 @@ pub struct PlotWorld {
     listening: bool,
     light: LightEngine,
     pub transport: ItemTransport,
+    /// Chunks with block changes since the edge chunks were last published, see `edge_mirror`
+    pub(super) edge_dirty_chunks: FxHashSet<(i32, i32)>,
 }
 
 /// More piston events than this in a single send interval are not sent to the players, who get
@@ -271,6 +276,7 @@ impl PlotWorld {
             listening: false,
             light: Default::default(),
             transport: Default::default(),
+            edge_dirty_chunks: Default::default(),
         }
     }
 }
@@ -480,17 +486,25 @@ impl World for PlotWorld {
                 player.send_packet(&encoded);
             }
         }
-        for packet in self.chunks.iter_mut().flat_map(|c| c.multi_blocks()) {
-            let encoded = packet.encode();
-            for player in &self.packet_senders {
-                player.send_packet(&encoded);
+        for chunk in &mut self.chunks {
+            let mut changed = false;
+            for packet in chunk.multi_blocks() {
+                changed = true;
+                let encoded = packet.encode();
+                for player in &self.packet_senders {
+                    player.send_packet(&encoded);
+                }
+            }
+            if changed {
+                self.edge_dirty_chunks.insert((chunk.x, chunk.z));
             }
         }
         for chunk in &mut self.chunks {
             chunk.reset_multi_blocks();
         }
         self.update_light();
-        for (_, block_entity) in self.pending_block_entities.drain() {
+        for (pos, block_entity) in self.pending_block_entities.drain() {
+            self.edge_dirty_chunks.insert((pos.x >> 4, pos.z >> 4));
             let encoded = block_entity.encode();
             for player in &self.packet_senders {
                 player.send_packet(&encoded);
@@ -725,12 +739,16 @@ impl Plot {
             // self.players[player_idx].client.send_packet(&unload_chunk);
         } else if !was_loaded && should_be_loaded {
             if !Plot::chunk_in_plot_bounds(self.world.x, self.world.z, chunk_x, chunk_z) {
-                let packet = if Plot::show_neighbour_terrain(chunk_x, chunk_z) {
-                    Plot::generate_chunk(8, chunk_x, chunk_z).encode_packet()
+                if let Some(packet) = self.edge_mirror.received_chunk(chunk_x, chunk_z) {
+                    self.players[player_idx].client.send_packet(packet);
                 } else {
-                    Chunk::encode_empty_packet(chunk_x, chunk_z, PLOT_SECTIONS)
-                };
-                self.players[player_idx].client.send_packet(&packet);
+                    let packet = if Plot::show_neighbour_terrain(chunk_x, chunk_z) {
+                        Plot::generate_chunk(8, chunk_x, chunk_z).encode_packet()
+                    } else {
+                        Chunk::encode_empty_packet(chunk_x, chunk_z, PLOT_SECTIONS)
+                    };
+                    self.players[player_idx].client.send_packet(&packet);
+                }
             } else {
                 let chunk_idx = self.world.get_chunk_index_for_chunk(chunk_x, chunk_z);
                 let chunk_data = self.world.chunks[chunk_idx].encode_packet();
@@ -780,6 +798,7 @@ impl Plot {
         }
         self.players[player_idx].last_chunk_x = chunk_x;
         self.players[player_idx].last_chunk_z = chunk_z;
+        self.request_neighbour_edge_chunks(player_idx);
     }
 
     fn handle_use_item_impl(&mut self, use_item_on: &SUseItemOn, player: usize) {
@@ -1273,6 +1292,11 @@ impl Plot {
                     self.running = false;
                     return;
                 }
+                BroadcastMessage::EdgeChunks {
+                    plot_x,
+                    plot_z,
+                    chunks,
+                } => self.handle_edge_chunks(plot_x, plot_z, chunks),
                 BroadcastMessage::PlayerUpdateGamemode(uuid, gamemode) => {
                     let player_info = CPlayerInfoUpdate {
                         players: vec![CPlayerInfoUpdatePlayer {
@@ -1296,6 +1320,7 @@ impl Plot {
                 PrivMessage::PlayerEnterPlot(player) => {
                     self.enter_plot(player);
                 }
+                PrivMessage::SendEdgeChunks => self.publish_all_edge_chunks(),
                 PrivMessage::PlayerTeleportOther(mut player, username) => {
                     if let Some(other) = self.players.iter().find(|p| p.username == username) {
                         player.teleport(other.pos);
@@ -1453,6 +1478,7 @@ impl Plot {
             }
         }
 
+        self.publish_dirty_edge_chunks(Instant::now());
         self.sync_open_menus();
         self.update_players();
 
@@ -1584,6 +1610,7 @@ impl Plot {
             new_sensors,
             light: Default::default(),
             transport: Default::default(),
+            edge_dirty_chunks: Default::default(),
         };
         for chunk in &world.chunks {
             for (local, block_entity) in &chunk.block_entities {
@@ -1628,6 +1655,7 @@ impl Plot {
             perf: Default::default(),
             environment: environment::Environment::from_data(plot_data.environment),
             edit_jobs: VecDeque::new(),
+            edge_mirror: Default::default(),
             world,
         }
     }
@@ -1674,6 +1702,7 @@ impl Plot {
 
     fn run(&mut self, initial_player: Option<Player>) {
         let _guard = self.async_rt.enter();
+        self.publish_all_edge_chunks();
 
         if let Some(player) = initial_player {
             self.enter_plot(player);
