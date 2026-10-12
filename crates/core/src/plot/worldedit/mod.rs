@@ -1,5 +1,7 @@
 //! [Worldedit](https://github.com/EngineHub/WorldEdit) and [RedstoneTools](https://github.com/paulikauro/RedstoneTools) implementation
 
+#[cfg(test)]
+mod bench;
 mod execute;
 
 use super::commands::CommandFlags;
@@ -785,6 +787,7 @@ pub struct WorldEditUndo {
     plot_z: i32,
 }
 
+#[derive(Debug)]
 pub enum PatternParseError {
     UnknownBlock(String),
     InvalidPattern(String),

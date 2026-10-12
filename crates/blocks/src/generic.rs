@@ -112,6 +112,11 @@ pub fn block(id: u32) -> Option<&'static GenericBlock> {
     (id < block.first_id + block.num_states).then_some(block)
 }
 
+/// The number of block state ids, all valid ids are below this
+pub fn state_count() -> u32 {
+    (ATTRS.len() / 2) as u32
+}
+
 pub fn state_name(id: u32) -> &'static str {
     block(id).map_or("minecraft:air", |block| block.name)
 }

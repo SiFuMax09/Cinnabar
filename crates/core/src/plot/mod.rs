@@ -144,6 +144,34 @@ impl PlotWorld {
     }
 }
 
+#[cfg(test)]
+impl PlotWorld {
+    /// An empty world without any connected players, used by tests and benchmarks
+    pub(crate) fn empty_for_test(x: i32, z: i32) -> PlotWorld {
+        let chunks = (0..NUM_CHUNKS as i32)
+            .map(|i| {
+                Chunk::empty(
+                    (x << PLOT_SCALE) + i / PLOT_WIDTH,
+                    (z << PLOT_SCALE) + i % PLOT_WIDTH,
+                    PLOT_SECTIONS,
+                )
+            })
+            .collect();
+        PlotWorld {
+            x,
+            z,
+            chunks,
+            to_be_ticked: Vec::new(),
+            packet_senders: Vec::new(),
+            world_send_rate: Default::default(),
+            pending_block_entities: FxHashMap::default(),
+            pending_sounds: FxHashMap::default(),
+            pending_ignitions: Default::default(),
+            pending_falling: Default::default(),
+        }
+    }
+}
+
 impl World for PlotWorld {
     /// Sets a block in storage. Returns true if a block was changed.
     fn set_block_raw(&mut self, pos: BlockPos, block: u32) -> bool {
