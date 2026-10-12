@@ -14,6 +14,8 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - aarch64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc
           - x86_64-apple-darwin
@@ -22,6 +24,10 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
           - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
             os: ubuntu-24.04-arm
           - target: x86_64-pc-windows-msvc
             os: windows-latest
@@ -47,8 +53,14 @@ jobs:
         with:
           key: ${{ matrix.target }}
 
+      - name: Install musl toolchain
+        if: contains(matrix.target, 'linux-musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
       - name: Build
         env:
+          CC_x86_64_unknown_linux_musl: musl-gcc
+          CC_aarch64_unknown_linux_musl: musl-gcc
           CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER: rust-lld.exe
           CARGO_TARGET_AARCH64_PC_WINDOWS_MSVC_LINKER: rust-lld.exe
 

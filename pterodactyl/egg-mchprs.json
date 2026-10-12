@@ -1,0 +1,93 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-10-12T00:00:00+00:00",
+    "name": "MCHPRS",
+    "author": "osw1970@gmail.com",
+    "description": "MCHPRS - Minecraft High Performance Redstone Server for Minecraft 26.2. Each plot runs on its own thread and redstone can be compiled with Redpiler. Players need a Minecraft 26.2 client. Uses the prebuilt container image; change the image in the Docker Images section if you host your own fork (ghcr.io/<owner>/<repo>).",
+    "features": null,
+    "docker_images": {
+        "MCHPRS (GHCR, latest)": "ghcr.io/sifumax09/mtrmc:latest",
+        "MCHPRS (GHCR, Minecraft 26.2)": "ghcr.io/sifumax09/mtrmc:26.2"
+    },
+    "file_denylist": [],
+    "startup": "./mchprs",
+    "config": {
+        "files": "{\n    \"Config.toml\": {\n        \"parser\": \"file\",\n        \"find\": {\n            \"bind_address\": \"bind_address = \\\"0.0.0.0:{{server.build.default.port}}\\\"\",\n            \"motd\": \"motd = \\\"{{env.MCHPRS_MOTD}}\\\"\",\n            \"max_players\": \"max_players = {{env.MAX_PLAYERS}}\",\n            \"view_distance\": \"view_distance = {{env.VIEW_DISTANCE}}\"\n        }\n    }\n}",
+        "startup": "{\n    \"done\": \"Done! Start took\"\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/ash\n# Nothing to install: the server binary ships inside the container image.\nmkdir -p /mnt/server\necho \"MCHPRS is provided by the container image; nothing to install.\"\n",
+            "container": "alpine:3.22",
+            "entrypoint": "ash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Log filter",
+            "description": "Logging filter (MCHPRS_LOG), e.g. info, debug or mchprs_core=debug,info.",
+            "env_variable": "MCHPRS_LOG",
+            "default_value": "info",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "MOTD",
+            "description": "Message of the day shown in the server list (Config.toml: motd).",
+            "env_variable": "MCHPRS_MOTD",
+            "default_value": "Minecraft High Performance Redstone Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "Maximum number of simultaneous players (Config.toml: max_players).",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "100",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:99999",
+            "field_type": "text"
+        },
+        {
+            "name": "View distance",
+            "description": "Maximal distance in chunks between players and loaded chunks (Config.toml: view_distance).",
+            "env_variable": "VIEW_DISTANCE",
+            "default_value": "8",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:2|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Velocity forwarding",
+            "description": "Set to true to enable Velocity modern forwarding. Requires a Velocity secret. Leave false for direct connections.",
+            "env_variable": "VELOCITY_ENABLED",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Velocity secret",
+            "description": "The forwarding secret itself (the contents of forwarding-secret-file on the proxy, NOT a path). Only used when Velocity forwarding is true.",
+            "env_variable": "VELOCITY_SECRET",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": true,
+            "rules": "nullable|string|max:128",
+            "field_type": "text"
+        }
+    ]
+}
