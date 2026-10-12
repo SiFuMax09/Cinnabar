@@ -288,9 +288,19 @@ fn can_pass_through_wall(dir: BlockFace, from: u32, to: u32) -> bool {
     }
 }
 
+/// Signs, which flowing water leaves alone: they only get waterlogged by being placed into
+/// water or with a bucket
+fn is_sign(id: u32) -> bool {
+    let name = name_of(id);
+    name.ends_with("_sign") || name.ends_with("_hanging_sign")
+}
+
 /// Whether the block could hold fluid when it's not waterlogged, which is the case for blocks
 /// the player can walk through
 fn can_hold_any_fluid(id: u32) -> bool {
+    if is_sign(id) {
+        return false;
+    }
     if is_waterloggable(id) {
         return true;
     }
@@ -323,6 +333,11 @@ fn can_hold_specific_fluid(id: u32, kind: Kind) -> bool {
     }
 }
 
+/// Whether flowing fluid can enter the block, which is `can_hold_specific_fluid` without signs
+fn can_flow_into_specific(id: u32, kind: Kind) -> bool {
+    !is_sign(id) && can_hold_specific_fluid(id, kind)
+}
+
 fn can_hold_fluid(id: u32, kind: Kind) -> bool {
     can_hold_any_fluid(id) && can_hold_specific_fluid(id, kind)
 }
@@ -351,7 +366,7 @@ fn can_pass_through(
     to_fluid: Option<FluidState>,
 ) -> bool {
     can_maybe_pass_through(kind, from_id, dir, to_id, to_fluid)
-        && can_hold_specific_fluid(to_id, kind)
+        && can_flow_into_specific(to_id, kind)
 }
 
 /// What the fluid in the block at the position should be, given its neighbors
@@ -496,7 +511,7 @@ fn spread_directions(
         let Some(new_fluid) = new_liquid(world, test, test_id, kind) else {
             continue;
         };
-        if !can_hold_specific_fluid(test_id, new_fluid.kind) {
+        if !can_flow_into_specific(test_id, new_fluid.kind) {
             continue;
         }
         let distance = if ctx.is_hole(test, test_id) {
@@ -614,7 +629,7 @@ fn spread(
     if can_maybe_pass_through(kind, id, BlockFace::Bottom, below_id, below_fluid)
         && let Some(new_below) = new_liquid(world, below, below_id, kind)
         && can_be_replaced(world, below, below_fluid, new_below.kind, BlockFace::Bottom)
-        && can_hold_specific_fluid(below_id, new_below.kind)
+        && can_flow_into_specific(below_id, new_below.kind)
     {
         spread_to(world, below, BlockFace::Bottom, new_below, out);
         let sources = HORIZONTAL
@@ -1246,11 +1261,27 @@ mod tests {
         world.set_block_raw(source, water(0));
         settle(&mut world, &[source]);
 
-        // The blocks are filled instead of replaced, and they spread the water as sources
+        // The slab is filled instead of replaced, and it spreads the water as a source
         assert_eq!(at(&world, 17, 1, 16), waterlogged_id(slab));
         assert_eq!(at(&world, 18, 1, 16), water(1));
-        assert_eq!(at(&world, 15, 1, 16), waterlogged_id(sign));
-        assert_eq!(at(&world, 14, 1, 16), water(1));
+        // Flowing water leaves the sign alone and doesn't get past it
+        assert_eq!(at(&world, 15, 1, 16), sign.get_id());
+        assert_ne!(at(&world, 14, 1, 16), water(1));
+    }
+
+    #[test]
+    fn signs_can_still_be_waterlogged_by_placing_them_into_water() {
+        let mut world = flat_world();
+        let pos = BlockPos::new(16, 1, 16);
+        world.set_block_raw(pos, water(0));
+        let sign = Block::OakSign {
+            rotation: 0,
+            waterlogged: false,
+        };
+        assert_eq!(
+            waterlog_on_place(&mut world, pos, sign),
+            sign.with_waterlogged(true).unwrap()
+        );
     }
 
     #[test]
