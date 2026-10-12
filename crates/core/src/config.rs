@@ -73,6 +73,8 @@ gen_config! {
     luckperms: Option<PermissionsConfig> = None,
     block_in_hitbox: bool = true,
     auto_redpiler: bool = false,
+    // true restores the legacy road grid between plots and empty (void) neighbour chunks
+    plot_borders: bool = false,
     velocity: Option<VelocityConfig> = None
 }
 
