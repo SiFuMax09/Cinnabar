@@ -274,10 +274,16 @@ impl PerfSnapshot {
     }
 }
 
-/// How long a redstone tick may take at most: the time that the target tick rate leaves
+/// A redstone tick is two game ticks, like in vanilla Minecraft. The compact display uses game
+/// ticks so that 20 TPS is the normal speed, as everyone expects.
+const GAME_TICKS_PER_REDSTONE_TICK: f64 = 2.0;
+
+/// How long a game tick may take at most: the time that the target tick rate leaves
 fn tick_budget_ms(target: Tps) -> f64 {
     match target {
-        Tps::Limited(target) if target > 0.0 => 1000.0 / f64::from(target),
+        Tps::Limited(target) if target > 0.0 => {
+            1000.0 / (f64::from(target) * GAME_TICKS_PER_REDSTONE_TICK)
+        }
         _ => 50.0,
     }
 }
@@ -293,10 +299,11 @@ fn ping_color(ping_ms: u32) -> ColorCode {
 }
 
 impl PerfSnapshot {
-    /// Milliseconds a redstone tick takes
+    /// Milliseconds a game tick takes, which is half of a redstone tick
     fn mspt(&self) -> f64 {
-        self.nspt
-            .map_or(0.0, |nspt| nspt.as_nanos() as f64 / 1_000_000.0)
+        self.nspt.map_or(0.0, |nspt| {
+            nspt.as_nanos() as f64 / 1_000_000.0 / GAME_TICKS_PER_REDSTONE_TICK
+        })
     }
 
     /// How much of the time budget of a tick is used
@@ -350,17 +357,27 @@ impl PerfSnapshot {
         }
     }
 
-    /// `TPS: 20.00 MSPT: 2.62 Ping: 0ms`
+    /// `TPS: 20.00 RTPS: 10.00 MSPT: 2.62 Ping: 0ms`
+    ///
+    /// TPS counts game ticks (20 is the normal speed) and RTPS redstone ticks, which are two game
+    /// ticks long.
     pub fn compact_title(&self, ping_ms: u32) -> TextComponent {
-        let tps = if self.rtps >= 1000.0 {
-            format!("{:.0}", self.rtps)
-        } else {
-            format!("{:.2}", self.rtps)
+        let rate = |rtps: f64| {
+            if rtps >= 1000.0 {
+                format!("{rtps:.0}")
+            } else {
+                format!("{rtps:.2}")
+            }
         };
         TextComponent {
             extra: vec![
                 seg("TPS: ", ColorCode::Gray),
-                seg(&tps, self.tps_color()),
+                seg(
+                    &rate(self.rtps * GAME_TICKS_PER_REDSTONE_TICK),
+                    self.tps_color(),
+                ),
+                seg(" RTPS: ", ColorCode::Gray),
+                seg(&rate(self.rtps), self.tps_color()),
                 seg(" MSPT: ", ColorCode::Gray),
                 seg(&format!("{:.2}", self.mspt()), self.mspt_color()),
                 seg(" Ping: ", ColorCode::Gray),
@@ -648,10 +665,12 @@ mod tests {
         assert_eq!(mode_for(0xdead_beef_u128), PerfMode::Off);
     }
 
+    /// A snapshot of a plot with the default redstone speed of 10 ticks per second, with a game
+    /// tick taking `mspt` milliseconds
     fn compact(rtps: f64, mspt: f64) -> PerfSnapshot {
         PerfSnapshot {
-            nspt: Some(Duration::from_nanos((mspt * 1_000_000.0) as u64)),
-            ..snap(rtps, Tps::Limited(20.0))
+            nspt: Some(Duration::from_nanos((mspt * 2.0 * 1_000_000.0) as u64)),
+            ..snap(rtps, Tps::Limited(10.0))
         }
     }
 
@@ -662,32 +681,32 @@ mod tests {
     #[test]
     fn compact_title_matches_the_design() {
         assert_eq!(
-            plain(&compact(20.0, 2.62).compact_title(0)),
-            "TPS: 20.00 MSPT: 2.62 Ping: 0ms"
+            plain(&compact(10.0, 2.62).compact_title(0)),
+            "TPS: 20.00 RTPS: 10.00 MSPT: 2.62 Ping: 0ms"
         );
     }
 
     #[test]
     fn compact_bar_shows_the_tick_budget() {
-        let good = compact(20.0, 2.62);
+        let good = compact(10.0, 2.62);
         assert!(good.compact_progress() < 0.1);
         assert_eq!(good.compact_color(), BossBarColor::Green);
 
-        let busy = compact(20.0, 29.28);
+        let busy = compact(10.0, 29.28);
         assert!((busy.compact_progress() - 0.5856).abs() < 0.001);
         assert_eq!(busy.compact_color(), BossBarColor::Yellow);
 
-        let lagging = compact(17.42, 57.8);
+        let lagging = compact(8.71, 57.8);
         assert_eq!(lagging.compact_progress(), 1.0);
         assert_eq!(lagging.compact_color(), BossBarColor::Red);
     }
 
     #[test]
     fn compact_value_colors() {
-        let snap = compact(17.42, 57.8);
+        let snap = compact(8.71, 57.8);
         assert!(matches!(snap.tps_color(), ColorCode::Gold));
         assert!(matches!(snap.mspt_color(), ColorCode::Red));
-        assert!(matches!(compact(20.0, 29.28).mspt_color(), ColorCode::Gold));
+        assert!(matches!(compact(10.0, 29.28).mspt_color(), ColorCode::Gold));
         assert!(matches!(ping_color(0), ColorCode::Green));
         assert!(matches!(ping_color(180), ColorCode::Gold));
         assert!(matches!(ping_color(400), ColorCode::Red));
