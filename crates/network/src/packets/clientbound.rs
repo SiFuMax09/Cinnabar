@@ -1708,7 +1708,7 @@ impl ClientBoundPacket for CBossEvent {
                 buf.write_varint(*overlay as i32);
             }
         }
-        PacketEncoder::new(buf, 0x0A)
+        PacketEncoder::new(buf, 0x09)
     }
 }
 
@@ -1760,13 +1760,14 @@ mod boss_event_tests {
         ]
     }
 
-    /// Verified once by decoding with the real 26.2 `ClientboundBossEventPacket.STREAM_CODEC`.
+    /// Verified by decoding the content with the real 26.2 `ClientboundBossEventPacket.STREAM_CODEC`.
+    /// The packet id (`boss_event` is 0x09 in `packets.json`) is not covered by the codec.
     const EXPECTED: [&str; 5] = [
-        "530a0102030405060708090a0b0c0d0e0f10000a08000474657874000009000565787472610a00000001080004746578740009525450532032302e30080005636f6c6f720005677265656e00003f000000030000",
-        "120a0102030405060708090a0b0c0d0e0f1001",
-        "160a0102030405060708090a0b0c0d0e0f10023e800000",
-        "170a0102030405060708090a0b0c0d0e0f10030800026869",
-        "140a0102030405060708090a0b0c0d0e0f10040200",
+        "53090102030405060708090a0b0c0d0e0f10000a08000474657874000009000565787472610a00000001080004746578740009525450532032302e30080005636f6c6f720005677265656e00003f000000030000",
+        "12090102030405060708090a0b0c0d0e0f1001",
+        "16090102030405060708090a0b0c0d0e0f10023e800000",
+        "17090102030405060708090a0b0c0d0e0f10030800026869",
+        "14090102030405060708090a0b0c0d0e0f10040200",
     ];
 
     #[test]
