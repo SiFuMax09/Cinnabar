@@ -5,6 +5,7 @@
 pub mod comparator;
 pub mod noteblock;
 pub mod repeater;
+pub mod sculk;
 pub mod wire;
 
 use mchprs_blocks::block_entities::BlockEntity;
@@ -48,6 +49,7 @@ fn get_weak_power(
                 0
             }
         }
+        Block::Generic(id) if sculk::is_sensor(id) => sculk::weak_power(id, side),
         Block::RedstoneWire(wire) if dust_power => match side {
             BlockFace::Top => wire.power,
             BlockFace::Bottom => 0,
@@ -110,6 +112,7 @@ fn get_strong_power(
                 _ => face == LeverFace::Wall && facing == side.unwrap_direction(),
             } && powered,
         ),
+        Block::Generic(id) if sculk::is_sensor(id) => sculk::strong_power(id, side),
         Block::RedstoneWire { .. } => get_weak_power(block, world, pos, side, dust_power),
         Block::Repeater(_) => get_weak_power(block, world, pos, side, dust_power),
         Block::Comparator(_) => get_weak_power(block, world, pos, side, dust_power),

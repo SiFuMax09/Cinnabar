@@ -59,7 +59,10 @@ static BLOCKS: LazyLock<Vec<GenericBlock>> = LazyLock::new(|| {
             for i in (0..props.len().saturating_sub(1)).rev() {
                 strides[i] = strides[i + 1] * props[i + 1].1.len() as u32;
             }
-            let num_states = props.iter().map(|(_, values)| values.len() as u32).product();
+            let num_states = props
+                .iter()
+                .map(|(_, values)| values.len() as u32)
+                .product();
             GenericBlock {
                 name,
                 first_id,
@@ -94,8 +97,11 @@ static RESISTANCE: &[u8] = include_bytes!("../../../mc_data/block_resistance.bin
 const FLAG_SOLID: u8 = 1;
 const FLAG_STURDY_TOP: u8 = 2;
 
-static ITEM_NAMES: LazyLock<Vec<&'static str>> =
-    LazyLock::new(|| include_str!("../../../mc_data/item_names.txt").lines().collect());
+static ITEM_NAMES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+    include_str!("../../../mc_data/item_names.txt")
+        .lines()
+        .collect()
+});
 
 static ITEM_IDS: LazyLock<HashMap<&'static str, u32>> = LazyLock::new(|| {
     ITEM_NAMES
@@ -110,6 +116,28 @@ pub fn block(id: u32) -> Option<&'static GenericBlock> {
     let idx = BLOCKS.partition_point(|block| block.first_id <= id);
     let block = &BLOCKS[idx.checked_sub(1)?];
     (id < block.first_id + block.num_states).then_some(block)
+}
+
+/// The range of state ids of the block with the name
+fn state_range(name: &str) -> std::ops::Range<u32> {
+    BY_NAME.get(name).map_or(0..0, |&idx| {
+        let block = &BLOCKS[idx];
+        block.first_id..block.first_id + block.num_states
+    })
+}
+
+static SCULK_SENSOR_IDS: LazyLock<std::ops::Range<u32>> =
+    LazyLock::new(|| state_range("minecraft:sculk_sensor"));
+static CALIBRATED_SCULK_SENSOR_IDS: LazyLock<std::ops::Range<u32>> =
+    LazyLock::new(|| state_range("minecraft:calibrated_sculk_sensor"));
+
+/// Whether the state is of a sculk sensor, which has no variant of its own in `Block`
+pub fn is_sculk_sensor(id: u32) -> bool {
+    SCULK_SENSOR_IDS.contains(&id) || CALIBRATED_SCULK_SENSOR_IDS.contains(&id)
+}
+
+pub fn is_calibrated_sculk_sensor(id: u32) -> bool {
+    CALIBRATED_SCULK_SENSOR_IDS.contains(&id)
 }
 
 pub fn state_name(id: u32) -> &'static str {
@@ -228,7 +256,10 @@ pub fn item_id(name: &str) -> Option<u32> {
 }
 
 pub fn item_name(id: u32) -> &'static str {
-    ITEM_NAMES.get(id as usize).copied().unwrap_or("minecraft:air")
+    ITEM_NAMES
+        .get(id as usize)
+        .copied()
+        .unwrap_or("minecraft:air")
 }
 
 /// Whether the item places a block with the same name

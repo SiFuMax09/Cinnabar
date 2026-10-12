@@ -27,6 +27,7 @@ fn get_power_on_sides(comp: Comparator, world: &impl World, pos: BlockPos) -> u8
 
 pub fn has_override(block: Block) -> bool {
     block.is_chiseled_bookshelf()
+        || block.is_sculk_sensor()
         || matches!(
             block,
             Block::Barrel { .. }
@@ -63,6 +64,9 @@ pub fn get_override(block: Block, world: &impl World, pos: BlockPos) -> u8 {
                 }) => (*last_interacted_slot + 1).max(0) as u8,
                 _ => 0,
             }
+        }
+        Block::Generic(id) if block.is_sculk_sensor() => {
+            super::sculk::analog_output(world, pos, id)
         }
         Block::WaterCauldron { level } => level,
         Block::Composter { level } => level,

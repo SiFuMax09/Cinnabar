@@ -133,6 +133,12 @@ impl Block {
                     | Block::Hopper { .. }
             )
             || self.is_chiseled_bookshelf()
+            || self.is_sculk_sensor()
+    }
+
+    /// Whether the block is a sculk sensor or a calibrated sculk sensor
+    pub fn is_sculk_sensor(self) -> bool {
+        matches!(self, Block::Generic(id) if crate::generic::is_sculk_sensor(id))
     }
 
     pub fn is_chiseled_bookshelf(self) -> bool {

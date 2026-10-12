@@ -85,6 +85,12 @@ pub enum BlockEntity {
     ChiseledBookshelf {
         last_interacted_slot: i8,
     },
+    /// The frequency of the last vibration a sculk sensor received, which is what a comparator
+    /// reads from it while it is active
+    SculkSensor {
+        last_vibration_frequency: u8,
+        calibrated: bool,
+    },
 }
 
 impl BlockEntity {
@@ -105,6 +111,13 @@ impl BlockEntity {
             BlockEntity::Sign(_) => block_entity_id!("minecraft:sign"),
             BlockEntity::ChiseledBookshelf { .. } => {
                 block_entity_id!("minecraft:chiseled_bookshelf")
+            }
+            BlockEntity::SculkSensor { calibrated, .. } => {
+                if *calibrated {
+                    block_entity_id!("minecraft:calibrated_sculk_sensor")
+                } else {
+                    block_entity_id!("minecraft:sculk_sensor")
+                }
             }
         }
     }
@@ -171,6 +184,12 @@ impl BlockEntity {
             "chiseled_bookshelf" => Some(BlockEntity::ChiseledBookshelf {
                 last_interacted_slot: nbt_get_int(nbt, "last_interacted_slot").unwrap_or(-1) as i8,
             }),
+            id @ ("sculk_sensor" | "calibrated_sculk_sensor") => Some(BlockEntity::SculkSensor {
+                last_vibration_frequency: nbt_get_int(nbt, "last_vibration_frequency")
+                    .unwrap_or(0)
+                    .clamp(0, 15) as u8,
+                calibrated: id == "calibrated_sculk_sensor",
+            }),
             "furnace" => BlockEntity::load_container(
                 nbt_unwrap_val!(&nbt["Items"], Value::List),
                 ContainerType::Furnace,
@@ -231,6 +250,20 @@ impl BlockEntity {
             } => Some(nbt::Blob::with_content(map! {
                 "last_interacted_slot" => Value::Int(*last_interacted_slot as i32),
                 "id" => Value::String("minecraft:chiseled_bookshelf".to_owned())
+            })),
+            BlockEntity::SculkSensor {
+                last_vibration_frequency,
+                calibrated,
+            } => Some(nbt::Blob::with_content(map! {
+                "last_vibration_frequency" => Value::Int(*last_vibration_frequency as i32),
+                "id" => Value::String(
+                    if *calibrated {
+                        "minecraft:calibrated_sculk_sensor"
+                    } else {
+                        "minecraft:sculk_sensor"
+                    }
+                    .to_owned()
+                )
             })),
             BlockEntity::Sign(sign) => Some({
                 // Text components are sent as NBT over the network, while they are saved as JSON
