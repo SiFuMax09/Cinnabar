@@ -174,9 +174,16 @@ enum Action {
 pub struct Entities {
     list: Vec<Entity>,
     last_tick: Option<Instant>,
+    /// Totals for the performance display
+    pub(super) ticks_run: u64,
+    pub(super) busy: Duration,
 }
 
 impl Entities {
+    pub fn len(&self) -> usize {
+        self.list.len()
+    }
+
     pub fn spawn_packets(&self) -> Vec<PacketEncoder> {
         self.list.iter().flat_map(Entity::spawn_packets).collect()
     }
@@ -348,7 +355,10 @@ impl Plot {
         while last_tick + TICK_INTERVAL <= now && ticks < MAX_CATCH_UP_TICKS {
             last_tick += TICK_INTERVAL;
             ticks += 1;
+            let start = Instant::now();
             self.tick_entities_once();
+            self.entities.ticks_run += 1;
+            self.entities.busy += start.elapsed();
         }
         self.entities.last_tick = Some(if ticks == MAX_CATCH_UP_TICKS {
             // The plot is too far behind to catch up

@@ -1,4 +1,4 @@
-use super::{database, worldedit, Plot, PlotWorld};
+use super::{database, perf, worldedit, Plot, PlotWorld};
 use crate::player::{Gamemode, PacketSender, PlayerPos};
 use crate::plot::data::sleep_time_for_tps;
 use crate::profile::PlayerProfile;
@@ -281,13 +281,51 @@ impl Plot {
                     return false;
                 }
             },
+            "perf" => {
+                let mode = match args.as_slice() {
+                    ["on" | "bar"] => perf::PerfMode::Bar,
+                    ["off"] => perf::PerfMode::Off,
+                    ["actionbar"] => perf::PerfMode::ActionBar,
+                    _ => {
+                        self.players[player]
+                            .send_error_message("Usage: /perf <on | off | bar | actionbar>");
+                        return false;
+                    }
+                };
+                perf::set_mode(self.players[player].uuid, mode);
+                self.perf.mark_dirty();
+                self.players[player]
+                    .send_system_message(&format!("Performance display set to {mode:?}."));
+            }
+            "tps" => {
+                let sampler = &self.perf.sampler;
+                let message = match (sampler.loop_hz, sampler.loop_mspt) {
+                    (Some(hz), Some(mspt)) => {
+                        let entity = match (sampler.entity_tps, sampler.entity_mspt) {
+                            (Some(tps), Some(mspt)) => {
+                                format!(", entities {tps:.1} TPS {mspt:.2} ms")
+                            }
+                            _ => String::new(),
+                        };
+                        format!("&6Loop: &a{hz:.0} Hz, {mspt:.1} ms{entity}")
+                    }
+                    _ => "&6No loop data yet.".to_string(),
+                };
+                self.players[player].send_chat_message(&TextComponent::from_legacy_text(&message));
+            }
             "rtps" => {
                 if args.is_empty() {
                     let report = self.timings.generate_report();
+                    // Same rolling average the performance display shows
+                    let now = self
+                        .perf
+                        .sampler
+                        .rtps
+                        .map_or(String::new(), |rtps| format!(" now {rtps:.1},"));
                     if let Some(report) = report {
                         self.players[player].send_chat_message(&TextComponent::from_legacy_text(
                             &format!(
-                            "&6RTPS from last 10s, 1m, 5m, 15m: &a{:.1}, {:.1}, {:.1}, {:.1} ({})",
+                            "&6RTPS{now} from last 10s, 1m, 5m, 15m: &a{:.1}, {:.1}, {:.1}, {:.1} ({})",
                             report.ten_s, report.one_m, report.five_m, report.fifteen_m, self.tps
                         ),
                         ));
@@ -570,7 +608,7 @@ pub static DECLARE_COMMANDS: LazyLock<PacketEncoder> = LazyLock::new(|| {
             Node {
                 flags: CommandFlags::ROOT.bits() as i8,
                 children: vec![
-                    1, 4, 5, 6, 8, 10, 11, 13, 18, 30, 34, 41, 43, 44, 45, 49, 51, 52,
+                    1, 4, 5, 6, 8, 10, 11, 13, 18, 30, 34, 41, 43, 44, 45, 49, 51, 52, 53, 58,
                 ],
                 redirect_node: None,
                 name: None,
@@ -1045,6 +1083,60 @@ pub static DECLARE_COMMANDS: LazyLock<PacketEncoder> = LazyLock::new(|| {
                 children: vec![],
                 redirect_node: None,
                 name: Some("version"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 53: /perf
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![54, 55, 56, 57],
+                redirect_node: None,
+                name: Some("perf"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 54: /perf on
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("on"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 55: /perf off
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("off"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 56: /perf bar
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("bar"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 57: /perf actionbar
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("actionbar"),
+                parser: None,
+                suggestions_type: None,
+            },
+            // 58: /tps
+            Node {
+                flags: (CommandFlags::LITERAL | CommandFlags::EXECUTABLE).bits() as i8,
+                children: vec![],
+                redirect_node: None,
+                name: Some("tps"),
                 parser: None,
                 suggestions_type: None,
             },

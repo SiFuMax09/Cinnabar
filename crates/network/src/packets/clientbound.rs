@@ -1519,3 +1519,165 @@ mod tests {
         assert_eq!(bytes[0] as usize, bytes.len() - 1);
     }
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BossBarColor {
+    Pink = 0,
+    Blue = 1,
+    Red = 2,
+    Green = 3,
+    Yellow = 4,
+    Purple = 5,
+    White = 6,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BossBarOverlay {
+    Progress = 0,
+    Notched6 = 1,
+    Notched10 = 2,
+    Notched12 = 3,
+    Notched20 = 4,
+}
+
+/// ClientboundBossEventPacket. The client throws when an `Add` uses an id that already exists,
+/// so callers must track state or send `Remove` first.
+pub enum CBossEvent {
+    Add {
+        uuid: u128,
+        title: TextComponent,
+        progress: f32,
+        color: BossBarColor,
+        overlay: BossBarOverlay,
+    },
+    Remove {
+        uuid: u128,
+    },
+    UpdateProgress {
+        uuid: u128,
+        progress: f32,
+    },
+    UpdateTitle {
+        uuid: u128,
+        title: TextComponent,
+    },
+    UpdateStyle {
+        uuid: u128,
+        color: BossBarColor,
+        overlay: BossBarOverlay,
+    },
+}
+
+impl ClientBoundPacket for CBossEvent {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        match self {
+            CBossEvent::Add {
+                uuid,
+                title,
+                progress,
+                color,
+                overlay,
+            } => {
+                buf.write_uuid(*uuid);
+                buf.write_varint(0);
+                buf.write_text_component(title);
+                buf.write_float(*progress);
+                buf.write_varint(*color as i32);
+                buf.write_varint(*overlay as i32);
+                // darken screen / play music / create fog
+                buf.write_unsigned_byte(0);
+            }
+            CBossEvent::Remove { uuid } => {
+                buf.write_uuid(*uuid);
+                buf.write_varint(1);
+            }
+            CBossEvent::UpdateProgress { uuid, progress } => {
+                buf.write_uuid(*uuid);
+                buf.write_varint(2);
+                buf.write_float(*progress);
+            }
+            CBossEvent::UpdateTitle { uuid, title } => {
+                buf.write_uuid(*uuid);
+                buf.write_varint(3);
+                buf.write_text_component(title);
+            }
+            CBossEvent::UpdateStyle {
+                uuid,
+                color,
+                overlay,
+            } => {
+                buf.write_uuid(*uuid);
+                buf.write_varint(4);
+                buf.write_varint(*color as i32);
+                buf.write_varint(*overlay as i32);
+            }
+        }
+        PacketEncoder::new(buf, 0x0A)
+    }
+}
+
+#[cfg(test)]
+mod boss_event_tests {
+    use super::*;
+    use mchprs_text::{ColorCode, TextComponentBuilder};
+
+    const UUID: u128 = 0x0102_0304_0506_0708_090a_0b0c_0d0e_0f10;
+
+    fn bytes(packet: &CBossEvent) -> String {
+        let mut out = Vec::new();
+        packet.encode().write_uncompressed(&mut out).unwrap();
+        out.iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    fn title() -> TextComponent {
+        TextComponent {
+            extra: vec![TextComponentBuilder::new("RTPS 20.0".into())
+                .color_code(ColorCode::Green)
+                .finish()],
+            ..Default::default()
+        }
+    }
+
+    fn all() -> Vec<CBossEvent> {
+        vec![
+            CBossEvent::Add {
+                uuid: UUID,
+                title: title(),
+                progress: 0.5,
+                color: BossBarColor::Green,
+                overlay: BossBarOverlay::Progress,
+            },
+            CBossEvent::Remove { uuid: UUID },
+            CBossEvent::UpdateProgress {
+                uuid: UUID,
+                progress: 0.25,
+            },
+            CBossEvent::UpdateTitle {
+                uuid: UUID,
+                title: "hi".into(),
+            },
+            CBossEvent::UpdateStyle {
+                uuid: UUID,
+                color: BossBarColor::Red,
+                overlay: BossBarOverlay::Progress,
+            },
+        ]
+    }
+
+    /// Verified once by decoding with the real 26.2 `ClientboundBossEventPacket.STREAM_CODEC`.
+    const EXPECTED: [&str; 5] = [
+        "530a0102030405060708090a0b0c0d0e0f10000a08000474657874000009000565787472610a00000001080004746578740009525450532032302e30080005636f6c6f720005677265656e00003f000000030000",
+        "120a0102030405060708090a0b0c0d0e0f1001",
+        "160a0102030405060708090a0b0c0d0e0f10023e800000",
+        "170a0102030405060708090a0b0c0d0e0f10030800026869",
+        "140a0102030405060708090a0b0c0d0e0f10040200",
+    ];
+
+    #[test]
+    fn encodings_match_game_codec() {
+        for (packet, expected) in all().iter().zip(EXPECTED) {
+            assert_eq!(bytes(packet), expected);
+        }
+    }
+}
