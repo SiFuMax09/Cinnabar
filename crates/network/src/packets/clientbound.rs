@@ -194,7 +194,10 @@ fn plot_biome() -> nbt::Value {
         ("has_precipitation", nbt_bool(false)),
         ("temperature", nbt::Value::Float(0.5)),
         ("downfall", nbt::Value::Float(0.5)),
-        ("effects", nbt_compound([("water_color", nbt_str("#3f76e4"))])),
+        (
+            "effects",
+            nbt_compound([("water_color", nbt_str("#3f76e4"))]),
+        ),
     ])
 }
 
@@ -248,12 +251,14 @@ impl CRegistryData {
                 ],
             },
         ];
-        registries.extend(SYNCED_REGISTRIES.iter().map(|(registry, entries)| {
-            CRegistryData {
-                registry: (*registry).to_owned(),
-                entries: entries.iter().map(|e| ((*e).to_owned(), None)).collect(),
-            }
-        }));
+        registries.extend(
+            SYNCED_REGISTRIES
+                .iter()
+                .map(|(registry, entries)| CRegistryData {
+                    registry: (*registry).to_owned(),
+                    entries: entries.iter().map(|e| ((*e).to_owned(), None)).collect(),
+                }),
+        );
         registries
     }
 }
@@ -496,6 +501,18 @@ impl ClientBoundPacket for CCommands {
         }
         buf.write_varint(self.root_index);
         PacketEncoder::new(buf, 0x10)
+    }
+}
+
+pub struct CCloseContainer {
+    pub window_id: i32,
+}
+
+impl ClientBoundPacket for CCloseContainer {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        buf.write_varint(self.window_id);
+        PacketEncoder::new(buf, 0x11)
     }
 }
 
@@ -762,7 +779,9 @@ impl ClientBoundPacket for CExplode {
         };
         buf.write_varint(particle);
         // Sound, which is encoded as the id plus one
-        buf.write_varint(protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1);
+        buf.write_varint(
+            protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1,
+        );
         // Block particles
         buf.write_varint(0);
         PacketEncoder::new(buf, 0x24)

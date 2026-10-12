@@ -1,15 +1,16 @@
 use crate::config::CONFIG;
+use crate::menu::Menu;
 use crate::permissions::{self, PlayerPermissionsCache};
 use crate::plot::worldedit::WorldEditUndo;
 use crate::plot::SelectionVisualizer;
 use crate::plot::PLOT_SCALE;
 use crate::utils::{self, HyphenatedUUID};
 use byteorder::{BigEndian, ReadBytesExt};
-use mchprs_blocks::block_entities::{ContainerType, InventoryEntry};
+use mchprs_blocks::block_entities::{ContainerType, Inventory, InventoryEntry};
 use mchprs_blocks::items::{Item, ItemStack};
 use mchprs_blocks::{BlockDirection, BlockFacing, BlockPos};
 use mchprs_network::packets::clientbound::*;
-use mchprs_network::packets::{PacketEncoder, PlayerProperty, SlotData};
+use mchprs_network::packets::{PacketEncoder, PlayerProperty};
 use mchprs_network::{PlayerConn, PlayerPacketSender};
 use mchprs_proc_macros::protocol_id;
 use mchprs_schematic::WorldEditClipboard;
@@ -89,7 +90,10 @@ pub fn upgrade_saved_players() {
         return;
     }
 
-    let entries = std::fs::read_dir("./world/players").into_iter().flatten().flatten();
+    let entries = std::fs::read_dir("./world/players")
+        .into_iter()
+        .flatten()
+        .flatten();
     for entry in entries {
         let path = entry.path();
         let Ok(bytes) = std::fs::read(&path) else {
@@ -109,7 +113,10 @@ pub fn upgrade_saved_players() {
             }
         });
         if let Err(err) = std::fs::write(&path, bincode::serialize(&data).unwrap()) {
-            tracing::warn!("Could not save upgraded player data in {}: {err}", path.display());
+            tracing::warn!(
+                "Could not save upgraded player data in {}: {err}",
+                path.display()
+            );
         }
     }
 
@@ -177,6 +184,9 @@ pub struct Player {
     pub properties: Vec<PlayerProperty>,
     pub skin_parts: SkinParts,
     pub inventory: Vec<Option<ItemStack>>,
+    /// The container screen the player has open
+    pub menu: Option<Menu>,
+    last_window_id: i32,
     /// The selected slot of the player's hotbar (1-9)
     pub selected_slot: u32,
     pub pos: PlayerPos,
@@ -266,6 +276,8 @@ impl Player {
             properties,
             skin_parts: Default::default(),
             inventory,
+            menu: None,
+            last_window_id: 0,
             selected_slot: player_data.selected_item_slot as u32,
             pos: PlayerPos {
                 x: player_data.position[0],
@@ -553,41 +565,75 @@ impl Player {
         }
     }
 
-    pub fn open_container(&self, inventory: &[InventoryEntry], container_type: ContainerType) {
-        let mut slots: Vec<Option<SlotData>> =
-            (0..container_type.num_slots()).map(|_| None).collect();
-        for entry in inventory {
-            let item_stack = utils::inventory_entry_to_stack(entry);
-            slots[entry.slot as usize] = Some(utils::encode_slot_data(&item_stack));
-        }
-
+    /// Opens the screen of the container for the player. Clicks in it are handled with the menu.
+    pub fn open_container(&mut self, pos: BlockPos, inventory: &Inventory, ty: ContainerType) {
+        // The window id 0 is the inventory of the player, the ids count up to 100 like in the game
+        self.last_window_id = self.last_window_id % 100 + 1;
+        let infinite_materials = matches!(self.gamemode, Gamemode::Creative);
+        let menu = Menu::new(
+            self.last_window_id,
+            pos,
+            ty,
+            inventory,
+            &self.inventory,
+            infinite_materials,
+        );
         let open_window = COpenScreen {
-            window_id: 1,
-            window_type: container_type.window_type(),
-            window_title: "Container".into(),
+            window_id: menu.window_id,
+            window_type: ty.window_type(),
+            window_title: ty.title().into(),
         }
         .encode();
         self.client.send_packet(&open_window);
+        self.menu = Some(menu);
+        self.send_menu_contents();
+    }
 
+    /// Sends all slots of the open menu and the stack on the cursor to the client
+    pub fn send_menu_contents(&mut self) {
+        let Some(menu) = &mut self.menu else {
+            return;
+        };
+        let state_id = menu.next_state_id();
         let window_items = CSetContainerContent {
-            window_id: 1,
-            state_id: 0,
-            slot_data: slots,
-            carried_item: None,
+            window_id: menu.window_id,
+            state_id,
+            slot_data: menu
+                .slots()
+                .iter()
+                .map(|slot| slot.as_ref().map(utils::encode_slot_data))
+                .collect(),
+            carried_item: menu.carried.as_ref().map(utils::encode_slot_data),
         }
         .encode();
         self.client.send_packet(&window_items);
     }
 
-    pub fn set_inventory_slot(&mut self, slot: u32, item: Option<ItemStack>) {
+    pub fn close_menu_on_client(&mut self) {
+        if let Some(menu) = self.menu.take() {
+            self.client.send_packet(
+                &CCloseContainer {
+                    window_id: menu.window_id,
+                }
+                .encode(),
+            );
+        }
+    }
+
+    /// Tells the client the contents of a slot of its inventory
+    pub fn send_inventory_slot(&self, slot: u32, item: Option<&ItemStack>) {
         let set_slot = CSetContainerSlot {
             window_id: 0,
             state_id: 0,
             slot: slot as i16,
-            slot_data: item.as_ref().map(utils::encode_slot_data),
+            slot_data: item.map(utils::encode_slot_data),
         }
         .encode();
         self.client.send_packet(&set_slot);
+    }
+
+    pub fn set_inventory_slot(&mut self, slot: u32, item: Option<ItemStack>) {
+        self.send_inventory_slot(slot, item.as_ref());
 
         self.inventory[slot as usize] = item;
     }

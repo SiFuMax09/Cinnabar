@@ -1,10 +1,10 @@
 pub mod commands;
 mod data;
-mod entities;
-mod physics;
 pub mod database;
+mod entities;
 mod monitor;
 mod packet_handlers;
+mod physics;
 mod scoreboard;
 mod selection_viz;
 pub use selection_viz::SelectionVisualizer;
@@ -674,7 +674,11 @@ impl Plot {
                 None,
                 interaction::BlockHit {
                     face: block_face,
-                    cursor: (use_item_on.cursor_x, use_item_on.cursor_y, use_item_on.cursor_z),
+                    cursor: (
+                        use_item_on.cursor_x,
+                        use_item_on.cursor_y,
+                        use_item_on.cursor_z,
+                    ),
                 },
             );
             self.world.flush_block_changes();
@@ -1202,6 +1206,7 @@ impl Plot {
             }
         }
 
+        self.sync_open_menus();
         self.update_players();
 
         // Handle commands before removing players just in case they ran a command before leaving

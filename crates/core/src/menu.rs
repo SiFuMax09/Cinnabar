@@ -166,7 +166,9 @@ impl Menu {
         let size = self.container_size();
         let mut changed = Vec::new();
         let mut store = |inventory_slot: usize, menu_slot: usize| {
-            let new = self.slots[menu_slot].clone().filter(|stack| stack.count > 0);
+            let new = self.slots[menu_slot]
+                .clone()
+                .filter(|stack| stack.count > 0);
             let old = &player_inventory[inventory_slot];
             let equal = match (old, &new) {
                 (None, None) => true,
@@ -275,11 +277,23 @@ impl Menu {
                 let total = target.count as u32 + stack.count as u32;
                 if total <= max as u32 {
                     stack.count = 0;
-                    self.set(dest, Some(ItemStack { count: total as u8, ..target }));
+                    self.set(
+                        dest,
+                        Some(ItemStack {
+                            count: total as u8,
+                            ..target
+                        }),
+                    );
                     changed = true;
                 } else if target.count < max {
                     stack.count -= max - target.count;
-                    self.set(dest, Some(ItemStack { count: max, ..target }));
+                    self.set(
+                        dest,
+                        Some(ItemStack {
+                            count: max,
+                            ..target
+                        }),
+                    );
                     changed = true;
                 }
             }
@@ -401,7 +415,9 @@ impl Menu {
             }
             ClickMode::Throw if self.carried.is_none() => {
                 let Some(slot) = slot else { return };
-                let Some(current) = self.get(slot) else { return };
+                let Some(current) = self.get(slot) else {
+                    return;
+                };
                 let amount = if button == 0 { 1 } else { current.count };
                 if let Some(taken) = self.try_remove(slot, amount, u8::MAX) {
                     dropped.push(taken);
@@ -528,7 +544,9 @@ impl Menu {
         let size = self.container_size();
         let range = size..size + MAIN_SLOTS + HOTBAR_SLOTS;
         // The hotbar comes before the main inventory
-        let hotbar_first: Vec<usize> = (size + MAIN_SLOTS..range.end).chain(size..size + MAIN_SLOTS).collect();
+        let hotbar_first: Vec<usize> = (size + MAIN_SLOTS..range.end)
+            .chain(size..size + MAIN_SLOTS)
+            .collect();
         for &slot in &hotbar_first {
             let Some(current) = self.get(slot).cloned() else {
                 continue;
@@ -537,7 +555,13 @@ impl Menu {
                 let room = max_stack(&current).saturating_sub(current.count);
                 let moved = room.min(stack.count);
                 stack.count -= moved;
-                self.set(slot, Some(ItemStack { count: current.count + moved, ..current }));
+                self.set(
+                    slot,
+                    Some(ItemStack {
+                        count: current.count + moved,
+                        ..current
+                    }),
+                );
                 if stack.count == 0 {
                     return None;
                 }
@@ -562,7 +586,11 @@ impl Menu {
         };
         if self.get(slot).is_none() {
             let total = self.shown_slots();
-            let (start, step): (i32, i32) = if button == 0 { (0, 1) } else { (total as i32 - 1, -1) };
+            let (start, step): (i32, i32) = if button == 0 {
+                (0, 1)
+            } else {
+                (total as i32 - 1, -1)
+            };
             for pass in 0..2 {
                 let mut i = start;
                 while i >= 0 && (i as usize) < total && carried.count < max_stack(&carried) {
@@ -648,7 +676,13 @@ impl Menu {
                         };
                         let new_count = (per_slot + existing).min(max);
                         remaining -= new_count - existing;
-                        self.set(*slot, Some(ItemStack { count: new_count as u8, ..source.clone() }));
+                        self.set(
+                            *slot,
+                            Some(ItemStack {
+                                count: new_count as u8,
+                                ..source.clone()
+                            }),
+                        );
                     }
                 }
                 let mut rest = source;
@@ -695,7 +729,14 @@ mod tests {
         for (slot, stack) in inventory {
             player[*slot] = Some(stack.clone());
         }
-        Menu::new(1, BlockPos::new(0, 0, 0), ContainerType::Barrel, &inv, &player, false)
+        Menu::new(
+            1,
+            BlockPos::new(0, 0, 0),
+            ContainerType::Barrel,
+            &inv,
+            &player,
+            false,
+        )
     }
 
     fn count(menu: &Menu, slot: usize) -> u8 {
@@ -733,7 +774,10 @@ mod tests {
     #[test]
     fn clicking_the_same_item_merges_up_to_the_stack_size() {
         let mut menu = menu_with(
-            &[(0, stack("minecraft:stone", 60)), (1, stack("minecraft:stone", 10))],
+            &[
+                (0, stack("minecraft:stone", 60)),
+                (1, stack("minecraft:stone", 10)),
+            ],
             &[],
         );
         click(&mut menu, 1, 0, ClickMode::Pickup);
@@ -745,19 +789,34 @@ mod tests {
     #[test]
     fn clicking_another_item_swaps_the_stacks() {
         let mut menu = menu_with(
-            &[(0, stack("minecraft:stone", 3)), (1, stack("minecraft:sand", 2))],
+            &[
+                (0, stack("minecraft:stone", 3)),
+                (1, stack("minecraft:sand", 2)),
+            ],
             &[],
         );
         click(&mut menu, 0, 0, ClickMode::Pickup);
         click(&mut menu, 1, 0, ClickMode::Pickup);
-        assert_eq!(menu.get(1).unwrap().item_type, Item::from_name("minecraft:stone").unwrap());
-        assert_eq!(menu.carried.as_ref().unwrap().item_type, Item::from_name("minecraft:sand").unwrap());
+        assert_eq!(
+            menu.get(1).unwrap().item_type,
+            Item::from_name("minecraft:stone").unwrap()
+        );
+        assert_eq!(
+            menu.carried.as_ref().unwrap().item_type,
+            Item::from_name("minecraft:sand").unwrap()
+        );
     }
 
     #[test]
     fn shift_click_moves_into_the_container_and_back() {
         // Slot 27 is the first slot of the main inventory of a barrel menu
-        let mut menu = menu_with(&[], &[(9, stack("minecraft:stone", 40)), (36, stack("minecraft:stone", 30))]);
+        let mut menu = menu_with(
+            &[],
+            &[
+                (9, stack("minecraft:stone", 40)),
+                (36, stack("minecraft:stone", 30)),
+            ],
+        );
         click(&mut menu, 27, 0, ClickMode::QuickMove);
         assert_eq!(count(&menu, 0), 40);
         assert_eq!(count(&menu, 27), 0);
@@ -785,9 +844,15 @@ mod tests {
 
     #[test]
     fn number_key_swaps_with_the_hotbar() {
-        let mut menu = menu_with(&[(2, stack("minecraft:stone", 7))], &[(36 + 3, stack("minecraft:sand", 1))]);
+        let mut menu = menu_with(
+            &[(2, stack("minecraft:stone", 7))],
+            &[(36 + 3, stack("minecraft:sand", 1))],
+        );
         click(&mut menu, 2, 3, ClickMode::Swap);
-        assert_eq!(menu.get(2).unwrap().item_type, Item::from_name("minecraft:sand").unwrap());
+        assert_eq!(
+            menu.get(2).unwrap().item_type,
+            Item::from_name("minecraft:sand").unwrap()
+        );
         assert_eq!(count(&menu, 27 + 27 + 3), 7);
     }
 
@@ -818,7 +883,10 @@ mod tests {
     #[test]
     fn double_click_collects_the_stack_from_all_slots() {
         let mut menu = menu_with(
-            &[(0, stack("minecraft:stone", 10)), (3, stack("minecraft:stone", 20))],
+            &[
+                (0, stack("minecraft:stone", 10)),
+                (3, stack("minecraft:stone", 20)),
+            ],
             &[(9, stack("minecraft:stone", 5))],
         );
         // Pick up and put down, as the first click of a double click does
@@ -873,7 +941,10 @@ mod tests {
 
     #[test]
     fn menu_slots_round_trip_into_the_inventories() {
-        let mut menu = menu_with(&[(0, stack("minecraft:stone", 10))], &[(9, stack("minecraft:sand", 2))]);
+        let mut menu = menu_with(
+            &[(0, stack("minecraft:stone", 10))],
+            &[(9, stack("minecraft:sand", 2))],
+        );
         click(&mut menu, 0, 0, ClickMode::QuickMove);
         let mut player = vec![None; 46];
         player[9] = Some(stack("minecraft:sand", 2));
@@ -881,5 +952,46 @@ mod tests {
         assert_eq!(changed, vec![44]);
         assert_eq!(player[44].as_ref().unwrap().count, 10);
         assert!(menu.container_inventory().is_empty());
+    }
+
+    /// Prints the packets of an open screen as hex, so they can be checked against the codecs of
+    /// the game
+    #[test]
+    #[ignore]
+    fn dump_menu_packets() {
+        use mchprs_network::packets::clientbound::*;
+        let menu = menu_with(
+            &[(0, stack("minecraft:stone", 10))],
+            &[(36, stack("minecraft:redstone", 64))],
+        );
+        let slot_data = menu
+            .slots()
+            .iter()
+            .map(|slot| slot.as_ref().map(crate::utils::encode_slot_data))
+            .collect();
+        let packets = [
+            COpenScreen {
+                window_id: 3,
+                window_type: ContainerType::Hopper.window_type(),
+                window_title: "Item Hopper".into(),
+            }
+            .encode(),
+            CSetContainerContent {
+                window_id: 3,
+                state_id: 5,
+                slot_data,
+                carried_item: Some(crate::utils::encode_slot_data(&stack("minecraft:sand", 7))),
+            }
+            .encode(),
+            CCloseContainer { window_id: 3 }.encode(),
+        ];
+        for packet in packets {
+            let mut bytes = Vec::new();
+            packet.write_uncompressed(&mut bytes).unwrap();
+            println!(
+                "PACKET {}",
+                bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
+            );
+        }
     }
 }

@@ -2,7 +2,7 @@ use crate::config::CONFIG;
 use crate::generic_placement;
 use crate::player::{Player, PlayerPos};
 use crate::plot::{PlotWorld, PLOT_BLOCK_HEIGHT};
-use mchprs_blocks::block_entities::BlockEntity;
+use mchprs_blocks::block_entities::{BlockEntity, ContainerType, Inventory};
 use mchprs_blocks::items::{Item, ItemStack};
 use mchprs_blocks::{blocks::*, BlockDirection, BlockFacing};
 use mchprs_blocks::{BlockFace, BlockPos};
@@ -62,20 +62,33 @@ pub fn on_use(
         Block::Generic(id) => {
             if generic_placement::use_block(world, pos, id, item_in_hand, hit) {
                 ActionResult::Success
+            } else if open_container(block, world, player, pos) {
+                ActionResult::Success
             } else {
                 ActionResult::Pass
             }
         }
         b if b.has_block_entity() => {
-            // Open container
-            let block_entity = world.get_block_entity(pos);
-            if let Some(BlockEntity::Container { inventory, ty, .. }) = block_entity {
-                player.open_container(inventory, *ty);
-            }
+            open_container(b, world, player, pos);
             ActionResult::Success
         }
         _ => ActionResult::Pass,
     }
+}
+
+/// Opens the screen of the container block for the player. Returns false if the block is none.
+fn open_container(block: Block, world: &impl World, player: &mut Player, pos: BlockPos) -> bool {
+    let Some(ty) = ContainerType::for_block(block) else {
+        return false;
+    };
+    let inventory = match world.get_block_entity(pos) {
+        Some(BlockEntity::Container { inventory, .. }) => {
+            Inventory::from_entries(inventory, ty.num_slots() as usize)
+        }
+        _ => Inventory::new(ty.num_slots() as usize),
+    };
+    player.open_container(pos, &inventory, ty);
+    true
 }
 
 fn get_sign_placement(
@@ -201,10 +214,16 @@ pub fn get_state_for_placement(
         Item::RedstoneLamp => Block::RedstoneLamp {
             lit: redstone::redstone_lamp_should_be_lit(world, pos),
         },
-        // TODO: Hopper facing
         Item::Hopper => Block::Hopper {
-            enabled: false,
-            facing: HopperFacing::Down,
+            // A powered hopper is locked by the first neighbor update
+            enabled: true,
+            facing: match context.block_face {
+                BlockFace::North => HopperFacing::South,
+                BlockFace::South => HopperFacing::North,
+                BlockFace::West => HopperFacing::East,
+                BlockFace::East => HopperFacing::West,
+                _ => HopperFacing::Down,
+            },
         },
         Item::Repeater => Block::Repeater(redstone::repeater::get_state_for_placement(
             world,
@@ -297,13 +316,16 @@ pub fn place_in_world(
     pos: BlockPos,
     nbt: &Option<nbt::Blob>,
 ) {
-    if block.has_block_entity()
+    if (block.has_block_entity() || ContainerType::for_block(block).is_some())
         && let Some(nbt) = nbt
         && let Some(block_entity) = read_block_entity_tag(nbt, block.get_name())
     {
         world.set_block_entity(pos, block_entity);
     };
     world.set_block(pos, block);
+    if let Block::Hopper { .. } = block {
+        redstone::update(block, world, pos);
+    }
     change_surrounding_blocks(world, pos);
     if let Block::RedstoneWire { .. } = block {
         redstone::update_wire_neighbors(world, pos);
@@ -313,8 +335,9 @@ pub fn place_in_world(
 }
 
 pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
-    if block.has_block_entity() {
+    if block.has_block_entity() || ContainerType::for_block(block).is_some() {
         world.delete_block_entity(pos);
+        redstone::transport::update_comparators_around(world, pos);
     }
     generic_placement::remove_partner(world, block, pos);
 

@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 /// A single item in an inventory
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InventoryEntry {
     pub id: u32,
     pub slot: i8,
@@ -79,6 +79,20 @@ impl ContainerType {
         }
     }
 
+    /// The name shown at the top of the screen
+    pub fn title(self) -> &'static str {
+        match self {
+            ContainerType::Furnace => "Furnace",
+            ContainerType::Barrel => "Barrel",
+            ContainerType::Hopper => "Item Hopper",
+            ContainerType::Dispenser => "Dispenser",
+            ContainerType::Dropper => "Dropper",
+            ContainerType::Chest => "Chest",
+            ContainerType::TrappedChest => "Trapped Chest",
+            ContainerType::ShulkerBox => "Shulker Box",
+        }
+    }
+
     pub fn window_type(self) -> i32 {
         // https://wiki.vg/Inventory
         match self {
@@ -115,7 +129,7 @@ impl ContainerType {
 }
 
 /// The slots of a container with the logic of moving items in and out of them
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Inventory {
     slots: Vec<Option<InventoryEntry>>,
 }

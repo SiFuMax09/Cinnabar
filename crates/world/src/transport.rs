@@ -65,8 +65,22 @@ fn container_ranges() -> &'static [Range<u32>] {
     static RANGES: OnceLock<Vec<Range<u32>>> = OnceLock::new();
     RANGES.get_or_init(|| {
         const COLORS: [&str; 16] = [
-            "white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
-            "light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black",
+            "white",
+            "orange",
+            "magenta",
+            "light_blue",
+            "yellow",
+            "lime",
+            "pink",
+            "gray",
+            "light_gray",
+            "cyan",
+            "purple",
+            "blue",
+            "brown",
+            "green",
+            "red",
+            "black",
         ];
         let mut names = vec![
             "minecraft:dropper".to_owned(),
@@ -75,7 +89,11 @@ fn container_ranges() -> &'static [Range<u32>] {
             "minecraft:trapped_chest".to_owned(),
             "minecraft:shulker_box".to_owned(),
         ];
-        names.extend(COLORS.iter().map(|color| format!("minecraft:{color}_shulker_box")));
+        names.extend(
+            COLORS
+                .iter()
+                .map(|color| format!("minecraft:{color}_shulker_box")),
+        );
         let mut ranges: Vec<_> = names
             .iter()
             .filter_map(|name| generic::state_range(name))

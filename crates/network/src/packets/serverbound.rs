@@ -794,3 +794,21 @@ impl ServerBoundPacket for SContainerClose {
         handler.handle_container_close(*self, player_idx);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+
+    /// Bytes of a click packet as the game's `ServerboundContainerClickPacket` codec reads them
+    #[test]
+    fn decode_container_click() {
+        let mut reader = Cursor::new(vec![0x03, 0x05, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00]);
+        let click = SContainerClick::decode(&mut reader).unwrap();
+        assert_eq!(click.window_id, 3);
+        assert_eq!(click.state_id, 5);
+        assert_eq!(click.slot, 1);
+        assert_eq!(click.button, 0);
+        assert_eq!(click.mode, 1);
+    }
+}
