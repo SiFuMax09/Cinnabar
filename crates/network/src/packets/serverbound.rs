@@ -46,6 +46,7 @@ pub trait ServerBoundPacketHandler {
     fn handle_player_input(&mut self, _packet: SPlayerInput, _player_idx: usize) {}
     fn handle_player_command(&mut self, _packet: SPlayerCommand, _player_idx: usize) {}
     fn handle_swing_arm(&mut self, _packet: SSwingArm, _player_idx: usize) {}
+    fn handle_attack(&mut self, _packet: SAttack, _player_idx: usize) {}
     fn handle_use_item_on(&mut self, _packet: SUseItemOn, _player_idx: usize) {}
     fn handle_set_held_item(&mut self, _packet: SSetHeldItem, _player_idx: usize) {}
     fn handle_set_creative_mode_slot(&mut self, _packet: SSetCreativeModeSlot, _player_idx: usize) {
@@ -616,6 +617,24 @@ impl ServerBoundPacket for SPlayerCommand {
 
     fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
         handler.handle_player_command(*self, player_idx);
+    }
+}
+
+/// Hitting an entity, which is how minecarts are broken
+#[derive(Debug)]
+pub struct SAttack {
+    pub entity_id: i32,
+}
+
+impl ServerBoundPacket for SAttack {
+    fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
+        Ok(SAttack {
+            entity_id: decoder.read_varint()?,
+        })
+    }
+
+    fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
+        handler.handle_attack(*self, player_idx);
     }
 }
 

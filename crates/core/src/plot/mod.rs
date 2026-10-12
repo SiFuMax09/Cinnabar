@@ -5,6 +5,7 @@ mod edge_mirror;
 mod entities;
 mod environment;
 pub(crate) mod fluids;
+mod minecart;
 mod monitor;
 mod packet_handlers;
 pub mod perf;
@@ -967,6 +968,18 @@ impl Plot {
                 place_pos,
             ) {
                 self.players[player].send_system_message(message);
+                cancel(self);
+            }
+            return;
+        }
+
+        if let Some(item) = &item_in_hand
+            && item.item_type.get_name() == "minecraft:minecart"
+            && let Block::Generic(id) = self.world.get_block(block_pos)
+            && mchprs_redstone::rail::is_rail(id)
+        {
+            // Minecarts are placed on rails, and nothing else is placed on them
+            if !self.spawn_minecart(block_pos) {
                 cancel(self);
             }
             return;

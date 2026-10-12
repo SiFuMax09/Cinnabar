@@ -49,7 +49,7 @@ fn is_rail_at(world: &impl World, pos: BlockPos) -> bool {
 }
 
 /// The positions the rail with the shape connects to, like `RailState.updateConnections`
-fn connections(pos: BlockPos, shape: &str) -> Vec<BlockPos> {
+pub fn connections(pos: BlockPos, shape: &str) -> Vec<BlockPos> {
     let (a, b) = match shape {
         "north_south" => (NORTH, SOUTH),
         "east_west" => (WEST, EAST),
@@ -542,6 +542,11 @@ pub fn on_redstone_update(world: &mut impl World, pos: BlockPos, id: u32) {
     if name == POWERED_RAIL || name == ACTIVATOR_RAIL {
         update_powered(world, pos);
     }
+}
+
+/// Whether the rail is a detector rail, whatever its state is
+pub fn is_detector(id: u32) -> bool {
+    generic::state_name(id) == DETECTOR_RAIL
 }
 
 /// Whether the detector rail is pressed by a minecart, which is the signal it gives
