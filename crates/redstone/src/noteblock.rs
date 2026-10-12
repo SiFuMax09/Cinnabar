@@ -1,5 +1,6 @@
 use mchprs_blocks::blocks::{Block, Instrument};
 use mchprs_blocks::{BlockFace, BlockPos};
+use mchprs_world::game_event::{block_center, EventContext, GameEvent};
 use mchprs_world::World;
 
 pub fn is_noteblock_unblocked(world: &impl World, pos: BlockPos) -> bool {
@@ -18,4 +19,9 @@ pub fn play_note(world: &mut impl World, pos: BlockPos, instrument: Instrument, 
     // of [0, 24] because mapping to [0, 31] can be done efficiently using bitwise AND.
     let pitch = f32::exp2(((note % 32) as f32 - 12.0) / 12.0);
     world.play_sound(pos, instrument.to_sound_id(), sound_category, volume, pitch);
+    world.game_event(
+        GameEvent::NoteBlockPlay,
+        block_center(pos),
+        EventContext::NONE,
+    );
 }

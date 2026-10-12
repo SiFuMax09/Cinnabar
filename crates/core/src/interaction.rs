@@ -1,6 +1,6 @@
 use crate::config::CONFIG;
 use crate::generic_placement;
-use crate::player::{Player, PlayerPos};
+use crate::player::{Gamemode, Player, PlayerPos};
 use crate::plot::fluids;
 use crate::plot::{PlotWorld, PLOT_BLOCK_HEIGHT};
 use mchprs_blocks::block_entities::BlockEntity;
@@ -10,6 +10,7 @@ use mchprs_blocks::{BlockFace, BlockPos};
 use mchprs_network::packets::clientbound::{COpenSignEditor, ClientBoundPacket};
 use mchprs_redstone as redstone;
 use mchprs_utils::nbt_unwrap_val;
+use mchprs_world::game_event::{block_center, dampens_vibrations, EventContext, GameEvent};
 use mchprs_world::World;
 
 /// Where a block was clicked
@@ -72,6 +73,11 @@ pub fn on_use(
             let block_entity = world.get_block_entity(pos);
             if let Some(BlockEntity::Container { inventory, ty, .. }) = block_entity {
                 player.open_container(inventory, *ty);
+                world.game_event(
+                    GameEvent::ContainerOpen,
+                    block_center(pos),
+                    EventContext::NONE,
+                );
             }
             ActionResult::Success
         }
@@ -329,6 +335,7 @@ pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
     if block.has_block_entity() {
         world.delete_block_entity(pos);
     }
+
     generic_placement::remove_partner(world, block, pos);
     generic_placement::remove_piston_partner(world, block, pos);
 
@@ -364,6 +371,10 @@ pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
             world.set_block(pos, Block::Air);
             change_surrounding_blocks(world, pos);
             redstone::update_surrounding_blocks(world, pos);
+            if block.is_sculk_sensor() {
+                // The block below could have been powered strongly by the sensor
+                redstone::sculk::on_removed(world, pos);
+            }
             generic_placement::after_remove(world, pos);
         }
     }
@@ -557,7 +568,18 @@ pub fn use_item_on_block(
     }
 
     if can_place && (0..PLOT_BLOCK_HEIGHT).contains(&block_pos.y) {
-        let block = get_state_for_placement(world, block_pos, item.item_type, &ctx);
+        let mut block = get_state_for_placement(world, block_pos, item.item_type, &ctx);
+        // Sculk sensors placed into water are waterlogged
+        if let Block::Generic(id) = block
+            && block.is_sculk_sensor()
+            && world.get_block(block_pos).get_name() == "minecraft:water"
+        {
+            block = Block::Generic(mchprs_blocks::generic::with_property(
+                id,
+                "waterlogged",
+                "true",
+            ));
+        }
 
         if !CONFIG.block_in_hitbox && collides_with_player(block, block_pos, &ctx) {
             return true;
@@ -583,6 +605,15 @@ pub fn use_item_on_block(
         let block = fluids::waterlog_on_place(world, block_pos, block);
         place_in_world(block, world, block_pos, &item.nbt);
         generic_placement::after_place(world, block_pos);
+        world.game_event(
+            GameEvent::BlockPlace,
+            block_center(block_pos),
+            EventContext {
+                sneaking: ctx.player.crouching,
+                spectator: matches!(ctx.player.gamemode, Gamemode::Spectator),
+                dampened: dampens_vibrations(block.get_name()),
+            },
+        );
         false
     } else {
         true

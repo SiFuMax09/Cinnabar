@@ -4,8 +4,8 @@
 //! plot.
 
 use super::physics::{move_box, raycast, Aabb, Vec3};
-use crate::config::CONFIG;
 use super::Plot;
+use crate::config::CONFIG;
 use crate::interaction;
 use crate::player::{self, PacketSender, PlayerPos};
 use mchprs_blocks::blocks::Block;
@@ -13,6 +13,7 @@ use mchprs_blocks::{generic, BlockFace, BlockPos};
 use mchprs_network::packets::clientbound::*;
 use mchprs_network::packets::{PacketEncoder, PacketEncoderExt};
 use mchprs_proc_macros::protocol_id;
+use mchprs_world::game_event::{block_center, EventContext, GameEvent};
 use mchprs_world::World;
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
@@ -69,10 +70,9 @@ impl Entity {
 
     fn spawn_packets(&self) -> Vec<PacketEncoder> {
         let (entity_type, data) = match self.kind {
-            EntityKind::PrimedTnt { .. } => (
-                protocol_id!("minecraft:entity_type", "minecraft:tnt"),
-                0,
-            ),
+            EntityKind::PrimedTnt { .. } => {
+                (protocol_id!("minecraft:entity_type", "minecraft:tnt"), 0)
+            }
             EntityKind::FallingBlock { block_id } => (
                 protocol_id!("minecraft:entity_type", "minecraft:falling_block"),
                 block_id as i32,
@@ -82,24 +82,22 @@ impl Entity {
                 0,
             ),
         };
-        let mut packets = vec![
-            CSpawnEntity {
-                entity_id: self.id,
-                entity_uuid: self.uuid,
-                entity_type,
-                x: self.pos.x,
-                y: self.pos.y,
-                z: self.pos.z,
-                pitch: 0.0,
-                yaw: 0.0,
-                head_yaw: 0.0,
-                data,
-                velocity_x: (self.vel.x * 8000.0) as i16,
-                velocity_y: (self.vel.y * 8000.0) as i16,
-                velocity_z: (self.vel.z * 8000.0) as i16,
-            }
-            .encode(),
-        ];
+        let mut packets = vec![CSpawnEntity {
+            entity_id: self.id,
+            entity_uuid: self.uuid,
+            entity_type,
+            x: self.pos.x,
+            y: self.pos.y,
+            z: self.pos.z,
+            pitch: 0.0,
+            yaw: 0.0,
+            head_yaw: 0.0,
+            data,
+            velocity_x: (self.vel.x * 8000.0) as i16,
+            velocity_y: (self.vel.y * 8000.0) as i16,
+            velocity_z: (self.vel.z * 8000.0) as i16,
+        }
+        .encode()];
         if let EntityKind::PrimedTnt { fuse } = self.kind {
             packets.push(self.tnt_metadata(fuse));
         }
@@ -277,6 +275,11 @@ impl Plot {
         if !self.spawn_entity(Entity::new(EntityKind::PrimedTnt { fuse }, pos, vel)) {
             return false;
         }
+        self.world.game_event(
+            GameEvent::PrimeFuse,
+            (pos.x, pos.y, pos.z),
+            EventContext::NONE,
+        );
         self.world.play_sound(
             pos.block_pos(),
             protocol_id!("minecraft:sound_event", "minecraft:entity.tnt.primed"),
@@ -402,6 +405,11 @@ impl Plot {
                     if let Some(player) = self.players.iter_mut().find(|p| p.uuid == owner) {
                         player.teleport(PlayerPos::new(pos.x, pos.y, pos.z));
                     }
+                    let at = (pos.x, pos.y, pos.z);
+                    self.world
+                        .game_event(GameEvent::ProjectileLand, at, EventContext::NONE);
+                    self.world
+                        .game_event(GameEvent::Teleport, at, EventContext::NONE);
                 }
             }
         }
@@ -417,6 +425,11 @@ impl Plot {
         self.reset_redpiler();
         self.world.set_block(block_pos, Block::from_id(block_id));
         interaction::change_neighbors(&mut self.world, block_pos);
+        self.world.game_event(
+            GameEvent::BlockPlace,
+            block_center(block_pos),
+            EventContext::affecting(Block::from_id(block_id).get_name()),
+        );
     }
 
     /// Destroys the blocks around the center of the explosion the way vanilla Minecraft does it
@@ -500,7 +513,8 @@ impl Plot {
             } else if let Block::Generic(_) = block {
                 // Blocks without behavior don't need the expensive updates of their neighbors
                 self.world.set_block(*pos, Block::Air);
-                self.world.schedule_falling_block(pos.offset(BlockFace::Top));
+                self.world
+                    .schedule_falling_block(pos.offset(BlockFace::Top));
             } else {
                 interaction::destroy(block, &mut self.world, *pos);
             }
@@ -511,6 +525,11 @@ impl Plot {
             self.ignite_tnt_block(pos, fuse);
         }
 
+        self.world.game_event(
+            GameEvent::Explode,
+            (center.x, center.y, center.z),
+            EventContext::NONE,
+        );
         self.broadcast(
             &CExplode {
                 x: center.x,
@@ -563,7 +582,10 @@ mod tests {
         for packet in packets {
             let mut bytes = Vec::new();
             packet.write_uncompressed(&mut bytes).unwrap();
-            println!("PACKET {}", bytes.iter().map(|b| format!("{b:02x}")).collect::<String>());
+            println!(
+                "PACKET {}",
+                bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
+            );
         }
     }
 }

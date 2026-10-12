@@ -6,12 +6,18 @@ pub mod comparator;
 pub mod noteblock;
 pub mod piston;
 pub mod repeater;
+pub mod sculk;
 pub mod wire;
 
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::{Block, LeverFace, RedstoneWire};
 use mchprs_blocks::{BlockDirection, BlockFace, BlockPos};
+use mchprs_world::game_event::{block_center, EventContext, GameEvent};
 use mchprs_world::{TickPriority, World};
+
+fn emit_event(world: &mut impl World, event: GameEvent, pos: BlockPos) {
+    world.game_event(event, block_center(pos), EventContext::NONE);
+}
 
 pub fn bool_to_ss(b: bool) -> u8 {
     match b {
@@ -49,6 +55,7 @@ fn get_weak_power(
                 0
             }
         }
+        Block::Generic(id) if sculk::is_sensor(id) => sculk::weak_power(id, side),
         Block::RedstoneWire(wire) if dust_power => match side {
             BlockFace::Top => wire.power,
             BlockFace::Bottom => 0,
@@ -111,6 +118,7 @@ fn get_strong_power(
                 _ => face == LeverFace::Wall && facing == side.unwrap_direction(),
             } && powered,
         ),
+        Block::Generic(id) if sculk::is_sensor(id) => sculk::strong_power(id, side),
         Block::RedstoneWire { .. } => get_weak_power(block, world, pos, side, dust_power),
         Block::Repeater(_) => get_weak_power(block, world, pos, side, dust_power),
         Block::Comparator(_) => get_weak_power(block, world, pos, side, dust_power),
@@ -239,6 +247,15 @@ fn update_generic(id: u32, world: &mut impl World, pos: BlockPos) {
         let new_id = generic::with_property(id, "powered", value);
         let new_id = generic::with_property(new_id, "open", value);
         world.set_block(pos, Block::Generic(new_id));
+        emit_event(
+            world,
+            if powered {
+                GameEvent::BlockOpen
+            } else {
+                GameEvent::BlockClose
+            },
+            pos,
+        );
 
         if is_door && let Block::Generic(other_id) = world.get_block(other) {
             if generic::state_name(other_id) == name {
@@ -297,6 +314,15 @@ pub fn update(block: Block, world: &mut impl World, pos: BlockPos) {
                     waterlogged,
                 };
                 world.set_block(pos, new_block);
+                emit_event(
+                    world,
+                    if should_be_powered {
+                        GameEvent::BlockOpen
+                    } else {
+                        GameEvent::BlockClose
+                    },
+                    pos,
+                );
             }
         }
         Block::NoteBlock {
@@ -377,6 +403,7 @@ pub fn tick(block: Block, world: &mut impl World, pos: BlockPos) {
                         powered: false,
                     },
                 );
+                emit_event(world, GameEvent::BlockDeactivate, pos);
                 update_surrounding_blocks(world, pos);
                 match face {
                     LeverFace::Ceiling => {
@@ -461,6 +488,15 @@ pub fn on_use(block: Block, world: &mut impl World, pos: BlockPos) -> bool {
                     facing,
                 },
             );
+            emit_event(
+                world,
+                if powered {
+                    GameEvent::BlockDeactivate
+                } else {
+                    GameEvent::BlockActivate
+                },
+                pos,
+            );
             update_surrounding_blocks(world, pos);
             match face {
                 LeverFace::Ceiling => {
@@ -490,6 +526,7 @@ pub fn on_use(block: Block, world: &mut impl World, pos: BlockPos) -> bool {
                     },
                 );
                 world.schedule_tick(pos, 10, TickPriority::Normal);
+                emit_event(world, GameEvent::BlockActivate, pos);
                 update_surrounding_blocks(world, pos);
                 match face {
                     LeverFace::Ceiling => {

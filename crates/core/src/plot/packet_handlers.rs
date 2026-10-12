@@ -417,6 +417,17 @@ impl ServerBoundPacketHandler for Plot {
                 let eye = Vec3::new(owner.pos.x, owner.pos.y + eye_height, owner.pos.z);
                 let dir = Vec3::from_rotation(use_item.yaw, use_item.pitch);
                 let uuid = owner.uuid;
+                let context = mchprs_world::game_event::EventContext {
+                    sneaking: owner.crouching,
+                    spectator: matches!(owner.gamemode, crate::player::Gamemode::Spectator),
+                    dampened: false,
+                };
+                let shoot_pos = (owner.pos.x, owner.pos.y, owner.pos.z);
+                self.world.game_event(
+                    mchprs_world::game_event::GameEvent::ProjectileShoot,
+                    shoot_pos,
+                    context,
+                );
                 self.spawn_entity(Entity::new(
                     EntityKind::EnderPearl { owner: uuid },
                     eye - Vec3::new(0.0, 0.1, 0.0),

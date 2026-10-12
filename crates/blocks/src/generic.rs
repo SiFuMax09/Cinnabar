@@ -121,6 +121,28 @@ pub fn block(id: u32) -> Option<&'static GenericBlock> {
     (id < block.first_id + block.num_states).then_some(block)
 }
 
+/// The range of state ids of the block with the name
+fn state_range(name: &str) -> std::ops::Range<u32> {
+    BY_NAME.get(name).map_or(0..0, |&idx| {
+        let block = &BLOCKS[idx];
+        block.first_id..block.first_id + block.num_states
+    })
+}
+
+static SCULK_SENSOR_IDS: LazyLock<std::ops::Range<u32>> =
+    LazyLock::new(|| state_range("minecraft:sculk_sensor"));
+static CALIBRATED_SCULK_SENSOR_IDS: LazyLock<std::ops::Range<u32>> =
+    LazyLock::new(|| state_range("minecraft:calibrated_sculk_sensor"));
+
+/// Whether the state is of a sculk sensor, which has no variant of its own in `Block`
+pub fn is_sculk_sensor(id: u32) -> bool {
+    SCULK_SENSOR_IDS.contains(&id) || CALIBRATED_SCULK_SENSOR_IDS.contains(&id)
+}
+
+pub fn is_calibrated_sculk_sensor(id: u32) -> bool {
+    CALIBRATED_SCULK_SENSOR_IDS.contains(&id)
+}
+
 pub fn state_name(id: u32) -> &'static str {
     block(id).map_or("minecraft:air", |block| block.name)
 }

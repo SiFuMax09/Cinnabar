@@ -1,7 +1,9 @@
+pub mod game_event;
 pub mod storage;
 #[cfg(feature = "testing")]
 pub mod testing;
 
+use game_event::{EventContext, EventPos, GameEvent};
 use mchprs_blocks::block_entities::BlockEntity;
 use mchprs_blocks::blocks::Block;
 use mchprs_blocks::BlockPos;
@@ -140,6 +142,10 @@ pub trait World: 'static {
     /// Tells the players that a piston handled an event so that they can animate it
     #[allow(unused_variables)]
     fn send_piston_event(&mut self, event: PistonEvent) {}
+
+    /// Something happened at `pos` that listeners like sculk sensors can hear
+    #[allow(unused_variables)]
+    fn game_event(&mut self, event: GameEvent, pos: EventPos, context: EventContext) {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
