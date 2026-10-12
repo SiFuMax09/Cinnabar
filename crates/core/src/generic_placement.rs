@@ -8,6 +8,7 @@ use mchprs_blocks::blocks::Block;
 use mchprs_blocks::generic;
 use mchprs_blocks::items::Item;
 use mchprs_blocks::{BlockDirection, BlockFace, BlockFacing, BlockPos};
+use mchprs_world::game_event::{block_center, EventContext, GameEvent};
 use mchprs_world::World;
 
 /// A block state id that is being built up
@@ -207,17 +208,17 @@ pub fn state_for_placement(item: Item, ctx: &UseOnBlockContext<'_>) -> Block {
             }
         } else if state.get("face").is_some_and(|face| face == "wall")
             || on_wall
-            || (face.is_horizontal()
-                && (name.ends_with("_trapdoor") || name.ends_with("ladder")))
+            || (face.is_horizontal() && (name.ends_with("_trapdoor") || name.ends_with("ladder")))
         {
             clicked_dir
         } else if state.get("face").is_some()
             || name.ends_with("_door")
             || is_fence_gate(name)
             || name.ends_with("_bed")
+            || name == "minecraft:calibrated_sculk_sensor"
         {
-            // Buttons and levers on the floor or ceiling, doors, gates and beds face the way the
-            // player is looking
+            // Buttons and levers on the floor or ceiling, doors, gates, beds and calibrated sculk
+            // sensors face the way the player is looking
             direction_name(player_dir)
         } else {
             direction_name(player_dir.opposite())
@@ -314,8 +315,12 @@ pub fn use_block(
 ) -> bool {
     let name = generic::state_name(id);
     if name == "minecraft:tnt"
-        && item_in_hand
-            .is_some_and(|item| matches!(item.get_name(), "minecraft:flint_and_steel" | "minecraft:fire_charge"))
+        && item_in_hand.is_some_and(|item| {
+            matches!(
+                item.get_name(),
+                "minecraft:flint_and_steel" | "minecraft:fire_charge"
+            )
+        })
     {
         world.ignite_tnt(pos);
         return true;
@@ -336,6 +341,15 @@ pub fn use_block(
     world.set_block(
         pos,
         Block::Generic(generic::with_property(id, "open", new_open)),
+    );
+    world.game_event(
+        if new_open == "true" {
+            GameEvent::BlockOpen
+        } else {
+            GameEvent::BlockClose
+        },
+        block_center(pos),
+        EventContext::NONE,
     );
 
     // The other half of a door opens as well
@@ -604,7 +618,11 @@ fn connections(world: &impl World, pos: BlockPos, id: u32) -> u32 {
 
     for (dir, connect) in HORIZONTAL.iter().zip(connected) {
         let value = if state.has_value(dir, "low") {
-            if connect { "low" } else { "none" }
+            if connect {
+                "low"
+            } else {
+                "none"
+            }
         } else if connect {
             "true"
         } else {

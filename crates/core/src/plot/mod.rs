@@ -1,11 +1,12 @@
 pub mod commands;
 mod data;
-mod entities;
-mod physics;
 pub mod database;
+mod entities;
 mod monitor;
 mod packet_handlers;
+mod physics;
 mod scoreboard;
+mod vibrations;
 pub mod worldedit;
 
 use crate::config::CONFIG;
@@ -26,6 +27,9 @@ use mchprs_network::PlayerPacketSender;
 use mchprs_redpiler::{Compiler, CompilerOptions};
 use mchprs_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
 use mchprs_text::TextComponent;
+use mchprs_world::game_event::{
+    block_center, dampens_vibrations, EventContext, EventPos, GameEvent,
+};
 use mchprs_world::storage::Chunk;
 use mchprs_world::{TickEntry, TickPriority, World};
 use monitor::TimingsMonitor;
@@ -63,6 +67,7 @@ pub const PLOT_BLOCK_HEIGHT: i32 = PLOT_SECTIONS as i32 * 16;
 const ERROR_IO_ONLY: &str = "This plot cannot be interacted with while redpiler is active with `--io-only`. To stop redpiler, run `/redpiler reset`.";
 
 const MAX_BATCH_SIZE: u32 = 50_000;
+const MAX_PENDING_GAME_EVENTS: usize = 4096;
 
 pub struct Plot {
     pub world: PlotWorld,
@@ -99,6 +104,7 @@ pub struct Plot {
     async_rt: Runtime,
     scoreboard: Scoreboard,
     entities: entities::Entities,
+    vibrations: vibrations::Vibrations,
 }
 
 pub struct PlotWorld {
@@ -114,6 +120,12 @@ pub struct PlotWorld {
     pub(super) pending_ignitions: FxHashSet<BlockPos>,
     /// Blocks that might have to start falling
     pub(super) pending_falling: FxHashSet<BlockPos>,
+    /// Game events that the sensors have not heard yet
+    pending_game_events: Vec<vibrations::PendingEvent>,
+    /// Sensors that were placed and are not known to the plot yet
+    new_sensors: Vec<BlockPos>,
+    /// Whether there are sensors that care about game events
+    listening: bool,
 }
 
 impl PlotWorld {
@@ -155,6 +167,11 @@ impl World for PlotWorld {
         // Check to see if block is within height limit
         if pos.y >= PLOT_BLOCK_HEIGHT || pos.y < 0 {
             return false;
+        }
+
+        if mchprs_blocks::generic::is_sculk_sensor(block) {
+            self.new_sensors.push(pos);
+            self.listening = true;
         }
 
         let chunk = &mut self.chunks[chunk_index];
@@ -270,6 +287,16 @@ impl World for PlotWorld {
         self.pending_ignitions.insert(pos);
     }
 
+    fn game_event(&mut self, event: GameEvent, pos: EventPos, context: EventContext) {
+        if self.listening
+            && event.frequency() != 0
+            && self.pending_game_events.len() < MAX_PENDING_GAME_EVENTS
+        {
+            self.pending_game_events
+                .push(vibrations::PendingEvent::new(event, pos, context));
+        }
+    }
+
     fn schedule_falling_block(&mut self, pos: BlockPos) {
         self.pending_falling.insert(pos);
     }
@@ -301,7 +328,8 @@ impl World for PlotWorld {
 
 impl Plot {
     fn tickn(&mut self, ticks: u64) {
-        if self.redpiler.is_active() {
+        // Sensors can change blocks that redpiler controls, so they need single ticks
+        if self.redpiler.is_active() && self.vibrations.is_empty() && !self.world.listening {
             self.timings.tickn(ticks);
             self.redpiler.tickn(ticks);
             return;
@@ -314,8 +342,10 @@ impl Plot {
 
     fn tick(&mut self) {
         self.timings.tick();
+        self.tick_vibrations();
         if self.redpiler.is_active() {
             self.redpiler.tick();
+            self.dispatch_game_events();
             return;
         }
 
@@ -329,6 +359,7 @@ impl Plot {
             let entry = self.world.to_be_ticked.remove(0);
             mchprs_redstone::tick(self.world.get_block(entry.pos), &mut self.world, entry.pos);
         }
+        self.dispatch_game_events();
     }
 
     pub fn send_block_corrections(&mut self, positions: &[BlockPos]) {
@@ -371,6 +402,7 @@ impl Plot {
     }
 
     fn on_player_move(&mut self, player_idx: usize, old: PlayerPos, new: PlayerPos) {
+        self.track_player_vibrations(player_idx, old, new);
         let old_block = old.block_pos();
         let new_block = new.block_pos();
 
@@ -388,6 +420,15 @@ impl Plot {
     }
 
     fn set_pressure_plate(&mut self, pos: BlockPos, new_powered: bool) {
+        self.world.game_event(
+            if new_powered {
+                GameEvent::BlockActivate
+            } else {
+                GameEvent::BlockDeactivate
+            },
+            block_center(pos),
+            EventContext::NONE,
+        );
         if self.redpiler.is_active() {
             self.redpiler.set_pressure_plate(pos, new_powered);
             self.publish_world();
@@ -640,7 +681,11 @@ impl Plot {
                 None,
                 interaction::BlockHit {
                     face: block_face,
-                    cursor: (use_item_on.cursor_x, use_item_on.cursor_y, use_item_on.cursor_z),
+                    cursor: (
+                        use_item_on.cursor_x,
+                        use_item_on.cursor_y,
+                        use_item_on.cursor_z,
+                    ),
                 },
             );
             self.world.flush_block_changes();
@@ -699,6 +744,15 @@ impl Plot {
         self.reset_redpiler();
 
         interaction::destroy(block, &mut self.world, block_pos);
+        self.world.game_event(
+            GameEvent::BlockDestroy,
+            block_center(block_pos),
+            EventContext {
+                sneaking: self.players[player].crouching,
+                spectator: matches!(self.players[player].gamemode, Gamemode::Spectator),
+                dampened: dampens_vibrations(block.get_name()),
+            },
+        );
         self.world.flush_block_changes();
 
         let effect = CWorldEvent {
@@ -1186,6 +1240,7 @@ impl Plot {
             let possible_scale = (chunks.len() as f64).sqrt().log2();
             error!("Note: it most likely came from a server running plot scale {}, this server is running a plot scale of {}", possible_scale, PLOT_SCALE);
         }
+        let new_sensors = vibrations::find_sensors(&chunks);
         let world = PlotWorld {
             x,
             z,
@@ -1197,6 +1252,9 @@ impl Plot {
             pending_sounds: FxHashMap::default(),
             pending_ignitions: Default::default(),
             pending_falling: Default::default(),
+            pending_game_events: Vec::new(),
+            listening: !new_sensors.is_empty(),
+            new_sensors,
         };
         let tps = plot_data.tps;
         Plot {
@@ -1221,6 +1279,7 @@ impl Plot {
             async_rt: Plot::create_async_rt(),
             scoreboard: Default::default(),
             entities: Default::default(),
+            vibrations: Default::default(),
             world,
         }
     }
