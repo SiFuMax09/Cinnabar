@@ -89,10 +89,7 @@ pub fn upgrade_saved_players() {
         return;
     }
 
-    let entries = std::fs::read_dir("./world/players")
-        .into_iter()
-        .flatten()
-        .flatten();
+    let entries = std::fs::read_dir("./world/players").into_iter().flatten().flatten();
     for entry in entries {
         let path = entry.path();
         let Ok(bytes) = std::fs::read(&path) else {
@@ -112,10 +109,7 @@ pub fn upgrade_saved_players() {
             }
         });
         if let Err(err) = std::fs::write(&path, bincode::serialize(&data).unwrap()) {
-            tracing::warn!(
-                "Could not save upgraded player data in {}: {err}",
-                path.display()
-            );
+            tracing::warn!("Could not save upgraded player data in {}: {err}", path.display());
         }
     }
 

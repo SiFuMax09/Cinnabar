@@ -1,8 +1,8 @@
 use crate::config::CONFIG;
 use crate::player::{Gamemode, PacketSender, Player};
 use crate::plot::commands::DECLARE_COMMANDS;
-use crate::plot::{self, database, Plot, PLOT_BLOCK_HEIGHT};
 use crate::profile;
+use crate::plot::{self, database, Plot, PLOT_BLOCK_HEIGHT};
 use crate::utils::HyphenatedUUID;
 use crate::{permissions, utils};
 use backtrace::Backtrace;
@@ -11,14 +11,13 @@ use hmac::{Hmac, Mac};
 use mchprs_network::packets::clientbound::{
     CConfigurationPluginMessage, CDisconnectLogin, CFinishConfiguration, CGameEvent,
     CGameEventType, CLogin, CLoginPluginRequest, CLoginSuccess, CPlayerInfoActions,
-    CPlayerInfoAddPlayer, CPlayerInfoUpdate, CPlayerInfoUpdatePlayer, CPong, CRegistryData,
-    CResponse, CSelectKnownPacks, CSetCompression, CSetContainerContent, CSetHeldItem,
-    CSynchronizePlayerPosition, CUpdateTags, ClientBoundPacket, UpdateTime,
+    CPlayerInfoAddPlayer, CPlayerInfoUpdate, CPlayerInfoUpdatePlayer, CPong,
+    CRegistryData, CResponse, CSelectKnownPacks, CSetCompression, CSetContainerContent, CUpdateTags, CSetHeldItem, CSynchronizePlayerPosition,
+    ClientBoundPacket, UpdateTime,
 };
 use mchprs_network::packets::serverbound::{
     SAcknowledgeFinishConfiguration, SHandshake, SLoginAcknowledged, SLoginPluginResponse,
-    SLoginStart, SPing, SRequest, SSelectKnownPacks, ServerBoundPacketHandler,
-    VelocityResponseData,
+    SLoginStart, SPing, SRequest, SSelectKnownPacks, ServerBoundPacketHandler, VelocityResponseData,
 };
 use mchprs_network::packets::{PacketEncoderExt, PlayerProperty, SlotData, COMPRESSION_THRESHOLD};
 use mchprs_network::{NetworkServer, NetworkState, PlayerPacketSender};

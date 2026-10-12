@@ -4,8 +4,8 @@
 //! plot.
 
 use super::physics::{move_box, raycast, Aabb, Vec3};
-use super::Plot;
 use crate::config::CONFIG;
+use super::Plot;
 use crate::interaction;
 use crate::player::{self, PacketSender, PlayerPos};
 use mchprs_blocks::blocks::Block;
@@ -69,9 +69,10 @@ impl Entity {
 
     fn spawn_packets(&self) -> Vec<PacketEncoder> {
         let (entity_type, data) = match self.kind {
-            EntityKind::PrimedTnt { .. } => {
-                (protocol_id!("minecraft:entity_type", "minecraft:tnt"), 0)
-            }
+            EntityKind::PrimedTnt { .. } => (
+                protocol_id!("minecraft:entity_type", "minecraft:tnt"),
+                0,
+            ),
             EntityKind::FallingBlock { block_id } => (
                 protocol_id!("minecraft:entity_type", "minecraft:falling_block"),
                 block_id as i32,
@@ -81,22 +82,24 @@ impl Entity {
                 0,
             ),
         };
-        let mut packets = vec![CSpawnEntity {
-            entity_id: self.id,
-            entity_uuid: self.uuid,
-            entity_type,
-            x: self.pos.x,
-            y: self.pos.y,
-            z: self.pos.z,
-            pitch: 0.0,
-            yaw: 0.0,
-            head_yaw: 0.0,
-            data,
-            velocity_x: (self.vel.x * 8000.0) as i16,
-            velocity_y: (self.vel.y * 8000.0) as i16,
-            velocity_z: (self.vel.z * 8000.0) as i16,
-        }
-        .encode()];
+        let mut packets = vec![
+            CSpawnEntity {
+                entity_id: self.id,
+                entity_uuid: self.uuid,
+                entity_type,
+                x: self.pos.x,
+                y: self.pos.y,
+                z: self.pos.z,
+                pitch: 0.0,
+                yaw: 0.0,
+                head_yaw: 0.0,
+                data,
+                velocity_x: (self.vel.x * 8000.0) as i16,
+                velocity_y: (self.vel.y * 8000.0) as i16,
+                velocity_z: (self.vel.z * 8000.0) as i16,
+            }
+            .encode(),
+        ];
         if let EntityKind::PrimedTnt { fuse } = self.kind {
             packets.push(self.tnt_metadata(fuse));
         }
@@ -497,8 +500,7 @@ impl Plot {
             } else if let Block::Generic(_) = block {
                 // Blocks without behavior don't need the expensive updates of their neighbors
                 self.world.set_block(*pos, Block::Air);
-                self.world
-                    .schedule_falling_block(pos.offset(BlockFace::Top));
+                self.world.schedule_falling_block(pos.offset(BlockFace::Top));
             } else {
                 interaction::destroy(block, &mut self.world, *pos);
             }
@@ -561,10 +563,7 @@ mod tests {
         for packet in packets {
             let mut bytes = Vec::new();
             packet.write_uncompressed(&mut bytes).unwrap();
-            println!(
-                "PACKET {}",
-                bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
-            );
+            println!("PACKET {}", bytes.iter().map(|b| format!("{b:02x}")).collect::<String>());
         }
     }
 }

@@ -4,11 +4,11 @@ pub mod serverbound;
 use crate::nbt_util::NBTCompound;
 
 use super::NetworkState;
-use crate::registry_entries::BLOCK_ENTITY_TYPES;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use flate2::bufread::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
+use crate::registry_entries::BLOCK_ENTITY_TYPES;
 use mchprs_proc_macros::protocol_id;
 use mchprs_text::TextComponent;
 use serde::Serialize;
@@ -31,10 +31,7 @@ pub struct SlotData {
 }
 
 fn block_entity_data_component_id() -> i32 {
-    protocol_id!(
-        "minecraft:data_component_type",
-        "minecraft:block_entity_data"
-    )
+    protocol_id!("minecraft:data_component_type", "minecraft:block_entity_data")
 }
 
 fn block_entity_type_id(name: &str) -> Option<i32> {
@@ -511,11 +508,7 @@ pub trait PacketEncoderExt: Write {
             let nbt::Value::Compound(tag) = nbt.get("BlockEntityTag")? else {
                 return None;
             };
-            let id = match tag
-                .get("id")
-                .or_else(|| tag.get("Id"))
-                .or_else(|| nbt.get("id"))
-            {
+            let id = match tag.get("id").or_else(|| tag.get("Id")).or_else(|| nbt.get("id")) {
                 Some(nbt::Value::String(id)) => id,
                 _ => return None,
             };

@@ -1,6 +1,6 @@
 mod nbt_util;
-pub mod packets;
 mod registry_entries;
+pub mod packets;
 
 use packets::serverbound::ServerBoundPacket;
 use packets::{read_packet, PacketEncoder, PlayerProperty};
