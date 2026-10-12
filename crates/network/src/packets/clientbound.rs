@@ -194,7 +194,10 @@ fn plot_biome() -> nbt::Value {
         ("has_precipitation", nbt_bool(false)),
         ("temperature", nbt::Value::Float(0.5)),
         ("downfall", nbt::Value::Float(0.5)),
-        ("effects", nbt_compound([("water_color", nbt_str("#3f76e4"))])),
+        (
+            "effects",
+            nbt_compound([("water_color", nbt_str("#3f76e4"))]),
+        ),
     ])
 }
 
@@ -248,12 +251,14 @@ impl CRegistryData {
                 ],
             },
         ];
-        registries.extend(SYNCED_REGISTRIES.iter().map(|(registry, entries)| {
-            CRegistryData {
-                registry: (*registry).to_owned(),
-                entries: entries.iter().map(|e| ((*e).to_owned(), None)).collect(),
-            }
-        }));
+        registries.extend(
+            SYNCED_REGISTRIES
+                .iter()
+                .map(|(registry, entries)| CRegistryData {
+                    registry: (*registry).to_owned(),
+                    entries: entries.iter().map(|e| ((*e).to_owned(), None)).collect(),
+                }),
+        );
         registries
     }
 }
@@ -357,6 +362,27 @@ impl ClientBoundPacket for CBlockEntityData {
         buf.write_varint(self.ty);
         buf.write_nbt(&self.nbt);
         PacketEncoder::new(buf, 0x06)
+    }
+}
+
+pub struct CBlockEvent {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+    pub b0: u8,
+    pub b1: u8,
+    /// The registry id of the block, not a block state id
+    pub block_id: i32,
+}
+
+impl ClientBoundPacket for CBlockEvent {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        buf.write_position(self.x, self.y, self.z);
+        buf.push(self.b0);
+        buf.push(self.b1);
+        buf.write_varint(self.block_id);
+        PacketEncoder::new(buf, 0x07)
     }
 }
 
@@ -762,7 +788,9 @@ impl ClientBoundPacket for CExplode {
         };
         buf.write_varint(particle);
         // Sound, which is encoded as the id plus one
-        buf.write_varint(protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1);
+        buf.write_varint(
+            protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1,
+        );
         // Block particles
         buf.write_varint(0);
         PacketEncoder::new(buf, 0x24)

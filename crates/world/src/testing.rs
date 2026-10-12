@@ -1,4 +1,4 @@
-use crate::{storage::Chunk, TickEntry, TickPriority, World};
+use crate::{storage::Chunk, PistonQueue, TickEntry, TickPriority, World};
 use mchprs_blocks::{block_entities::BlockEntity, BlockPos};
 
 /// A reference world implementation used for testing.
@@ -6,6 +6,7 @@ use mchprs_blocks::{block_entities::BlockEntity, BlockPos};
 pub struct TestWorld {
     pub chunks: Vec<Chunk>,
     pub to_be_ticked: Vec<TickEntry>,
+    pub pistons: PistonQueue,
     /// The size in chunks on the X azis.
     pub x_size: i32,
     /// The size in chunk sections on the Y azis.
@@ -26,6 +27,7 @@ impl TestWorld {
         TestWorld {
             chunks,
             to_be_ticked: Vec::new(),
+            pistons: PistonQueue::default(),
             x_size,
             y_size,
             z_size,
@@ -121,5 +123,14 @@ impl World for TestWorld {
 
     fn pending_tick_at(&mut self, pos: BlockPos) -> bool {
         self.to_be_ticked.iter().any(|e| e.pos == pos)
+    }
+
+    fn piston_queue(&mut self) -> &mut PistonQueue {
+        &mut self.pistons
+    }
+
+    fn in_world_bounds(&self, pos: BlockPos) -> bool {
+        self.get_chunk_index_for_block(pos.x, pos.z).is_some()
+            && (0..self.y_size * 16).contains(&pos.y)
     }
 }

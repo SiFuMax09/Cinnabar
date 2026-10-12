@@ -59,7 +59,10 @@ static BLOCKS: LazyLock<Vec<GenericBlock>> = LazyLock::new(|| {
             for i in (0..props.len().saturating_sub(1)).rev() {
                 strides[i] = strides[i + 1] * props[i + 1].1.len() as u32;
             }
-            let num_states = props.iter().map(|(_, values)| values.len() as u32).product();
+            let num_states = props
+                .iter()
+                .map(|(_, values)| values.len() as u32)
+                .product();
             GenericBlock {
                 name,
                 first_id,
@@ -91,11 +94,17 @@ const COLLISION_OFFSET: i32 = 16;
 /// Two bytes per block state, see `explosion_resistance`
 static RESISTANCE: &[u8] = include_bytes!("../../../mc_data/block_resistance.bin");
 
+/// One byte per block state, see `push_reaction`
+static PISTON: &[u8] = include_bytes!("../../../mc_data/block_piston.bin");
+
 const FLAG_SOLID: u8 = 1;
 const FLAG_STURDY_TOP: u8 = 2;
 
-static ITEM_NAMES: LazyLock<Vec<&'static str>> =
-    LazyLock::new(|| include_str!("../../../mc_data/item_names.txt").lines().collect());
+static ITEM_NAMES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+    include_str!("../../../mc_data/item_names.txt")
+        .lines()
+        .collect()
+});
 
 static ITEM_IDS: LazyLock<HashMap<&'static str, u32>> = LazyLock::new(|| {
     ITEM_NAMES
@@ -202,6 +211,43 @@ pub fn explosion_resistance(id: u32) -> f32 {
     }
 }
 
+/// What a piston does with a block it tries to move
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PushReaction {
+    Normal,
+    /// The block breaks when it is pushed
+    Destroy,
+    /// The block can't be moved
+    Block,
+    /// The block can only be pushed by the piston that is directly attached to it, not by others
+    /// in the same line
+    PushOnly,
+}
+
+fn piston_attrs(id: u32) -> u8 {
+    PISTON.get(id as usize).copied().unwrap_or(0)
+}
+
+pub fn push_reaction(id: u32) -> PushReaction {
+    match piston_attrs(id) & 3 {
+        0 => PushReaction::Normal,
+        1 => PushReaction::Destroy,
+        2 => PushReaction::Block,
+        _ => PushReaction::PushOnly,
+    }
+}
+
+/// Whether the block can't be broken, like bedrock
+pub fn is_indestructible(id: u32) -> bool {
+    piston_attrs(id) & 4 != 0
+}
+
+/// Whether the block state belongs to a block that has a block entity in Minecraft. Pistons
+/// refuse to move those.
+pub fn has_block_entity(id: u32) -> bool {
+    piston_attrs(id) & 8 != 0
+}
+
 /// Whether redstone power can pass through the block
 pub fn is_solid(id: u32) -> bool {
     flags(id) & FLAG_SOLID != 0
@@ -228,7 +274,10 @@ pub fn item_id(name: &str) -> Option<u32> {
 }
 
 pub fn item_name(id: u32) -> &'static str {
-    ITEM_NAMES.get(id as usize).copied().unwrap_or("minecraft:air")
+    ITEM_NAMES
+        .get(id as usize)
+        .copied()
+        .unwrap_or("minecraft:air")
 }
 
 /// Whether the item places a block with the same name

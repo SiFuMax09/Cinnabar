@@ -69,6 +69,24 @@ impl ContainerType {
     }
 }
 
+/// The state of a block that a piston is moving, which is shown as a `moving_piston` block until
+/// the movement is done
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MovingPistonEntity {
+    /// The state id of the block that arrives at the end of the movement
+    pub moved_state: u32,
+    /// The block entity of the moved block, which is given back when the movement is done
+    pub moved_entity: Option<Box<BlockEntity>>,
+    /// The id of the `BlockFace` of the piston
+    pub facing: u8,
+    pub extending: bool,
+    /// Whether this is the piston head or the piston base itself and not a moved block
+    pub source: bool,
+    /// The number of game ticks the movement has been ticked. Vanilla moves by half a block per
+    /// tick and puts the block down on the tick after that.
+    pub ticks: u8,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum BlockEntity {
     Comparator {
@@ -85,6 +103,7 @@ pub enum BlockEntity {
     ChiseledBookshelf {
         last_interacted_slot: i8,
     },
+    MovingPiston(Box<MovingPistonEntity>),
 }
 
 impl BlockEntity {
@@ -106,6 +125,7 @@ impl BlockEntity {
             BlockEntity::ChiseledBookshelf { .. } => {
                 block_entity_id!("minecraft:chiseled_bookshelf")
             }
+            BlockEntity::MovingPiston(_) => block_entity_id!("minecraft:piston"),
         }
     }
 
@@ -226,6 +246,8 @@ impl BlockEntity {
 
         use nbt::Value;
         match self {
+            // Clients animate the movement from the block event of the piston
+            BlockEntity::MovingPiston(_) => None,
             BlockEntity::ChiseledBookshelf {
                 last_interacted_slot,
             } => Some(nbt::Blob::with_content(map! {

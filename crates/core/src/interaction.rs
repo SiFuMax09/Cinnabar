@@ -292,6 +292,12 @@ fn read_block_entity_tag(nbt: &nbt::Blob, block_id: &str) -> Option<BlockEntity>
     None
 }
 
+/// Updates the blocks around a position where a piston changed a block
+pub fn piston_notify<W: World>(world: &mut W, pos: BlockPos) {
+    change_neighbors(world, pos);
+    generic_placement::update_shapes_around(world, pos);
+}
+
 pub fn place_in_world(
     block: Block,
     world: &mut impl World,
@@ -311,6 +317,12 @@ pub fn place_in_world(
     } else {
         redstone::update_surrounding_blocks(world, pos);
     }
+    // Pistons check for power when they are placed
+    if let Block::Generic(id) = block
+        && redstone::piston::piston_base(id).is_some()
+    {
+        redstone::piston::check_if_extend(world, pos);
+    }
 }
 
 pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
@@ -318,6 +330,7 @@ pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
         world.delete_block_entity(pos);
     }
     generic_placement::remove_partner(world, block, pos);
+    generic_placement::remove_piston_partner(world, block, pos);
 
     match block {
         Block::RedstoneWire { .. } => {

@@ -4,6 +4,7 @@
 
 pub mod comparator;
 pub mod noteblock;
+pub mod piston;
 pub mod repeater;
 pub mod wire;
 
@@ -204,6 +205,11 @@ fn diode_get_input_strength(world: &impl World, pos: BlockPos, facing: BlockDire
 /// Blocks that don't have a dedicated variant but still react to redstone power
 fn update_generic(id: u32, world: &mut impl World, pos: BlockPos) {
     use mchprs_blocks::generic;
+
+    if piston::piston_base(id).is_some() {
+        piston::check_if_extend(world, pos);
+        return;
+    }
 
     let name = generic::state_name(id);
     if name == "minecraft:tnt" {

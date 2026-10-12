@@ -27,6 +27,35 @@ pub struct TickEntry {
     pub pos: BlockPos,
 }
 
+/// A block event of a piston. Vanilla queues these when a piston is powered or unpowered and
+/// handles them at the end of the game tick.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PistonEvent {
+    pub pos: BlockPos,
+    pub sticky: bool,
+    /// 0 extends, 1 retracts and 2 retracts without pulling the block along
+    pub ty: u8,
+    /// The 3D data value of the direction of the piston
+    pub data: u8,
+}
+
+/// The piston related state of a world
+#[derive(Debug, Clone, Default)]
+pub struct PistonQueue {
+    pub events: std::collections::VecDeque<PistonEvent>,
+    /// The positions of the `moving_piston` blocks in the order they were created
+    pub moving: Vec<BlockPos>,
+}
+
+impl PistonQueue {
+    /// Queues an event unless an identical one is already waiting, like vanilla does
+    pub fn push_event(&mut self, event: PistonEvent) {
+        if !self.events.contains(&event) {
+            self.events.push_back(event);
+        }
+    }
+}
+
 pub trait World: 'static {
     /// Returns the block located at `pos`
     fn get_block(&self, pos: BlockPos) -> Block {
@@ -99,6 +128,18 @@ pub trait World: 'static {
     /// Notifies the world that the fluid at `pos` might have to flow or dry up
     #[allow(unused_variables)]
     fn schedule_fluid_tick(&mut self, pos: BlockPos) {}
+
+    fn piston_queue(&mut self) -> &mut PistonQueue;
+
+    /// Whether blocks can exist at `pos`. Pistons can't push blocks out of the world.
+    #[allow(unused_variables)]
+    fn in_world_bounds(&self, pos: BlockPos) -> bool {
+        true
+    }
+
+    /// Tells the players that a piston handled an event so that they can animate it
+    #[allow(unused_variables)]
+    fn send_piston_event(&mut self, event: PistonEvent) {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -498,6 +539,10 @@ mod test {
         }
 
         fn pending_tick_at(&mut self, _pos: BlockPos) -> bool {
+            unimplemented!()
+        }
+
+        fn piston_queue(&mut self) -> &mut PistonQueue {
             unimplemented!()
         }
     }

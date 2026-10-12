@@ -26,11 +26,12 @@ use mchprs_blocks::{BlockFace, BlockPos};
 use mchprs_network::packets::clientbound::*;
 use mchprs_network::packets::serverbound::SUseItemOn;
 use mchprs_network::PlayerPacketSender;
+use mchprs_proc_macros::protocol_id;
 use mchprs_redpiler::{Compiler, CompilerOptions};
 use mchprs_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
 use mchprs_text::TextComponent;
 use mchprs_world::storage::Chunk;
-use mchprs_world::{TickEntry, TickPriority, World};
+use mchprs_world::{PistonEvent, PistonQueue, TickEntry, TickPriority, World};
 use monitor::TimingsMonitor;
 use rustc_hash::{FxHashMap, FxHashSet};
 use scoreboard::RedpilerState;
@@ -120,7 +121,17 @@ pub struct PlotWorld {
     pub(super) pending_falling: FxHashSet<BlockPos>,
     /// Fluids that might have to flow or dry up
     pub(super) pending_fluids: FxHashSet<BlockPos>,
+    pistons: PistonQueue,
+    /// Piston events the players have not been told about yet
+    pending_piston_events: Vec<PistonEvent>,
+    /// Whether the plot contains pistons, which keep redpiler from compiling. `None` if it has to
+    /// be looked up again.
+    has_pistons: Option<bool>,
 }
+
+/// More piston events than this in a single send interval are not sent to the players, who get
+/// the resulting blocks anyways
+const MAX_PENDING_PISTON_EVENTS: usize = 2048;
 
 impl PlotWorld {
     fn get_chunk_index_for_chunk(&self, chunk_x: i32, chunk_z: i32) -> usize {
@@ -284,7 +295,45 @@ impl World for PlotWorld {
         self.pending_fluids.insert(pos);
     }
 
+    fn piston_queue(&mut self) -> &mut PistonQueue {
+        &mut self.pistons
+    }
+
+    fn in_world_bounds(&self, pos: BlockPos) -> bool {
+        self.get_chunk_index_for_block(pos.x, pos.z).is_some()
+            && (0..PLOT_BLOCK_HEIGHT).contains(&pos.y)
+    }
+
+    fn send_piston_event(&mut self, event: PistonEvent) {
+        if self.world_send_rate.0 != 0.0
+            && self.pending_piston_events.len() < MAX_PENDING_PISTON_EVENTS
+        {
+            self.pending_piston_events.push(event);
+        }
+    }
+
     fn flush_block_changes(&mut self) {
+        // Clients animate the pistons from the events, which they have to get before the blocks
+        // are changed
+        for event in self.pending_piston_events.drain(..) {
+            let block = if event.sticky {
+                protocol_id!("minecraft:block", "minecraft:sticky_piston")
+            } else {
+                protocol_id!("minecraft:block", "minecraft:piston")
+            };
+            let encoded = CBlockEvent {
+                x: event.pos.x,
+                y: event.pos.y,
+                z: event.pos.z,
+                b0: event.ty,
+                b1: event.data,
+                block_id: block,
+            }
+            .encode();
+            for player in &self.packet_senders {
+                player.send_packet(&encoded);
+            }
+        }
         for packet in self.chunks.iter_mut().flat_map(|c| c.multi_blocks()) {
             let encoded = packet.encode();
             for player in &self.packet_senders {
@@ -339,6 +388,29 @@ impl Plot {
             let entry = self.world.to_be_ticked.remove(0);
             mchprs_redstone::tick(self.world.get_block(entry.pos), &mut self.world, entry.pos);
         }
+
+        // A redstone tick is two game ticks, which is what pistons are timed in
+        for _ in 0..2 {
+            mchprs_redstone::piston::run_game_tick(
+                &mut self.world,
+                interaction::piston_notify::<PlotWorld>,
+            );
+        }
+    }
+
+    /// Redpiler can't simulate pistons, so plots that have them are never compiled
+    fn plot_has_pistons(&mut self) -> bool {
+        if let Some(has_pistons) = self.world.has_pistons {
+            return has_pistons;
+        }
+        let (first_pos, second_pos) = self.world.get_corners();
+        let mut found = false;
+        mchprs_world::for_each_block_optimized(&self.world, first_pos, second_pos, |pos| {
+            found =
+                found || mchprs_redstone::piston::is_piston_family(self.world.get_block_raw(pos));
+        });
+        self.world.has_pistons = Some(found);
+        found
     }
 
     pub fn send_block_corrections(&mut self, positions: &[BlockPos]) {
@@ -653,7 +725,11 @@ impl Plot {
                 None,
                 interaction::BlockHit {
                     face: block_face,
-                    cursor: (use_item_on.cursor_x, use_item_on.cursor_y, use_item_on.cursor_z),
+                    cursor: (
+                        use_item_on.cursor_x,
+                        use_item_on.cursor_y,
+                        use_item_on.cursor_z,
+                    ),
                 },
             );
             self.world.flush_block_changes();
@@ -750,6 +826,10 @@ impl Plot {
     }
 
     fn start_redpiler(&mut self, options: CompilerOptions) {
+        if self.plot_has_pistons() {
+            debug!("Not starting redpiler, the plot has pistons");
+            return;
+        }
         debug!("Starting redpiler");
         self.scoreboard
             .set_redpiler_state(&self.players, RedpilerState::Compiling);
@@ -795,6 +875,8 @@ impl Plot {
     /// Redpiler needs to reset implicitly in the case of any block changes done by a player. This
     /// can be
     fn reset_redpiler(&mut self) {
+        // Everything that changes blocks resets redpiler first, so pistons might have come or gone
+        self.world.has_pistons = None;
         if self.redpiler.is_active() {
             debug!("Discarding redpiler");
             let bounds = self.world.get_corners();
@@ -1248,7 +1330,24 @@ impl Plot {
             pending_ignitions: Default::default(),
             pending_falling: Default::default(),
             pending_fluids: Default::default(),
+            pistons: Default::default(),
+            pending_piston_events: Vec::new(),
+            has_pistons: None,
         };
+        let mut world = world;
+        for chunk in &world.chunks {
+            for (local, block_entity) in &chunk.block_entities {
+                if matches!(block_entity, BlockEntity::MovingPiston(_)) {
+                    let pos =
+                        BlockPos::new(chunk.x * 16 + local.x, local.y, chunk.z * 16 + local.z);
+                    world.pistons.moving.push(pos);
+                }
+            }
+        }
+        world
+            .pistons
+            .moving
+            .sort_by_key(|pos| (pos.x, pos.y, pos.z));
         let tps = plot_data.tps;
         Plot {
             last_player_time: Instant::now(),

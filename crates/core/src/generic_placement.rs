@@ -207,8 +207,7 @@ pub fn state_for_placement(item: Item, ctx: &UseOnBlockContext<'_>) -> Block {
             }
         } else if state.get("face").is_some_and(|face| face == "wall")
             || on_wall
-            || (face.is_horizontal()
-                && (name.ends_with("_trapdoor") || name.ends_with("ladder")))
+            || (face.is_horizontal() && (name.ends_with("_trapdoor") || name.ends_with("ladder")))
         {
             clicked_dir
         } else if state.get("face").is_some()
@@ -314,8 +313,12 @@ pub fn use_block(
 ) -> bool {
     let name = generic::state_name(id);
     if name == "minecraft:tnt"
-        && item_in_hand
-            .is_some_and(|item| matches!(item.get_name(), "minecraft:flint_and_steel" | "minecraft:fire_charge"))
+        && item_in_hand.is_some_and(|item| {
+            matches!(
+                item.get_name(),
+                "minecraft:flint_and_steel" | "minecraft:fire_charge"
+            )
+        })
     {
         world.ignite_tnt(pos);
         return true;
@@ -506,6 +509,42 @@ pub fn remove_partner(world: &mut impl World, block: Block, pos: BlockPos) {
     }
 }
 
+/// Removes the head of a piston that is broken and the piston of a head that is broken
+pub fn remove_piston_partner(world: &mut impl World, block: Block, pos: BlockPos) {
+    let Block::Generic(id) = block else {
+        return;
+    };
+    let Some(facing) = generic::get_property(id, "facing").and_then(dir_from_name) else {
+        return;
+    };
+    let name = generic::state_name(id);
+    let partner = if name == "minecraft:piston_head" {
+        let base = pos.offset(dir_from_name(opposite(face_name(facing))).unwrap());
+        generic_id(world, base)
+            .is_some_and(|other| {
+                mchprs_redstone::piston::piston_base(other)
+                    .is_some_and(|piston| piston.extended && piston.facing == facing)
+            })
+            .then_some(base)
+    } else if mchprs_redstone::piston::piston_base(id).is_some_and(|piston| piston.extended) {
+        let head = pos.offset(facing);
+        generic_id(world, head)
+            .is_some_and(|other| generic::state_name(other) == "minecraft:piston_head")
+            .then_some(head)
+    } else {
+        None
+    };
+    if let Some(partner) = partner {
+        world.set_block(partner, Block::Air);
+    }
+}
+
+/// Updates the shape of the blocks around a position where a piston changed a block
+pub fn update_shapes_around(world: &mut impl World, pos: BlockPos) {
+    update_shape(world, pos);
+    after_remove(world, pos);
+}
+
 /// Updates the blocks next to a position where a block was removed
 pub fn after_remove(world: &mut impl World, pos: BlockPos) {
     for dir in HORIZONTAL {
@@ -604,7 +643,11 @@ fn connections(world: &impl World, pos: BlockPos, id: u32) -> u32 {
 
     for (dir, connect) in HORIZONTAL.iter().zip(connected) {
         let value = if state.has_value(dir, "low") {
-            if connect { "low" } else { "none" }
+            if connect {
+                "low"
+            } else {
+                "none"
+            }
         } else if connect {
             "true"
         } else {

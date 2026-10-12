@@ -155,3 +155,7 @@ There are several types of backends, but the one which is in use today is known 
 - Node sizes are kept as small as possible in memory to allow the node list to fit into small CPU caches.
 - Bounds are checked beforehand to avoid performance loss at runtime.
 - The tick scheduler is powered by a rotating queue of queues that take into account that there are only 4 possible tick priorities.
+
+## Pistons
+
+Redpiler does not simulate pistons: plots that contain piston, sticky piston, piston head or moving piston blocks are not compiled (`/rp compile` reports an error and auto redpiler stays off). Piston logic runs in the regular tick (`mchprs_redstone::piston`).
