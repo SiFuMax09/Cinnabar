@@ -1,3 +1,5 @@
+use crate::blocks::Block;
+use crate::generic;
 use crate::items::Item;
 use mchprs_proc_macros::protocol_id;
 use mchprs_utils::{map, nbt_unwrap_val};
@@ -25,6 +27,12 @@ pub enum ContainerType {
     Furnace,
     Barrel,
     Hopper,
+    // New variants are only added at the end to keep saved plots readable
+    Dispenser,
+    Dropper,
+    Chest,
+    TrappedChest,
+    ShulkerBox,
 }
 
 impl FromStr for ContainerType {
@@ -35,6 +43,11 @@ impl FromStr for ContainerType {
             "barrel" => ContainerType::Barrel,
             "furnace" => ContainerType::Furnace,
             "hopper" => ContainerType::Hopper,
+            "dispenser" => ContainerType::Dispenser,
+            "dropper" => ContainerType::Dropper,
+            "chest" => ContainerType::Chest,
+            "trapped_chest" => ContainerType::TrappedChest,
+            "shulker_box" => ContainerType::ShulkerBox,
             _ => return Err(()),
         })
     }
@@ -46,6 +59,11 @@ impl std::fmt::Display for ContainerType {
             ContainerType::Furnace => "minecraft:furnace",
             ContainerType::Barrel => "minecraft:barrel",
             ContainerType::Hopper => "minecraft:hopper",
+            ContainerType::Dispenser => "minecraft:dispenser",
+            ContainerType::Dropper => "minecraft:dropper",
+            ContainerType::Chest => "minecraft:chest",
+            ContainerType::TrappedChest => "minecraft:trapped_chest",
+            ContainerType::ShulkerBox => "minecraft:shulker_box",
         })
     }
 }
@@ -56,6 +74,8 @@ impl ContainerType {
             ContainerType::Furnace => 3,
             ContainerType::Barrel => 27,
             ContainerType::Hopper => 5,
+            ContainerType::Dispenser | ContainerType::Dropper => 9,
+            ContainerType::Chest | ContainerType::TrappedChest | ContainerType::ShulkerBox => 27,
         }
     }
 
@@ -65,7 +85,150 @@ impl ContainerType {
             ContainerType::Furnace => protocol_id!("minecraft:menu", "minecraft:furnace"),
             ContainerType::Barrel => protocol_id!("minecraft:menu", "minecraft:generic_9x3"),
             ContainerType::Hopper => protocol_id!("minecraft:menu", "minecraft:hopper"),
+            ContainerType::Dispenser | ContainerType::Dropper => {
+                protocol_id!("minecraft:menu", "minecraft:generic_3x3")
+            }
+            ContainerType::Chest | ContainerType::TrappedChest => {
+                protocol_id!("minecraft:menu", "minecraft:generic_9x3")
+            }
+            ContainerType::ShulkerBox => protocol_id!("minecraft:menu", "minecraft:shulker_box"),
         }
+    }
+
+    /// The container type a block holds its items in, if it is a container
+    pub fn for_block(block: Block) -> Option<ContainerType> {
+        match block {
+            Block::Barrel { .. } => Some(ContainerType::Barrel),
+            Block::Furnace { .. } => Some(ContainerType::Furnace),
+            Block::Hopper { .. } => Some(ContainerType::Hopper),
+            Block::Generic(id) => match generic::state_name(id) {
+                "minecraft:dispenser" => Some(ContainerType::Dispenser),
+                "minecraft:dropper" => Some(ContainerType::Dropper),
+                "minecraft:chest" => Some(ContainerType::Chest),
+                "minecraft:trapped_chest" => Some(ContainerType::TrappedChest),
+                name if name.ends_with("shulker_box") => Some(ContainerType::ShulkerBox),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+}
+
+/// The slots of a container with the logic of moving items in and out of them
+#[derive(Clone, Debug)]
+pub struct Inventory {
+    slots: Vec<Option<InventoryEntry>>,
+}
+
+impl Inventory {
+    pub fn new(num_slots: usize) -> Inventory {
+        Inventory {
+            slots: vec![None; num_slots],
+        }
+    }
+
+    pub fn from_entries(entries: &[InventoryEntry], num_slots: usize) -> Inventory {
+        let mut inventory = Inventory::new(num_slots);
+        for entry in entries {
+            if let Some(slot) = inventory.slots.get_mut(entry.slot as usize)
+                && entry.count > 0
+            {
+                *slot = Some(entry.clone());
+            }
+        }
+        inventory
+    }
+
+    pub fn into_entries(self) -> Vec<InventoryEntry> {
+        self.slots.into_iter().flatten().collect()
+    }
+
+    pub fn len(&self) -> usize {
+        self.slots.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.slots.iter().all(Option::is_none)
+    }
+
+    pub fn get(&self, slot: usize) -> Option<&InventoryEntry> {
+        self.slots.get(slot)?.as_ref()
+    }
+
+    /// Replaces the item in the slot. The entry is stored with the slot number it is put in.
+    pub fn set(&mut self, slot: usize, entry: Option<InventoryEntry>) {
+        self.slots[slot] = entry.map(|mut entry| {
+            entry.slot = slot as i8;
+            entry
+        });
+    }
+
+    pub fn take(&mut self, slot: usize) -> Option<InventoryEntry> {
+        self.slots[slot].take()
+    }
+
+    pub fn max_stack(entry: &InventoryEntry) -> i8 {
+        Item::from_id(entry.id).max_stack_size().min(i8::MAX as u32) as i8
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.slots.iter().all(|slot| {
+            slot.as_ref()
+                .is_some_and(|e| e.count >= Inventory::max_stack(e))
+        })
+    }
+
+    pub fn same_item(a: &InventoryEntry, b: &InventoryEntry) -> bool {
+        a.id == b.id && a.nbt == b.nbt
+    }
+
+    /// Puts as much of the entry as fits into the slot. Returns what is left.
+    pub fn insert_into_slot(
+        &mut self,
+        slot: usize,
+        mut entry: InventoryEntry,
+    ) -> Option<InventoryEntry> {
+        match &mut self.slots[slot] {
+            None => {
+                let max = Inventory::max_stack(&entry);
+                let moved = entry.count.min(max);
+                let mut placed = entry.clone();
+                placed.count = moved;
+                placed.slot = slot as i8;
+                entry.count -= moved;
+                self.slots[slot] = Some(placed);
+            }
+            Some(current) if Inventory::same_item(current, &entry) => {
+                let space = (Inventory::max_stack(current) - current.count).max(0);
+                let moved = entry.count.min(space);
+                current.count += moved;
+                entry.count -= moved;
+            }
+            Some(_) => {}
+        }
+        (entry.count > 0).then_some(entry)
+    }
+
+    /// Puts as much of the entry as fits into the slots in the given order
+    pub fn insert(
+        &mut self,
+        mut entry: InventoryEntry,
+        slots: impl IntoIterator<Item = usize>,
+    ) -> Option<InventoryEntry> {
+        for slot in slots {
+            entry = self.insert_into_slot(slot, entry)?;
+        }
+        Some(entry)
+    }
+
+    /// The signal strength a comparator reads from the container
+    pub fn comparator_signal(&self) -> u8 {
+        let mut fullness = 0.0f32;
+        for entry in self.slots.iter().flatten() {
+            fullness += entry.count as f32 / Inventory::max_stack(entry) as f32;
+        }
+        fullness /= self.slots.len() as f32;
+        (fullness * 14.0).floor() as u8 + (fullness > 0.0) as u8
     }
 }
 
@@ -101,6 +264,11 @@ impl BlockEntity {
                 ContainerType::Furnace => block_entity_id!("minecraft:furnace"),
                 ContainerType::Barrel => block_entity_id!("minecraft:barrel"),
                 ContainerType::Hopper => block_entity_id!("minecraft:hopper"),
+                ContainerType::Dispenser => block_entity_id!("minecraft:dispenser"),
+                ContainerType::Dropper => block_entity_id!("minecraft:dropper"),
+                ContainerType::Chest => block_entity_id!("minecraft:chest"),
+                ContainerType::TrappedChest => block_entity_id!("minecraft:trapped_chest"),
+                ContainerType::ShulkerBox => block_entity_id!("minecraft:shulker_box"),
             },
             BlockEntity::Sign(_) => block_entity_id!("minecraft:sign"),
             BlockEntity::ChiseledBookshelf { .. } => {
@@ -109,10 +277,19 @@ impl BlockEntity {
         }
     }
 
+    /// A container with the comparator signal calculated from its items
+    pub fn container(inventory: Vec<InventoryEntry>, ty: ContainerType) -> BlockEntity {
+        let comparator_override =
+            Inventory::from_entries(&inventory, ty.num_slots() as usize).comparator_signal();
+        BlockEntity::Container {
+            comparator_override,
+            inventory,
+            ty,
+        }
+    }
+
     fn load_container(slots_nbt: &[nbt::Value], ty: ContainerType) -> Option<BlockEntity> {
         use nbt::Value;
-        let num_slots = ty.num_slots();
-        let mut fullness_sum: f32 = 0.0;
         let mut inventory = Vec::new();
         for item in slots_nbt {
             let item_compound = nbt_unwrap_val!(item, Value::Compound);
@@ -150,16 +327,8 @@ impl BlockEntity {
                 id: item_type.unwrap_or(Item::Redstone).get_id(),
                 nbt: tag,
             });
-
-            fullness_sum += count as f32 / item_type.map_or(64, Item::max_stack_size) as f32;
         }
-        Some(BlockEntity::Container {
-            comparator_override: (if fullness_sum > 0.0 { 1.0 } else { 0.0 }
-                + (fullness_sum / num_slots as f32) * 14.0)
-                .floor() as u8,
-            inventory,
-            ty,
-        })
+        Some(BlockEntity::container(inventory, ty))
     }
 
     pub fn from_nbt(id: &str, nbt: &HashMap<String, nbt::Value>) -> Option<BlockEntity> {
@@ -183,6 +352,12 @@ impl BlockEntity {
                 nbt_unwrap_val!(&nbt["Items"], Value::List),
                 ContainerType::Hopper,
             ),
+            name @ ("dispenser" | "dropper" | "chest" | "trapped_chest" | "shulker_box") => {
+                BlockEntity::load_container(
+                    nbt_unwrap_val!(nbt.get("Items")?, Value::List),
+                    name.parse().ok()?,
+                )
+            }
             "sign" => {
                 let sign = if nbt.contains_key("Text1") {
                     // This is the pre-1.20 encoding

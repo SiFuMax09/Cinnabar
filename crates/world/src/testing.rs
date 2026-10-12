@@ -12,6 +12,7 @@ pub struct TestWorld {
     pub y_size: i32,
     /// The size in chunks on the Z azis.
     pub z_size: i32,
+    pub transport: crate::transport::ItemTransport,
 }
 
 impl TestWorld {
@@ -29,6 +30,7 @@ impl TestWorld {
             x_size,
             y_size,
             z_size,
+            transport: Default::default(),
         }
     }
 
@@ -70,12 +72,14 @@ impl World for TestWorld {
         }
 
         let chunk = &mut self.chunks[chunk_index];
-        chunk.set_block(
+        let changed = chunk.set_block(
             (pos.x & 0xF) as u32,
             pos.y as u32,
             (pos.z & 0xF) as u32,
             block,
-        )
+        );
+        self.transport.on_block_set(pos, block);
+        changed
     }
 
     fn delete_block_entity(&mut self, pos: BlockPos) {
@@ -121,5 +125,9 @@ impl World for TestWorld {
 
     fn pending_tick_at(&mut self, pos: BlockPos) -> bool {
         self.to_be_ticked.iter().any(|e| e.pos == pos)
+    }
+
+    fn transport(&mut self) -> &mut crate::transport::ItemTransport {
+        &mut self.transport
     }
 }

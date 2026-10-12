@@ -793,7 +793,7 @@ fn generate_item_max_stack_size(items: &[ProcessedItem]) -> TokenStream {
         pub fn max_stack_size(self) -> u32 {
             match self {
                 #( #match_arms )*
-                Item::Unknown(_) => 64,
+                Item::Unknown(id) => generic::item_max_stack(id),
             }
         }
     }

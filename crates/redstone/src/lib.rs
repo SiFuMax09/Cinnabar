@@ -5,6 +5,7 @@
 pub mod comparator;
 pub mod noteblock;
 pub mod repeater;
+pub mod transport;
 pub mod wire;
 
 use mchprs_blocks::block_entities::BlockEntity;
@@ -206,6 +207,10 @@ fn update_generic(id: u32, world: &mut impl World, pos: BlockPos) {
     use mchprs_blocks::generic;
 
     let name = generic::state_name(id);
+    if matches!(name, "minecraft:dropper" | "minecraft:dispenser") {
+        transport::update_dispenser(id, world, pos);
+        return;
+    }
     if name == "minecraft:tnt" {
         if redstone_lamp_should_be_lit(world, pos) {
             world.ignite_tnt(pos);
@@ -247,6 +252,7 @@ fn update_generic(id: u32, world: &mut impl World, pos: BlockPos) {
 pub fn update(block: Block, world: &mut impl World, pos: BlockPos) {
     match block {
         Block::Generic(id) => update_generic(id, world, pos),
+        Block::Hopper { .. } => transport::update_hopper(world, pos),
         Block::RedstoneWire(wire) => {
             wire::on_neighbor_updated(wire, world, pos);
         }
@@ -325,6 +331,14 @@ pub fn update(block: Block, world: &mut impl World, pos: BlockPos) {
 
 pub fn tick(block: Block, world: &mut impl World, pos: BlockPos) {
     match block {
+        Block::Generic(id) => {
+            if matches!(
+                mchprs_blocks::generic::state_name(id),
+                "minecraft:dropper" | "minecraft:dispenser"
+            ) {
+                transport::dispense(world, pos);
+            }
+        }
         Block::Repeater(repeater) => {
             repeater::tick(repeater, world, pos);
         }
