@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Discord Banner 2](https://discordapp.com/api/guilds/724072903083163679/widget.png)](https://discord.com/invite/svK9JU7)
 
-A Minecraft 26.2 creative server built for redstone. Each 512x512 plot runs on a separate thread, allowing for less lag, more concurrency, and many awesome extra features!
+A Minecraft 26.2 creative server (clients must use Minecraft **26.2**) built for redstone. Each 512x512 plot runs on a separate thread, allowing for less lag, more concurrency, and many awesome extra features!
 
 MCHPRS is very different from traditional servers. Because this server is tailored to the use of computational redstone, many things that are a part of Vanilla Minecraft servers don't exist here. That being said, MCHPRS comes with many of its own unique features.
 
@@ -14,6 +14,8 @@ MCHPRS has made it possible to run programs such as [a limited form of Minecraft
 
 - [Table of Contents](#table-of-contents)
 - [Building](#building)
+- [Docker](#docker)
+- [Pterodactyl](#pterodactyl)
 - [Configuration](#configuration)
     - [LuckPerms](#luckperms)
 - [Usage](#usage)
@@ -36,6 +38,20 @@ cargo build --release
 ```
 
 Once complete, the optimized executable will be located at `./target/release/mchprs` or `./target/release/mchprs.exe` depending on your operating system.
+
+## Docker
+
+Multi-arch (amd64/arm64) images are published to GHCR as `ghcr.io/<owner>/<repo>` with the tags `latest`, `26.2`, semver and short commit sha. The server runs as a non-root user (uid 10001) and keeps everything (`Config.toml`, `world/`, `schems/`, `logs/`) in the `/data` volume.
+
+```shell
+docker run -d --name mchprs -p 25565:25565 -v mchprs-data:/data ghcr.io/sifumax09/mtrmc:latest
+```
+
+See [docker-compose.yml](docker-compose.yml) for a compose example. Optional environment variables are written to `Config.toml` only when set: `MCHPRS_LOG`, `MCHPRS_MOTD`, `MCHPRS_MAX_PLAYERS`, `MCHPRS_VIEW_DISTANCE`, `MCHPRS_BIND_ADDRESS`, `MCHPRS_VELOCITY_SECRET` (enables Velocity) and `MCHPRS_VELOCITY_ENABLED`. Stop with `docker stop` (the server saves on SIGINT/SIGTERM). Build locally with `docker build -t mchprs .`.
+
+## Pterodactyl
+
+Import [pterodactyl/egg-mchprs.json](pterodactyl/egg-mchprs.json) into your panel. See [pterodactyl/README.md](pterodactyl/README.md) for the image placeholder, variables and details.
 
 ## Configuration
 

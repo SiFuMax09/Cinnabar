@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "master" ]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -39,7 +43,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Run clippy
-        # If we ever get around to fix everything clippy complains about we can start failing on warning via: -- -D warnings
+        # The repo still has pre-existing clippy warnings, so warnings do not fail the job.
+        # Once clean, start failing on warnings via: -- -D warnings
         run: cargo clippy --workspace --all-features --all-targets
 
   test:
@@ -59,3 +64,15 @@ jobs:
 
       - name: Run redpiler tests
         run: cargo run -p rilc test crates/redpiler/ril_tests
+
+  packaging:
+    name: Validate Docker entrypoint and Pterodactyl egg
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shellcheck entrypoint
+        run: shellcheck docker/entrypoint.sh
+
+      - name: Validate Pterodactyl egg
+        run: python3 pterodactyl/validate_egg.py pterodactyl/egg-mchprs.json

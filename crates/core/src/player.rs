@@ -1,6 +1,7 @@
 use crate::config::CONFIG;
 use crate::permissions::{self, PlayerPermissionsCache};
 use crate::plot::worldedit::WorldEditUndo;
+use crate::plot::SelectionVisualizer;
 use crate::plot::PLOT_SCALE;
 use crate::utils::{self, HyphenatedUUID};
 use byteorder::{BigEndian, ReadBytesExt};
@@ -210,6 +211,8 @@ pub struct Player {
     pub first_position: Option<BlockPos>,
     /// The worldedit second position.
     pub second_position: Option<BlockPos>,
+    /// Particle outline of the worldedit selection for clients without WorldEditCUI.
+    pub selection_viz: SelectionVisualizer,
     /// The worldedit current clipboard.
     pub worldedit_clipboard: Option<WorldEditClipboard>,
     /// The saved sections used for worldedit //undo
@@ -292,6 +295,7 @@ impl Player {
             last_keep_alive_sent: Instant::now(),
             first_position: None,
             second_position: None,
+            selection_viz: SelectionVisualizer::default(),
             worldedit_clipboard: None,
             worldedit_undo: Vec::new(),
             worldedit_redo: Vec::new(),
