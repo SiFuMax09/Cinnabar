@@ -3,6 +3,7 @@ pub mod light;
 pub mod storage;
 #[cfg(feature = "testing")]
 pub mod testing;
+pub mod transport;
 
 use game_event::{EventContext, EventPos, GameEvent};
 use mchprs_blocks::block_entities::BlockEntity;
@@ -123,6 +124,11 @@ pub trait World: 'static {
     /// Turns the TNT block at `pos` into a primed TNT entity
     #[allow(unused_variables)]
     fn ignite_tnt(&mut self, pos: BlockPos) {}
+
+    /// The state of the hoppers, droppers and dispensers of the world
+    fn transport(&mut self) -> &mut transport::ItemTransport {
+        unimplemented!("this world does not support item transport")
+    }
 
     /// Notifies the world that the block at `pos` might have to start falling
     #[allow(unused_variables)]

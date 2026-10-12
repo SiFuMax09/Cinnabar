@@ -526,6 +526,18 @@ impl ClientBoundPacket for CCommands {
     }
 }
 
+pub struct CCloseContainer {
+    pub window_id: i32,
+}
+
+impl ClientBoundPacket for CCloseContainer {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        buf.write_varint(self.window_id);
+        PacketEncoder::new(buf, 0x11)
+    }
+}
+
 pub struct CSetContainerContent {
     pub window_id: i32,
     pub state_id: i32,

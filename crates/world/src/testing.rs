@@ -13,6 +13,7 @@ pub struct TestWorld {
     pub y_size: i32,
     /// The size in chunks on the Z azis.
     pub z_size: i32,
+    pub transport: crate::transport::ItemTransport,
 }
 
 impl TestWorld {
@@ -31,6 +32,7 @@ impl TestWorld {
             x_size,
             y_size,
             z_size,
+            transport: Default::default(),
         }
     }
 
@@ -72,12 +74,14 @@ impl World for TestWorld {
         }
 
         let chunk = &mut self.chunks[chunk_index];
-        chunk.set_block(
+        let changed = chunk.set_block(
             (pos.x & 0xF) as u32,
             pos.y as u32,
             (pos.z & 0xF) as u32,
             block,
-        )
+        );
+        self.transport.on_block_set(pos, block);
+        changed
     }
 
     fn delete_block_entity(&mut self, pos: BlockPos) {
@@ -138,5 +142,9 @@ impl World for TestWorld {
     fn in_world_bounds(&self, pos: BlockPos) -> bool {
         self.get_chunk_index_for_block(pos.x, pos.z).is_some()
             && (0..self.y_size * 16).contains(&pos.y)
+    }
+
+    fn transport(&mut self) -> &mut crate::transport::ItemTransport {
+        &mut self.transport
     }
 }

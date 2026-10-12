@@ -124,17 +124,14 @@ pub fn block(id: u32) -> Option<&'static GenericBlock> {
 }
 
 /// The range of state ids of the block with the name
-fn state_range(name: &str) -> std::ops::Range<u32> {
-    BY_NAME.get(name).map_or(0..0, |&idx| {
-        let block = &BLOCKS[idx];
-        block.first_id..block.first_id + block.num_states
-    })
+fn state_range_or_empty(name: &str) -> std::ops::Range<u32> {
+    state_range(name).unwrap_or(0..0)
 }
 
 static SCULK_SENSOR_IDS: LazyLock<std::ops::Range<u32>> =
-    LazyLock::new(|| state_range("minecraft:sculk_sensor"));
+    LazyLock::new(|| state_range_or_empty("minecraft:sculk_sensor"));
 static CALIBRATED_SCULK_SENSOR_IDS: LazyLock<std::ops::Range<u32>> =
-    LazyLock::new(|| state_range("minecraft:calibrated_sculk_sensor"));
+    LazyLock::new(|| state_range_or_empty("minecraft:calibrated_sculk_sensor"));
 
 /// Whether the state is of a sculk sensor, which has no variant of its own in `Block`
 pub fn is_sculk_sensor(id: u32) -> bool {
@@ -320,6 +317,86 @@ pub fn item_name(id: u32) -> &'static str {
         .get(id as usize)
         .copied()
         .unwrap_or("minecraft:air")
+}
+
+/// How many items of this kind fit in a stack. The data of the items without a dedicated variant
+/// has no stack sizes, so they are derived from the names the way Minecraft registers them.
+pub fn item_max_stack(id: u32) -> u32 {
+    let name = item_name(id).trim_start_matches("minecraft:");
+    const SINGLE_SUFFIXES: &[&str] = &[
+        "_sword",
+        "_pickaxe",
+        "_axe",
+        "_shovel",
+        "_hoe",
+        "_helmet",
+        "_chestplate",
+        "_leggings",
+        "_boots",
+        "_boat",
+        "_raft",
+        "_minecart",
+        "_shulker_box",
+        "_bed",
+        "_spear",
+        "_horse_armor",
+        "_nautilus_armor",
+        "_harness",
+        "_pottery_sherd",
+        "_bundle",
+    ];
+    const SINGLE: &[&str] = &[
+        "bow",
+        "crossbow",
+        "trident",
+        "shield",
+        "elytra",
+        "shears",
+        "flint_and_steel",
+        "fishing_rod",
+        "saddle",
+        "carrot_on_a_stick",
+        "warped_fungus_on_a_stick",
+        "cake",
+        "written_book",
+        "writable_book",
+        "enchanted_book",
+        "totem_of_undying",
+        "minecart",
+        "potion",
+        "splash_potion",
+        "lingering_potion",
+        "mace",
+        "brush",
+        "spyglass",
+        "compass",
+        "recovery_compass",
+        "clock",
+        "shulker_box",
+    ];
+    const SIXTEEN_SUFFIXES: &[&str] = &["_sign", "_hanging_sign", "_banner"];
+    const SIXTEEN: &[&str] = &[
+        "ender_pearl",
+        "snowball",
+        "egg",
+        "bucket",
+        "honey_bottle",
+        "armor_stand",
+        "wind_charge",
+    ];
+    if name.starts_with("music_disc_")
+        || name.ends_with("_bucket") && name != "bucket"
+        || SINGLE.contains(&name)
+        || SINGLE_SUFFIXES.iter().any(|suffix| name.ends_with(suffix))
+    {
+        1
+    } else if SIXTEEN.contains(&name)
+        || SIXTEEN_SUFFIXES.iter().any(|suffix| name.ends_with(suffix))
+    {
+        16
+    } else {
+        64
+    }
 }
 
 /// Whether the item places a block with the same name
@@ -522,4 +599,10 @@ mod item_tests {
             assert!(default_state(name).is_some());
         }
     }
+}
+
+/// The state ids of a block, if there is a block with this name
+pub fn state_range(name: &str) -> Option<std::ops::Range<u32>> {
+    let block = &BLOCKS[*BY_NAME.get(name)?];
+    Some(block.first_id..block.first_id + block.num_states)
 }

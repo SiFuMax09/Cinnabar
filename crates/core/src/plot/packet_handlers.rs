@@ -2,6 +2,8 @@ use super::entities::{Entity, EntityKind};
 use super::physics::Vec3;
 use super::Plot;
 use crate::config::CONFIG;
+use crate::menu::ClickMode;
+use crate::player::Gamemode;
 use crate::player::{PacketSender, PlayerPos, SkinParts};
 use crate::server::Message;
 use crate::utils::{self, HyphenatedUUID};
@@ -11,6 +13,7 @@ use mchprs_blocks::items::{Item, ItemStack};
 use mchprs_blocks::BlockPos;
 use mchprs_network::packets::clientbound::*;
 use mchprs_network::packets::serverbound::*;
+use mchprs_redstone::transport::{read_inventory, write_inventory};
 use mchprs_world::World;
 use serde_json::json;
 use std::fs;
@@ -19,6 +22,54 @@ use std::time::Instant;
 use tracing::error;
 
 impl Plot {
+    /// Lets the other players see the item in the hand of the player when it changed
+    fn after_player_inventory_changed(&mut self, player_idx: usize, changed_slots: &[usize]) {
+        let selected = self.players[player_idx].selected_slot as usize + 36;
+        if !changed_slots.contains(&selected) {
+            return;
+        }
+        let Some(equipment) = self.players[player_idx].equippment_packet() else {
+            return;
+        };
+        let packet = equipment.encode();
+        for (idx, other) in self.players.iter().enumerate() {
+            if idx != player_idx {
+                other.client.send_packet(&packet);
+            }
+        }
+    }
+
+    /// Shows the players what hoppers and other players did to the container they have open
+    pub(super) fn sync_open_menus(&mut self) {
+        for player in &mut self.players {
+            let Some(menu) = &mut player.menu else {
+                continue;
+            };
+            match read_inventory(&self.world, menu.pos).filter(|(ty, _)| *ty == menu.ty) {
+                None => player.close_menu_on_client(),
+                Some((_, container)) if container != menu.container_inventory() => {
+                    menu.load(&container, &player.inventory);
+                    player.send_menu_contents();
+                }
+                Some(_) => {}
+            }
+        }
+    }
+
+    /// Throws the stack out of the player the way the drop key does
+    fn drop_item(&mut self, player_idx: usize, stack: ItemStack) {
+        let player = &self.players[player_idx];
+        let direction = Vec3::from_rotation(player.yaw, player.pitch);
+        let pos = Vec3::new(player.pos.x, player.pos.y + 1.32, player.pos.z);
+        self.spawn_entity(Entity::new(
+            EntityKind::Item {
+                entry: crate::menu::stack_to_entry(&stack, 0),
+            },
+            pos,
+            direction * 0.3,
+        ));
+    }
+
     pub(super) fn handle_packets_for_player(&mut self, player: usize) {
         let packets = self.players[player].client.receive_packets();
         for packet in packets {
@@ -130,6 +181,73 @@ impl ServerBoundPacketHandler for Plot {
         // or sanitizes data or something
         let item = self.players[player].inventory[creative_inventory_action.slot as usize].clone();
         self.players[player].set_inventory_slot(creative_inventory_action.slot as u32, item);
+    }
+
+    fn handle_container_click(&mut self, packet: SContainerClick, player_idx: usize) {
+        let player = &mut self.players[player_idx];
+        let Some(menu) = &mut player.menu else {
+            return;
+        };
+        if menu.window_id != packet.window_id {
+            return;
+        }
+        let pos = menu.pos;
+        let Some((ty, container)) =
+            read_inventory(&self.world, pos).filter(|(ty, _)| *ty == menu.ty)
+        else {
+            // The container was destroyed while the screen was open
+            player.close_menu_on_client();
+            return;
+        };
+        if matches!(player.gamemode, Gamemode::Spectator) {
+            player.send_menu_contents();
+            return;
+        }
+
+        // Hoppers and other players may have changed the container since the last click
+        menu.load(&container, &player.inventory);
+        let mut dropped = Vec::new();
+        menu.click(
+            packet.slot as i32,
+            packet.button,
+            ClickMode::from_id(packet.mode),
+            &mut dropped,
+        );
+
+        let new_container = menu.container_inventory();
+        let changed_slots = menu.store_player_inventory(&mut player.inventory);
+        let container_changed = new_container != container;
+        player.send_menu_contents();
+        self.after_player_inventory_changed(player_idx, &changed_slots);
+        if container_changed {
+            self.reset_redpiler();
+            write_inventory(&mut self.world, pos, ty, new_container);
+            self.world.flush_block_changes();
+        }
+        for stack in dropped {
+            self.drop_item(player_idx, stack);
+        }
+    }
+
+    fn handle_container_close(&mut self, packet: SContainerClose, player_idx: usize) {
+        let player = &mut self.players[player_idx];
+        let Some(menu) = &mut player.menu else {
+            return;
+        };
+        if menu.window_id != packet.window_id {
+            return;
+        }
+        let rest = menu.close();
+        let changed_slots = menu.store_player_inventory(&mut player.inventory);
+        player.menu = None;
+        for slot in &changed_slots {
+            let item = player.inventory[*slot].clone();
+            player.send_inventory_slot(*slot as u32, item.as_ref());
+        }
+        self.after_player_inventory_changed(player_idx, &changed_slots);
+        if let Some(rest) = rest {
+            self.drop_item(player_idx, rest);
+        }
     }
 
     fn handle_player_abilities(&mut self, player_abilities: SPlayerAbilities, player: usize) {

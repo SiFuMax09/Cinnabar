@@ -38,6 +38,7 @@ use mchprs_world::game_event::{
 };
 use mchprs_world::light::LightEngine;
 use mchprs_world::storage::Chunk;
+use mchprs_world::transport::{self, ItemTransport};
 use mchprs_world::{PistonEvent, PistonQueue, TickEntry, TickPriority, World};
 use monitor::TimingsMonitor;
 use perf::{LOADED_PLOTS, ONLINE_PLAYERS};
@@ -148,6 +149,7 @@ pub struct PlotWorld {
     /// Whether there are sensors that care about game events
     listening: bool,
     light: LightEngine,
+    pub transport: ItemTransport,
 }
 
 /// More piston events than this in a single send interval are not sent to the players, who get
@@ -207,6 +209,21 @@ impl PlotWorld {
         Some(((chunk_x << PLOT_SCALE) + chunk_z).unsigned_abs() as usize)
     }
 
+    /// Finds the hoppers, droppers and dispensers of a freshly loaded plot
+    fn rebuild_transport(&mut self) {
+        let (first, second) = self.get_corners();
+        let mut found = Vec::new();
+        mchprs_world::for_each_block_optimized(&*self, first, second, |pos| {
+            let id = self.get_block_raw(pos);
+            if transport::TransportKind::of_state(id).is_some() {
+                found.push((pos, id));
+            }
+        });
+        for (pos, id) in found {
+            self.transport.on_block_set(pos, id);
+        }
+    }
+
     pub fn get_corners(&self) -> (BlockPos, BlockPos) {
         const W: i32 = PLOT_BLOCK_WIDTH;
         let first_pos = BlockPos::new(self.x * W, 0, self.z * W);
@@ -238,12 +255,19 @@ impl World for PlotWorld {
         }
 
         let chunk = &mut self.chunks[chunk_index];
-        chunk.set_block(
-            (pos.x & 0xF) as u32,
-            pos.y as u32,
-            (pos.z & 0xF) as u32,
-            block,
-        )
+        let (x, y, z) = ((pos.x & 0xF) as u32, pos.y as u32, (pos.z & 0xF) as u32);
+        let old = chunk.get_block(x, y, z);
+        let changed = chunk.set_block(x, y, z, block);
+        if changed {
+            // Items must not carry over to the next container placed at the position
+            let old_family = transport::container_family(old);
+            if old_family.is_some() && old_family != transport::container_family(block) {
+                chunk.delete_block_entity(BlockPos::new(x as i32, pos.y, z as i32));
+                self.pending_block_entities.remove(&pos);
+            }
+            self.transport.on_block_set(pos, block);
+        }
+        changed
     }
 
     /// Returns the block state id of the block at `pos`
@@ -350,6 +374,10 @@ impl World for PlotWorld {
             seed: 0,
         };
         self.pending_sounds.insert(pos, sound_effect_data);
+    }
+
+    fn transport(&mut self) -> &mut ItemTransport {
+        &mut self.transport
     }
 
     fn ignite_tnt(&mut self, pos: BlockPos) {
@@ -480,6 +508,7 @@ impl Plot {
             );
         }
         self.dispatch_game_events();
+        self.tick_item_transport();
     }
 
     /// Redpiler can't simulate pistons, so plots that have them are never compiled
@@ -935,6 +964,17 @@ impl Plot {
             debug!("Not starting redpiler, the plot has pistons");
             return;
         }
+        // The redpiler only knows static circuits. Hoppers, droppers and dispensers move items
+        // between block entities every tick, which it cannot compile, so the plot keeps running
+        // on the regular tick implementation.
+        if !self.world.transport.is_empty() {
+            for player in &self.players {
+                player.send_error_message(
+                    "Redpiler cannot compile plots with hoppers, droppers or dispensers.",
+                );
+            }
+            return;
+        }
         debug!("Starting redpiler");
         self.scoreboard
             .set_redpiler_state(&self.players, RedpilerState::Compiling);
@@ -1342,6 +1382,7 @@ impl Plot {
 
             if self.auto_redpiler
                 && !self.redpiler.is_active()
+                && self.world.transport.is_empty()
                 && (self.tps == Tps::Unlimited || self.timings.is_running_behind())
             {
                 self.start_redpiler(Default::default());
@@ -1363,6 +1404,7 @@ impl Plot {
             }
         }
 
+        self.sync_open_menus();
         self.update_players();
 
         // Handle commands before removing players just in case they ran a command before leaving
@@ -1491,6 +1533,7 @@ impl Plot {
             listening: !new_sensors.is_empty(),
             new_sensors,
             light: Default::default(),
+            transport: Default::default(),
         };
         for chunk in &world.chunks {
             for (local, block_entity) in &chunk.block_entities {
@@ -1506,6 +1549,7 @@ impl Plot {
             .moving
             .sort_by_key(|pos| (pos.x, pos.y, pos.z));
         world.initialize_light();
+        world.rebuild_transport();
         let tps = plot_data.tps;
         Plot {
             last_player_time: Instant::now(),

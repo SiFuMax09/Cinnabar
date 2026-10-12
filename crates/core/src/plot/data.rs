@@ -63,6 +63,7 @@ static EMPTY_PLOT: LazyLock<PlotData> = LazyLock::new(|| {
             new_sensors: Vec::new(),
             listening: false,
             light: Default::default(),
+            transport: Default::default(),
         };
         let chunk_data: Vec<ChunkData> = world.chunks.iter_mut().map(ChunkData::new).collect();
         PlotData {

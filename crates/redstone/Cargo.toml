@@ -18,6 +18,7 @@ mchprs_blocks = { path = "../blocks" }
 mchprs_world = { path = "../world" }
 tracing = { workspace = true }
 rustc-hash = { workspace = true }
+rand = { workspace = true }
 
 [dev-dependencies]
 mchprs_world = { path = "../world", features = ["testing"] }

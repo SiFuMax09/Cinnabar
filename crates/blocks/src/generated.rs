@@ -5293,7 +5293,7 @@ impl Item {
             Item::MilkBucket => 1,
             Item::Redstone => 64,
             Item::EnderEye => 64,
-            Item::Unknown(_) => 64,
+            Item::Unknown(id) => generic::item_max_stack(id),
         }
     }
 }

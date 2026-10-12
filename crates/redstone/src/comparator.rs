@@ -1,4 +1,4 @@
-use mchprs_blocks::block_entities::BlockEntity;
+use mchprs_blocks::block_entities::{BlockEntity, ContainerType};
 use mchprs_blocks::blocks::{Block, Comparator, ComparatorMode};
 use mchprs_blocks::{BlockDirection, BlockFace, BlockPos};
 use mchprs_world::{TickPriority, World};
@@ -42,7 +42,7 @@ pub fn has_override(block: Block) -> bool {
 
 pub fn get_override(block: Block, world: &impl World, pos: BlockPos) -> u8 {
     match block {
-        Block::Barrel { .. } | Block::Furnace { .. } | Block::Hopper { .. } => {
+        _ if ContainerType::for_block(block).is_some() => {
             match world.get_block_entity(pos) {
                 Some(BlockEntity::Container {
                     comparator_override,

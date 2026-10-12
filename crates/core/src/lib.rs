@@ -5,6 +5,7 @@ mod utils;
 mod config;
 mod generic_placement;
 mod interaction;
+mod menu;
 mod permissions;
 mod player;
 pub mod plot;

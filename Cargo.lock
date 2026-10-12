@@ -1409,6 +1409,7 @@ version = "0.5.2-dev"
 dependencies = [
  "mchprs_blocks",
  "mchprs_world",
+ "rand",
  "rustc-hash",
  "tracing",
 ]

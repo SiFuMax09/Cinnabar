@@ -12,11 +12,7 @@ pub struct ItemStack {
 impl ItemStack {
     /// Create container item with specified signal strength
     pub fn container_with_ss(container_ty: ContainerType, ss: u8) -> ItemStack {
-        let item = match container_ty {
-            ContainerType::Barrel => Item::Barrel {},
-            ContainerType::Hopper => Item::Hopper {},
-            ContainerType::Furnace => Item::Furnace {},
-        };
+        let item = Item::from_name(&container_ty.to_string()).unwrap_or(Item::Barrel);
         let slots = container_ty.num_slots() as u32;
 
         let items_needed = match ss {
