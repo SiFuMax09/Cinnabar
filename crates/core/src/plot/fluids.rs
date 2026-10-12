@@ -6,8 +6,8 @@
 //!
 //! Differences from the game: fluids only know the bounding box of the collision shape of a block,
 //! lava doesn't randomly delay its spreading and the lava specific random ticks (fire) are left
-//! out. The blocks with a dedicated variant that can be waterlogged (like signs) are not
-//! waterloggable and get washed away instead.
+//! out. Waterlogging goes through the `waterlogged` property of the block, which is the same for
+//! generic blocks and the dedicated variants (like signs), see [`Block::can_be_waterlogged`].
 
 use super::physics::{raycast, Vec3};
 use super::{Plot, PLOT_BLOCK_HEIGHT};
@@ -165,17 +165,20 @@ fn is_air_id(id: u32) -> bool {
     id == 0 || matches!(name_of(id), "minecraft:cave_air" | "minecraft:void_air")
 }
 
-fn has_waterlogged(id: u32) -> bool {
-    !generic::property_values(id, "waterlogged").is_empty()
-}
-
 fn is_waterlogged(id: u32) -> bool {
-    has_waterlogged(id) && generic::get_property(id, "waterlogged") == Some("true")
+    Block::from_id(id).is_waterlogged()
 }
 
 /// Whether the block can take water by being waterlogged, which is not the case for double slabs
 fn is_waterloggable(id: u32) -> bool {
-    has_waterlogged(id) && generic::get_property(id, "type") != Some("double")
+    Block::from_id(id).can_be_waterlogged()
+}
+
+/// The state of the block with its water set to `waterlogged`
+fn with_waterlogged(id: u32, waterlogged: bool) -> u32 {
+    Block::from_id(id)
+        .with_waterlogged(waterlogged)
+        .map_or(id, |block| block.get_id())
 }
 
 /// The fluid that is in a block with this state, which includes waterlogged blocks
@@ -525,8 +528,7 @@ pub fn place_fluid(
     let old_id = raw(world, pos);
     if is_waterloggable(old_id) {
         if fluid.kind == Kind::Water && !is_waterlogged(old_id) {
-            let id = generic::with_property(old_id, "waterlogged", "true");
-            world.set_block_raw(pos, id);
+            world.set_block_raw(pos, with_waterlogged(old_id, true));
         }
         touch(out, pos);
         return;
@@ -694,16 +696,11 @@ pub fn wake(world: &mut impl World, pos: BlockPos) -> Option<FluidState> {
 
 /// Makes a block that is placed into water waterlogged if it can be
 pub fn waterlog_on_place(world: &mut impl World, pos: BlockPos, block: Block) -> Block {
-    let Block::Generic(id) = block else {
-        return block;
-    };
-    if !is_waterloggable(id)
-        || !fluid_at(world, pos).is_some_and(|f| f.kind == Kind::Water && f.amount == 8)
-    {
+    if !block.can_be_waterlogged() || !fluid_at(world, pos).is_some_and(|f| f.kind == Kind::Water) {
         return block;
     }
     world.schedule_fluid_tick(pos);
-    Block::Generic(generic::with_property(id, "waterlogged", "true"))
+    block.with_waterlogged(true).unwrap_or(block)
 }
 
 /// The fluid that scheduled ticks are waiting for
@@ -855,83 +852,31 @@ impl Plot {
     /// Takes the fluid source the player looks at. Buckets are not consumed in creative mode, so
     /// the bucket in the hand stays what it is.
     fn pick_up_fluid(&mut self, eye: Vec3, dir: Vec3) -> bool {
-        let mut origin = eye;
-        let mut remaining = REACH;
-        // Flowing fluid is looked through
-        for _ in 0..16 {
-            let Some(hit) = raycast(&self.world, origin, dir, remaining, true) else {
-                return false;
-            };
-            let id = raw(&self.world, hit.pos);
-            match fluid_at_id(id) {
-                Some(fluid) if fluid.source => {
-                    if !self.in_plot(hit.pos) {
-                        return false;
-                    }
-                    self.reset_redpiler();
-                    let new_id = if is_waterlogged(id) {
-                        generic::with_property(id, "waterlogged", "false")
-                    } else {
-                        0
-                    };
-                    self.world.set_block_raw(hit.pos, new_id);
-                    let mut out = Vec::new();
-                    touch(&mut out, hit.pos);
-                    for pos in out {
-                        self.world.schedule_fluid_tick(pos);
-                    }
-                    let sound = match fluid.kind {
-                        Kind::Water => {
-                            protocol_id!("minecraft:sound_event", "minecraft:item.bucket.fill")
-                        }
-                        Kind::Lava => {
-                            protocol_id!("minecraft:sound_event", "minecraft:item.bucket.fill_lava")
-                        }
-                    };
-                    self.play_bucket_sound(hit.pos, sound);
-                    return true;
-                }
-                Some(_) if !is_waterlogged(id) => {
-                    let travelled = (hit.point - origin).length() + 0.01;
-                    origin = hit.point + dir.normalized() * 0.01;
-                    remaining -= travelled;
-                    if remaining <= 0.0 {
-                        return false;
-                    }
-                }
-                _ => return false,
-            }
+        let Some(pos) = source_in_sight(&self.world, eye, dir) else {
+            return false;
+        };
+        if !self.in_plot(pos) {
+            return false;
         }
-        false
+        let Some(fluid) = fluid_at(&self.world, pos) else {
+            return false;
+        };
+        self.reset_redpiler();
+        take_source(&mut self.world, pos);
+        let sound = match fluid.kind {
+            Kind::Water => protocol_id!("minecraft:sound_event", "minecraft:item.bucket.fill"),
+            Kind::Lava => protocol_id!("minecraft:sound_event", "minecraft:item.bucket.fill_lava"),
+        };
+        self.play_bucket_sound(pos, sound);
+        true
     }
 
     /// Puts the fluid of the bucket where the player looks
     fn empty_bucket(&mut self, eye: Vec3, dir: Vec3, kind: Kind) -> bool {
-        let Some(hit) = raycast(&self.world, eye, dir, REACH, false) else {
+        let Some(target) = bucket_target(&self.world, eye, dir, kind) else {
             return false;
-        };
-        let clicked_id = raw(&self.world, hit.pos);
-        let clicked_takes_fluid = if is_waterloggable(clicked_id) {
-            can_hold_specific_fluid(clicked_id, kind)
-        } else {
-            self.world.get_block(hit.pos).can_place_block_in()
-        };
-        let target = if clicked_takes_fluid {
-            hit.pos
-        } else {
-            hit.pos.offset(hit.face)
         };
         if !self.in_plot(target) {
-            return false;
-        }
-        let target_id = raw(&self.world, target);
-        let fits = if is_waterloggable(target_id) {
-            can_hold_specific_fluid(target_id, kind)
-        } else {
-            self.world.get_block(target).can_place_block_in()
-                && !is_source_of(fluid_at_id(target_id), kind)
-        };
-        if !fits {
             return false;
         }
 
@@ -950,9 +895,72 @@ impl Plot {
     }
 }
 
+/// The position of the fluid source the player looks at. Flowing fluid is looked through.
+fn source_in_sight(world: &impl World, eye: Vec3, dir: Vec3) -> Option<BlockPos> {
+    let mut origin = eye;
+    let mut remaining = REACH;
+    for _ in 0..16 {
+        let hit = raycast(world, origin, dir, remaining, true)?;
+        let id = raw(world, hit.pos);
+        match fluid_at_id(id) {
+            Some(fluid) if fluid.source => return Some(hit.pos),
+            Some(_) if !is_waterlogged(id) => {
+                let travelled = (hit.point - origin).length() + 0.01;
+                origin = hit.point + dir.normalized() * 0.01;
+                remaining -= travelled;
+                if remaining <= 0.0 {
+                    return None;
+                }
+            }
+            _ => return None,
+        }
+    }
+    None
+}
+
+/// Removes the fluid source at the position. A waterlogged block stays and only loses its water.
+fn take_source(world: &mut impl World, pos: BlockPos) {
+    let id = raw(world, pos);
+    let new_id = if is_waterlogged(id) {
+        with_waterlogged(id, false)
+    } else {
+        0
+    };
+    world.set_block_raw(pos, new_id);
+    let mut out = Vec::new();
+    touch(&mut out, pos);
+    for pos in out {
+        world.schedule_fluid_tick(pos);
+    }
+}
+
+/// The position a bucket of the fluid puts its fluid into, if the player looks at a place for it
+fn bucket_target(world: &impl World, eye: Vec3, dir: Vec3, kind: Kind) -> Option<BlockPos> {
+    let hit = raycast(world, eye, dir, REACH, false)?;
+    let clicked_id = raw(world, hit.pos);
+    let clicked_takes_fluid = if is_waterloggable(clicked_id) {
+        can_hold_specific_fluid(clicked_id, kind)
+    } else {
+        world.get_block(hit.pos).can_place_block_in()
+    };
+    let target = if clicked_takes_fluid {
+        hit.pos
+    } else {
+        hit.pos.offset(hit.face)
+    };
+    let target_id = raw(world, target);
+    let fits = if is_waterloggable(target_id) {
+        can_hold_specific_fluid(target_id, kind)
+    } else {
+        world.get_block(target).can_place_block_in() && !is_source_of(fluid_at_id(target_id), kind)
+    };
+    fits.then_some(target)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mchprs_blocks::blocks::SlabType;
     use mchprs_world::testing::TestWorld;
     use std::collections::VecDeque;
 
@@ -1182,5 +1190,130 @@ mod tests {
         let waterlogged = generic::with_property(bottom_slab, "waterlogged", "true");
         assert_eq!(at(&world, 15, 1, 16), waterlogged);
         assert_eq!(at(&world, 14, 1, 16), water(1));
+    }
+
+    /// The state of a dedicated block that is waterlogged
+    fn waterlogged_id(block: Block) -> u32 {
+        block.with_waterlogged(true).unwrap().get_id()
+    }
+
+    #[test]
+    fn blocks_placed_into_water_are_waterlogged() {
+        let mut world = flat_world();
+        let pos = BlockPos::new(16, 1, 16);
+        world.set_block_raw(pos, water(0));
+        let slab = Block::SmoothStoneSlab {
+            ty: SlabType::Bottom,
+            waterlogged: false,
+        };
+        assert_eq!(
+            waterlog_on_place(&mut world, pos, slab),
+            Block::SmoothStoneSlab {
+                ty: SlabType::Bottom,
+                waterlogged: true,
+            }
+        );
+        // A double slab has no waterlogged state
+        let double = Block::SmoothStoneSlab {
+            ty: SlabType::Double,
+            waterlogged: false,
+        };
+        assert_eq!(waterlog_on_place(&mut world, pos, double), double);
+
+        world.set_block_raw(pos, 0);
+        assert_eq!(waterlog_on_place(&mut world, pos, slab), slab);
+    }
+
+    #[test]
+    fn water_fills_dedicated_waterloggable_blocks() {
+        let mut world = flat_world();
+        let slab = Block::SmoothStoneSlab {
+            ty: SlabType::Bottom,
+            waterlogged: false,
+        };
+        let sign = Block::OakSign {
+            rotation: 0,
+            waterlogged: false,
+        };
+        world.set_block(BlockPos::new(17, 1, 16), slab);
+        world.set_block(BlockPos::new(15, 1, 16), sign);
+        let source = BlockPos::new(16, 1, 16);
+        world.set_block_raw(source, water(0));
+        settle(&mut world, &[source]);
+
+        // The blocks are filled instead of replaced, and they spread the water as sources
+        assert_eq!(at(&world, 17, 1, 16), waterlogged_id(slab));
+        assert_eq!(at(&world, 18, 1, 16), water(1));
+        assert_eq!(at(&world, 15, 1, 16), waterlogged_id(sign));
+        assert_eq!(at(&world, 14, 1, 16), water(1));
+    }
+
+    #[test]
+    fn bucket_takes_water_of_waterlogged_blocks() {
+        let mut world = flat_world();
+        let eye = Vec3::new(16.5, 1.2, 12.5);
+        let dir = Vec3::new(0.0, 0.0, 1.0);
+
+        let pos = BlockPos::new(16, 1, 16);
+        let slab = Block::SmoothStoneSlab {
+            ty: SlabType::Bottom,
+            waterlogged: true,
+        };
+        world.set_block(pos, slab);
+        assert_eq!(source_in_sight(&world, eye, dir), Some(pos));
+        take_source(&mut world, pos);
+        assert_eq!(
+            world.get_block(pos),
+            Block::SmoothStoneSlab {
+                ty: SlabType::Bottom,
+                waterlogged: false,
+            }
+        );
+
+        // The water of a waterlogged block with a collision shape is found the same way
+        let pos = BlockPos::new(20, 1, 16);
+        let oak_slab = generic::with_property(
+            generic::default_state("minecraft:oak_slab").unwrap(),
+            "type",
+            "bottom",
+        );
+        world.set_block_raw(pos, generic::with_property(oak_slab, "waterlogged", "true"));
+        let eye = Vec3::new(20.5, 1.2, 12.5);
+        assert_eq!(source_in_sight(&world, eye, dir), Some(pos));
+        take_source(&mut world, pos);
+        assert_eq!(world.get_block_raw(pos), oak_slab);
+    }
+
+    #[test]
+    fn water_bucket_waterlogs_slabs() {
+        let mut world = flat_world();
+        let pos = BlockPos::new(16, 1, 16);
+        let oak_slab = generic::with_property(
+            generic::default_state("minecraft:oak_slab").unwrap(),
+            "type",
+            "bottom",
+        );
+        world.set_block_raw(pos, oak_slab);
+        let eye = Vec3::new(16.5, 1.2, 12.5);
+        let dir = Vec3::new(0.0, 0.0, 1.0);
+
+        // The water goes into the block when it's looked at, once it's waterlogged the water goes
+        // in front of it
+        assert_eq!(bucket_target(&world, eye, dir, Kind::Water), Some(pos));
+        let mut out = Vec::new();
+        place_fluid(&mut world, pos, FluidState::source(Kind::Water), &mut out);
+        assert_eq!(
+            world.get_block_raw(pos),
+            generic::with_property(oak_slab, "waterlogged", "true")
+        );
+        assert_eq!(
+            bucket_target(&world, eye, dir, Kind::Water),
+            Some(BlockPos::new(16, 1, 15))
+        );
+        // Lava doesn't go into the water of the block, so it's placed in front of it
+        assert_eq!(
+            bucket_target(&world, eye, dir, Kind::Lava),
+            Some(BlockPos::new(16, 1, 15))
+        );
     }
 }
