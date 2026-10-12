@@ -262,6 +262,15 @@ impl PlotWorld {
             pending_sounds: FxHashMap::default(),
             pending_ignitions: Default::default(),
             pending_falling: Default::default(),
+            pending_fluids: Default::default(),
+            pistons: Default::default(),
+            pending_piston_events: Vec::new(),
+            has_pistons: None,
+            pending_game_events: Vec::new(),
+            new_sensors: Vec::new(),
+            listening: false,
+            light: Default::default(),
+            transport: Default::default(),
         }
     }
 }
