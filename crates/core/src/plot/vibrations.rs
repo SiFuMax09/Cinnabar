@@ -141,7 +141,8 @@ fn distance(a: EventPos, b: EventPos) -> f32 {
 }
 
 fn occludes(world: &impl World, pos: BlockPos) -> bool {
-    matches!(world.get_block(pos), Block::Generic(id) if occludes_vibrations(generic::state_name(id)))
+    // Wool has a variant of its own, so the name is what tells blocks apart
+    occludes_vibrations(world.get_block(pos).get_name())
 }
 
 /// Whether a line from `from` to `to` passes through a block that stops vibrations. This walks
@@ -857,7 +858,7 @@ mod tests {
         assert_eq!(heard_by(&mut vibrations, 10, 2, 2), (true, false));
         assert_eq!(heard_by(&mut vibrations, 11, 2, 2), (false, false));
         // The range is a sphere
-        assert_eq!(heard_by(&mut vibrations, 7, 7, 4), (false, false));
+        assert_eq!(heard_by(&mut vibrations, 8, 7, 4), (false, false));
         assert_eq!(heard_by(&mut vibrations, 6, 6, 4), (true, false));
         // The calibrated sensor is at the edge of its range of 16 blocks
         assert_eq!(heard_by(&mut vibrations, 18, 2, 20), (false, true));

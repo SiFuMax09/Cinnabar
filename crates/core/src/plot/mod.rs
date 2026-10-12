@@ -6,8 +6,8 @@ mod monitor;
 mod packet_handlers;
 mod physics;
 mod scoreboard;
-mod vibrations;
 mod selection_viz;
+mod vibrations;
 pub use selection_viz::SelectionVisualizer;
 pub mod worldedit;
 

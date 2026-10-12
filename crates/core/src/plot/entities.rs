@@ -13,6 +13,7 @@ use mchprs_blocks::{generic, BlockFace, BlockPos};
 use mchprs_network::packets::clientbound::*;
 use mchprs_network::packets::{PacketEncoder, PacketEncoderExt};
 use mchprs_proc_macros::protocol_id;
+use mchprs_world::game_event::{block_center, EventContext, GameEvent};
 use mchprs_world::World;
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
@@ -274,6 +275,11 @@ impl Plot {
         if !self.spawn_entity(Entity::new(EntityKind::PrimedTnt { fuse }, pos, vel)) {
             return false;
         }
+        self.world.game_event(
+            GameEvent::PrimeFuse,
+            (pos.x, pos.y, pos.z),
+            EventContext::NONE,
+        );
         self.world.play_sound(
             pos.block_pos(),
             protocol_id!("minecraft:sound_event", "minecraft:entity.tnt.primed"),
@@ -399,6 +405,11 @@ impl Plot {
                     if let Some(player) = self.players.iter_mut().find(|p| p.uuid == owner) {
                         player.teleport(PlayerPos::new(pos.x, pos.y, pos.z));
                     }
+                    let at = (pos.x, pos.y, pos.z);
+                    self.world
+                        .game_event(GameEvent::ProjectileLand, at, EventContext::NONE);
+                    self.world
+                        .game_event(GameEvent::Teleport, at, EventContext::NONE);
                 }
             }
         }
@@ -414,6 +425,11 @@ impl Plot {
         self.reset_redpiler();
         self.world.set_block(block_pos, Block::from_id(block_id));
         interaction::change_neighbors(&mut self.world, block_pos);
+        self.world.game_event(
+            GameEvent::BlockPlace,
+            block_center(block_pos),
+            EventContext::affecting(Block::from_id(block_id).get_name()),
+        );
     }
 
     /// Destroys the blocks around the center of the explosion the way vanilla Minecraft does it
@@ -509,6 +525,11 @@ impl Plot {
             self.ignite_tnt_block(pos, fuse);
         }
 
+        self.world.game_event(
+            GameEvent::Explode,
+            (center.x, center.y, center.z),
+            EventContext::NONE,
+        );
         self.broadcast(
             &CExplode {
                 x: center.x,
