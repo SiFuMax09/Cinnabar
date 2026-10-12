@@ -163,7 +163,10 @@ fn nbt_str(val: &str) -> nbt::Value {
 /// The `minecraft:dimension_type` entry used for plots.
 fn plot_dimension_type(height: i32) -> nbt::Value {
     nbt_compound([
-        ("has_fixed_time", nbt_bool(true)),
+        // The time comes from the default clock and the timelines below
+        ("has_fixed_time", nbt_bool(false)),
+        ("default_clock", nbt_str("minecraft:overworld")),
+        ("timelines", nbt_str("#minecraft:in_overworld")),
         ("has_skylight", nbt_bool(true)),
         ("has_ceiling", nbt_bool(false)),
         ("has_ender_dragon_fight", nbt_bool(false)),
@@ -178,11 +181,11 @@ fn plot_dimension_type(height: i32) -> nbt::Value {
         (
             "attributes",
             nbt_compound([
-                ("minecraft:visual/sky_color", nbt_str("#7ba4ff")),
+                // Base values like in vanilla, the day timeline modifies them over the day.
+                // The angles of sun, moon and stars come from the timeline alone.
+                ("minecraft:visual/sky_color", nbt_str("#78a7ff")),
                 ("minecraft:visual/fog_color", nbt_str("#c0d8ff")),
-                ("minecraft:visual/cloud_color", nbt_str("#ffffffff")),
-                // Without a clock the sun stays at its default angle (noon)
-                ("minecraft:visual/moon_angle", nbt::Value::Float(180.0)),
+                ("minecraft:visual/cloud_color", nbt_str("#ccffffff")),
             ]),
         ),
     ])
@@ -194,7 +197,10 @@ fn plot_biome() -> nbt::Value {
         ("has_precipitation", nbt_bool(false)),
         ("temperature", nbt::Value::Float(0.5)),
         ("downfall", nbt::Value::Float(0.5)),
-        ("effects", nbt_compound([("water_color", nbt_str("#3f76e4"))])),
+        (
+            "effects",
+            nbt_compound([("water_color", nbt_str("#3f76e4"))]),
+        ),
     ])
 }
 
@@ -248,12 +254,14 @@ impl CRegistryData {
                 ],
             },
         ];
-        registries.extend(SYNCED_REGISTRIES.iter().map(|(registry, entries)| {
-            CRegistryData {
-                registry: (*registry).to_owned(),
-                entries: entries.iter().map(|e| ((*e).to_owned(), None)).collect(),
-            }
-        }));
+        registries.extend(
+            SYNCED_REGISTRIES
+                .iter()
+                .map(|(registry, entries)| CRegistryData {
+                    registry: (*registry).to_owned(),
+                    entries: entries.iter().map(|e| ((*e).to_owned(), None)).collect(),
+                }),
+        );
         registries
     }
 }
@@ -579,6 +587,10 @@ pub enum CGameEventType {
     ChangeGamemode,
     /// Start waiting for level chunks
     WaitForChunks,
+    StartRaining,
+    StopRaining,
+    RainLevelChange,
+    ThunderLevelChange,
 }
 
 pub struct CGameEvent {
@@ -592,6 +604,10 @@ impl ClientBoundPacket for CGameEvent {
         match self.reason {
             CGameEventType::ChangeGamemode => buf.write_unsigned_byte(3),
             CGameEventType::WaitForChunks => buf.write_unsigned_byte(13),
+            CGameEventType::StartRaining => buf.write_unsigned_byte(1),
+            CGameEventType::StopRaining => buf.write_unsigned_byte(2),
+            CGameEventType::RainLevelChange => buf.write_unsigned_byte(7),
+            CGameEventType::ThunderLevelChange => buf.write_unsigned_byte(8),
         }
         buf.write_float(self.value);
         PacketEncoder::new(buf, 0x26)
@@ -762,7 +778,9 @@ impl ClientBoundPacket for CExplode {
         };
         buf.write_varint(particle);
         // Sound, which is encoded as the id plus one
-        buf.write_varint(protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1);
+        buf.write_varint(
+            protocol_id!("minecraft:sound_event", "minecraft:entity.generic.explode") + 1,
+        );
         // Block particles
         buf.write_varint(0);
         PacketEncoder::new(buf, 0x24)
@@ -1377,17 +1395,35 @@ impl ClientBoundPacket for CUpdateObjectives {
     }
 }
 
+/// The state of a world clock as the client interpolates it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ClockNetworkState {
+    pub total_ticks: i64,
+    pub partial_tick: f32,
+    /// 0 when the clock is stopped
+    pub rate: f32,
+}
+
+/// The registry id of `minecraft:overworld` in the `minecraft:world_clock` registry
+const OVERWORLD_CLOCK_ID: i32 = 0;
+
 pub struct UpdateTime {
     pub world_age: i64,
-    pub time_of_day: i64,
+    /// The new state of the overworld clock, which drives the day/night cycle of plots
+    pub overworld_clock: Option<ClockNetworkState>,
 }
 
 impl ClientBoundPacket for UpdateTime {
     fn encode(&self) -> PacketEncoder {
         let mut buf = Vec::new();
         buf.write_long(self.world_age);
-        // Clock updates. Plots have no clock, so there is nothing to synchronize.
-        buf.write_varint(0);
+        buf.write_varint(self.overworld_clock.is_some() as i32);
+        if let Some(clock) = &self.overworld_clock {
+            buf.write_varint(OVERWORLD_CLOCK_ID);
+            buf.write_varlong(clock.total_ticks);
+            buf.write_float(clock.partial_tick);
+            buf.write_float(clock.rate);
+        }
         PacketEncoder::new(buf, 0x71)
     }
 }

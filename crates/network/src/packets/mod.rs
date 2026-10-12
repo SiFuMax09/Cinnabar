@@ -4,11 +4,11 @@ pub mod serverbound;
 use crate::nbt_util::NBTCompound;
 
 use super::NetworkState;
+use crate::registry_entries::BLOCK_ENTITY_TYPES;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use flate2::bufread::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
-use crate::registry_entries::BLOCK_ENTITY_TYPES;
 use mchprs_proc_macros::protocol_id;
 use mchprs_text::TextComponent;
 use serde::Serialize;
@@ -31,7 +31,10 @@ pub struct SlotData {
 }
 
 fn block_entity_data_component_id() -> i32 {
-    protocol_id!("minecraft:data_component_type", "minecraft:block_entity_data")
+    protocol_id!(
+        "minecraft:data_component_type",
+        "minecraft:block_entity_data"
+    )
 }
 
 fn block_entity_type_id(name: &str) -> Option<i32> {
@@ -373,9 +376,11 @@ pub trait PacketEncoderExt: Write {
         let _ = self.write_all(&PacketEncoder::varint(val));
     }
 
-    fn write_varlong(&mut self, mut val: i64) {
+    fn write_varlong(&mut self, val: i64) {
+        // Logical shift, negative values take ten bytes
+        let mut val = val as u64;
         loop {
-            let mut temp = (val & 0b1111_1111) as u8;
+            let mut temp = (val & 0b0111_1111) as u8;
             val >>= 7;
             if val != 0 {
                 temp |= 0b1000_0000;
@@ -508,7 +513,11 @@ pub trait PacketEncoderExt: Write {
             let nbt::Value::Compound(tag) = nbt.get("BlockEntityTag")? else {
                 return None;
             };
-            let id = match tag.get("id").or_else(|| tag.get("Id")).or_else(|| nbt.get("id")) {
+            let id = match tag
+                .get("id")
+                .or_else(|| tag.get("Id"))
+                .or_else(|| nbt.get("id"))
+            {
                 Some(nbt::Value::String(id)) => id,
                 _ => return None,
             };
@@ -610,5 +619,27 @@ impl PacketEncoder {
         w.write_all(&self.buffer)?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn varlong_encoding() {
+        let encode = |val: i64| {
+            let mut buf = Vec::new();
+            buf.write_varlong(val);
+            buf
+        };
+        assert_eq!(encode(0), [0]);
+        assert_eq!(encode(127), [0x7f]);
+        assert_eq!(encode(128), [0x80, 0x01]);
+        assert_eq!(encode(6000), [0xf0, 0x2e]);
+        assert_eq!(
+            encode(-1),
+            [0xff; 9].iter().copied().chain([1]).collect::<Vec<_>>()
+        );
     }
 }
