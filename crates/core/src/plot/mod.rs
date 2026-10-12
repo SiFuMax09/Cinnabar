@@ -6,6 +6,8 @@ pub mod database;
 mod monitor;
 mod packet_handlers;
 mod scoreboard;
+mod selection_viz;
+pub use selection_viz::SelectionVisualizer;
 pub mod worldedit;
 
 use crate::config::CONFIG;
@@ -1036,6 +1038,9 @@ impl Plot {
         // Handle received packets
         for player_idx in 0..self.players.len() {
             self.handle_packets_for_player(player_idx);
+        }
+        for player_idx in 0..self.players.len() {
+            self.update_selection_visuals(player_idx);
         }
     }
 
