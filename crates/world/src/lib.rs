@@ -95,6 +95,10 @@ pub trait World: 'static {
     /// Notifies the world that the block at `pos` might have to start falling
     #[allow(unused_variables)]
     fn schedule_falling_block(&mut self, pos: BlockPos) {}
+
+    /// Notifies the world that the fluid at `pos` might have to flow or dry up
+    #[allow(unused_variables)]
+    fn schedule_fluid_tick(&mut self, pos: BlockPos) {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

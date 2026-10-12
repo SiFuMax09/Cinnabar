@@ -421,7 +421,7 @@ impl ServerBoundPacketHandler for Plot {
                     dir * 1.5,
                 ));
             }
-            _ => {}
+            name => self.use_bucket(player, name, &use_item),
         }
     }
 
