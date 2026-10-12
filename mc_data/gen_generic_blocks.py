@@ -17,6 +17,9 @@ Outputs:
                       collision
   block_resistance.bin the explosion resistance of every block state in tenths, as little endian
                       u16 clamped to 65535
+  block_light.bin     two bytes per block state: the light emission in the low nibble and the light
+                      dampening in the high nibble of the first byte, and a mask of the faces (down, up,
+                      north, south, west, east) whose occlusion shape covers the whole face
   item_names.txt      the names of all items in protocol id order
 """
 import json
@@ -71,14 +74,17 @@ def main():
     attrs = bytearray(num_states * 2)
     collision = bytearray(b"\xff" * (num_states * 6))
     resistances = bytearray(num_states * 2)
+    light = bytearray(num_states * 2)
     seen = 0
     for line in open(attrs_path):
-        state_id, solid, sturdy, full, instrument, bounds, resistance = line.split()
+        state_id, solid, sturdy, full, instrument, bounds, resistance, emission, dampening, faces = line.split()
         res = int(round(float(resistance) * 10)) if float(resistance) < 6000 else 65535
         resistances[int(state_id) * 2:int(state_id) * 2 + 2] = res.to_bytes(2, "little")
         if bounds != "none":
             collision[int(state_id) * 6:int(state_id) * 6 + 6] = bytes(int(v) + COLLISION_OFFSET for v in bounds.split(","))
         state_id = int(state_id)
+        light[state_id * 2] = int(emission) | int(dampening) << 4
+        light[state_id * 2 + 1] = int(faces)
         attrs[state_id * 2] = int(solid) | int(sturdy) << 1 | int(full) << 2
         attrs[state_id * 2 + 1] = INSTRUMENTS.index(instrument)
         seen += 1
@@ -86,6 +92,7 @@ def main():
     open(f"{out_dir}/block_attrs.bin", "wb").write(attrs)
     open(f"{out_dir}/block_collision.bin", "wb").write(collision)
     open(f"{out_dir}/block_resistance.bin", "wb").write(resistances)
+    open(f"{out_dir}/block_light.bin", "wb").write(light)
 
     items = sorted(registries["minecraft:item"]["entries"].items(), key=lambda kv: kv[1]["protocol_id"])
     assert [e["protocol_id"] for _, e in items] == list(range(len(items)))
