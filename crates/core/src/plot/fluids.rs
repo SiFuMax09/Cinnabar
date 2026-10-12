@@ -181,6 +181,11 @@ fn with_waterlogged(id: u32, waterlogged: bool) -> u32 {
         .map_or(id, |block| block.get_id())
 }
 
+/// The block of a source of water, which is what a waterlogged block leaves behind when it breaks
+pub fn water_source() -> Block {
+    Block::Generic(*WATER_FIRST)
+}
+
 /// The fluid that is in a block with this state, which includes waterlogged blocks
 pub fn fluid_at_id(id: u32) -> Option<FluidState> {
     let water = id.wrapping_sub(*WATER_FIRST);
@@ -1246,6 +1251,28 @@ mod tests {
         assert_eq!(at(&world, 18, 1, 16), water(1));
         assert_eq!(at(&world, 15, 1, 16), waterlogged_id(sign));
         assert_eq!(at(&world, 14, 1, 16), water(1));
+    }
+
+    #[test]
+    fn breaking_a_waterlogged_block_leaves_water() {
+        let mut world = flat_world();
+        let pos = BlockPos::new(16, 1, 16);
+        let slab = Block::SmoothStoneSlab {
+            ty: SlabType::Bottom,
+            waterlogged: true,
+        };
+        world.set_block(pos, slab);
+        interaction::destroy(slab, &mut world, pos);
+        assert_eq!(at(&world, 16, 1, 16), water(0));
+
+        let dry = Block::SmoothStoneSlab {
+            ty: SlabType::Bottom,
+            waterlogged: false,
+        };
+        let pos = BlockPos::new(18, 1, 16);
+        world.set_block(pos, dry);
+        interaction::destroy(dry, &mut world, pos);
+        assert_eq!(world.get_block_raw(pos), 0);
     }
 
     #[test]
