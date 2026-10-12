@@ -22,7 +22,8 @@ use std::time::{Instant, SystemTime};
 use tracing::{error, warn};
 
 pub type EntityId = u32;
-static ENTITY_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
+// Entity id 0 is invalid since 26.1
+static ENTITY_ID_COUNTER: AtomicU32 = AtomicU32::new(1);
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum Gamemode {
@@ -588,7 +589,7 @@ impl Player {
                     value: vec![if self.crouching { 5 } else { 0 }],
                 },
                 CSetEntityMetadataEntry {
-                    index: 17,
+                    index: 16,
                     metadata_type: 0,
                     value: vec![self.skin_parts.bits() as u8],
                 },

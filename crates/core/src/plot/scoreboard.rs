@@ -129,6 +129,17 @@ impl Scoreboard {
         for i in 0..self.current_state.len() {
             player.send_packet(&self.make_removal_packet(i).encode());
         }
+        // The client throws if the same objective is added twice, so it must not outlive the plot
+        player.send_packet(
+            &CUpdateObjectives {
+                objective_name: "redpiler_status".into(),
+                mode: 1,
+                objective_value: TextComponentBuilder::new(String::new()).finish(),
+                ty: 0,
+                number_format: None,
+            }
+            .encode(),
+        );
     }
 
     pub fn set_redpiler_state(&mut self, players: &[Player], state: RedpilerState) {

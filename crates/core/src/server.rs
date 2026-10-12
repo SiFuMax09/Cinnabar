@@ -11,7 +11,7 @@ use mchprs_network::packets::clientbound::{
     CConfigurationPluginMessage, CDisconnectLogin, CFinishConfiguration, CGameEvent,
     CGameEventType, CLogin, CLoginPluginRequest, CLoginSuccess, CPlayerInfoActions,
     CPlayerInfoAddPlayer, CPlayerInfoUpdate, CPlayerInfoUpdatePlayer, CPong,
-    CRegistryData, CResponse, CSelectKnownPacks, CSetCompression, CSetContainerContent, CSetHeldItem, CSynchronizePlayerPosition,
+    CRegistryData, CResponse, CSelectKnownPacks, CSetCompression, CSetContainerContent, CUpdateTags, CSetHeldItem, CSynchronizePlayerPosition,
     ClientBoundPacket, UpdateTime,
 };
 use mchprs_network::packets::serverbound::{
@@ -749,6 +749,7 @@ impl ServerBoundPacketHandler for MinecraftServer {
         for registry in CRegistryData::all(PLOT_BLOCK_HEIGHT) {
             client.send_packet(&registry.encode());
         }
+        client.send_packet(&CUpdateTags.encode());
 
         client.send_packet(&CFinishConfiguration.encode());
     }

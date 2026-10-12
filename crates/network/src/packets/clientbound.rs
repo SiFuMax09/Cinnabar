@@ -1,6 +1,6 @@
 use super::{PacketEncoder, PacketEncoderExt, PalettedContainer, PlayerProperty, SlotData};
 use crate::nbt_util::NBTCompound;
-use crate::registry_entries::SYNCED_REGISTRIES;
+use crate::registry_entries::{SYNCED_REGISTRIES, TAGS};
 use bitvec::bits;
 use bitvec::prelude::Lsb0;
 use mchprs_proc_macros::protocol_id;
@@ -196,6 +196,28 @@ fn plot_biome() -> nbt::Value {
         ("downfall", nbt::Value::Float(0.5)),
         ("effects", nbt_compound([("water_color", nbt_str("#3f76e4"))])),
     ])
+}
+
+/// Sends the tags of all registries that have any.
+pub struct CUpdateTags;
+
+impl ClientBoundPacket for CUpdateTags {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        buf.write_varint(TAGS.len() as i32);
+        for (registry, tags) in TAGS {
+            buf.write_identifier(registry);
+            buf.write_varint(tags.len() as i32);
+            for (tag, ids) in *tags {
+                buf.write_identifier(tag);
+                buf.write_varint(ids.len() as i32);
+                for id in *ids {
+                    buf.write_varint(*id as i32);
+                }
+            }
+        }
+        PacketEncoder::new(buf, 0x0D)
+    }
 }
 
 /// Registry Data for a single registry. An entry without data is looked up in the known packs
@@ -670,28 +692,28 @@ impl ClientBoundPacket for CChunkData {
             buf.write_nbt(&block_entity.data);
         }
 
-        // We don't do lighting because we have max ambient light
-        // These will all be zeros
-
+        // Plots are fully lit by the sky: every section, including the one below and the one above
+        // the chunk, gets sky light level 15 and block light is left unset.
+        let light_sections = self.chunk_sections.len() + 2;
+        let sky_mask = bits![u64, Lsb0; 1].repeat(light_sections);
+        let longs = sky_mask.as_raw_slice();
         // Sky Light Mask
-        buf.write_varint(0);
+        buf.write_varint(longs.len() as i32);
+        longs.iter().for_each(|&x| buf.write_long(x as i64));
         // Block Light Mask
         buf.write_varint(0);
-
-        let bits = bits![u64, Lsb0; 1].repeat(self.chunk_sections.len() + 2);
-        let longs = bits.as_raw_slice();
         // Empty Sky Light Mask
-        buf.write_varint(longs.len() as i32);
-        longs.iter().for_each(|&x| buf.write_long(x as i64));
+        buf.write_varint(0);
         // Empty Block Light Mask
-        buf.write_varint(longs.len() as i32);
-        longs.iter().for_each(|&x| buf.write_long(x as i64));
-
-        // Sky Light array count
         buf.write_varint(0);
-        // Block Light array count
+        // Sky Light arrays
+        buf.write_varint(light_sections as i32);
+        for _ in 0..light_sections {
+            buf.write_varint(2048);
+            buf.write_bytes(&[0xFF; 2048]);
+        }
+        // Block Light arrays
         buf.write_varint(0);
-
         PacketEncoder::new(buf, 0x2d)
     }
 }
