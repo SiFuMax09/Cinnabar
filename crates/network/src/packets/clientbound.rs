@@ -1340,3 +1340,100 @@ impl ClientBoundPacket for CSystemChatMessage {
         PacketEncoder::new(buf, 0x69)
     }
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BossBarColor {
+    Pink = 0,
+    Blue = 1,
+    Red = 2,
+    Green = 3,
+    Yellow = 4,
+    Purple = 5,
+    White = 6,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BossBarOverlay {
+    Progress = 0,
+    Notched6 = 1,
+    Notched10 = 2,
+    Notched12 = 3,
+    Notched20 = 4,
+}
+
+/// ClientboundBossEventPacket. The client throws when an `Add` uses an id that already exists,
+/// so callers must track state or send `Remove` first.
+pub enum CBossEvent {
+    Add {
+        uuid: u128,
+        title: TextComponent,
+        progress: f32,
+        color: BossBarColor,
+        overlay: BossBarOverlay,
+    },
+    Remove {
+        uuid: u128,
+    },
+    UpdateProgress {
+        uuid: u128,
+        progress: f32,
+    },
+    UpdateTitle {
+        uuid: u128,
+        title: TextComponent,
+    },
+    UpdateStyle {
+        uuid: u128,
+        color: BossBarColor,
+        overlay: BossBarOverlay,
+    },
+}
+
+impl ClientBoundPacket for CBossEvent {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        match self {
+            CBossEvent::Add {
+                uuid,
+                title,
+                progress,
+                color,
+                overlay,
+            } => {
+                buf.write_uuid(*uuid);
+                buf.write_varint(0);
+                buf.write_text_component(title);
+                buf.write_float(*progress);
+                buf.write_varint(*color as i32);
+                buf.write_varint(*overlay as i32);
+                // darken screen / play music / create fog
+                buf.write_unsigned_byte(0);
+            }
+            CBossEvent::Remove { uuid } => {
+                buf.write_uuid(*uuid);
+                buf.write_varint(1);
+            }
+            CBossEvent::UpdateProgress { uuid, progress } => {
+                buf.write_uuid(*uuid);
+                buf.write_varint(2);
+                buf.write_float(*progress);
+            }
+            CBossEvent::UpdateTitle { uuid, title } => {
+                buf.write_uuid(*uuid);
+                buf.write_varint(3);
+                buf.write_text_component(title);
+            }
+            CBossEvent::UpdateStyle {
+                uuid,
+                color,
+                overlay,
+            } => {
+                buf.write_uuid(*uuid);
+                buf.write_varint(4);
+                buf.write_varint(*color as i32);
+                buf.write_varint(*overlay as i32);
+            }
+        }
+        PacketEncoder::new(buf, 0x0A)
+    }
+}
