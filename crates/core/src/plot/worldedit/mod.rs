@@ -3,6 +3,8 @@
 #[cfg(test)]
 mod bench;
 mod brush;
+#[cfg(test)]
+mod command_tests;
 mod execute;
 mod history;
 mod job;
