@@ -1,9 +1,9 @@
-//! World ids for client side map mods (JourneyMap, VoxelMap, Xaero's Minimap and World Map).
+//! World id for client side map mods (JourneyMap, VoxelMap, Xaero's Minimap and World Map).
 //!
-//! These mods keep one map per "world" and have no way to tell two worlds apart on a server that
-//! never changes dimension. Every plot is its own world here, so each plot gets its own id and
-//! the maps of different plots no longer mix. Normally this needs a proxy or backend plugin
-//! (WorldNamePacket, MapModCompanion); the server does it natively instead.
+//! These mods keep one map per "world" and tell worlds apart by an id the server has to provide.
+//! The whole server is one big world, so every player gets the same id and all plots share one
+//! map. Normally this needs a proxy or backend plugin (WorldNamePacket, MapModCompanion); the
+//! server does it natively instead.
 //!
 //! JourneyMap and VoxelMap ask for the id themselves on `worldinfo:world_id`, Xaero's mods have to
 //! be told on their own channels.
@@ -18,11 +18,8 @@ const XAERO_WORLDMAP_CHANNEL: &str = "xaeroworldmap:main";
 /// First byte of a request or response that is not zero padding.
 const MAGIC_MARKER: u8 = 42;
 
-/// The id of a plot: both coordinates packed into a non-negative `i32`. Plots further than
-/// 16384 away from the origin would share an id with another plot.
-pub fn plot_map_id(plot_x: i32, plot_z: i32) -> i32 {
-    ((plot_x & 0x7fff) << 16) | (plot_z & 0xffff)
-}
+/// The id of the one world every player is in.
+const WORLD_MAP_ID: i32 = 1;
 
 /// How a client framed its request. The response has to use the same framing.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -65,9 +62,9 @@ fn xaero_payload(id: i32) -> Vec<u8> {
     out
 }
 
-/// Tells Xaero's Minimap and World Map which plot the player is in.
-pub fn send_xaero_ids(player: &Player, plot_x: i32, plot_z: i32) {
-    let payload = xaero_payload(plot_map_id(plot_x, plot_z));
+/// Tells Xaero's Minimap and World Map which world the player is in.
+pub fn send_xaero_ids(player: &Player) {
+    let payload = xaero_payload(WORLD_MAP_ID);
     for channel in [XAERO_MINIMAP_CHANNEL, XAERO_WORLDMAP_CHANNEL] {
         let packet = CPlayPluginMessage {
             channel: channel.to_string(),
@@ -79,20 +76,14 @@ pub fn send_xaero_ids(player: &Player, plot_x: i32, plot_z: i32) {
 }
 
 /// Answers a plugin message if it is a world id request. Returns whether it was one.
-pub fn handle_request(
-    player: &Player,
-    channel: &str,
-    data: &[u8],
-    plot_x: i32,
-    plot_z: i32,
-) -> bool {
+pub fn handle_request(player: &Player, channel: &str, data: &[u8]) -> bool {
     if channel != WORLD_ID_CHANNEL {
         return false;
     }
     if let Some(request) = WorldIdRequest::parse(data) {
         let packet = CPlayPluginMessage {
             channel: WORLD_ID_CHANNEL.to_string(),
-            data: request.response(plot_map_id(plot_x, plot_z)),
+            data: request.response(WORLD_MAP_ID),
         }
         .encode();
         player.client.send_packet(&packet);
@@ -103,20 +94,6 @@ pub fn handle_request(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn plot_ids_are_distinct_and_not_negative() {
-        let mut seen = std::collections::HashSet::new();
-        for x in -20..20 {
-            for z in -20..20 {
-                let id = plot_map_id(x, z);
-                assert!(id >= 0);
-                assert!(seen.insert(id), "duplicate id for plot ({x}, {z})");
-            }
-        }
-        assert_eq!(plot_map_id(0, 0), 0);
-        assert_eq!(plot_map_id(1, 2), (1 << 16) | 2);
-    }
 
     #[test]
     fn journeymap_request_gets_a_prefixed_response() {

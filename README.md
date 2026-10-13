@@ -90,7 +90,7 @@ secret = "<secret>"
 
 ### Map mods
 
-JourneyMap, VoxelMap and Xaero's Minimap/World Map can tell worlds apart only if the server names them. Cinnabar does this natively, so no WorldNamePacket or MapModCompanion plugin is needed: every plot gets its own world id, which keeps the maps of different plots separate. JourneyMap and VoxelMap ask on `worldinfo:world_id`, Xaero's mods are told on `xaerominimap:main` and `xaeroworldmap:main` when you enter a plot. Behind Velocity you do not need MapModCompanion either, as long as the proxy does not rewrite these channels.
+JourneyMap, VoxelMap and Xaero's Minimap/World Map can tell worlds apart only if the server names them. Cinnabar does this natively, so no WorldNamePacket or MapModCompanion plugin is needed: the server is one big world and every player gets the same world id, so all plots share one map. JourneyMap and VoxelMap ask on `worldinfo:world_id`, Xaero's mods are told on `xaerominimap:main` and `xaeroworldmap:main` when you enter a plot. Behind Velocity you do not need MapModCompanion either, as long as the proxy does not rewrite these channels.
 
 ### LuckPerms
 

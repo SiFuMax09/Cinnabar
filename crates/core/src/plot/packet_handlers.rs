@@ -341,8 +341,6 @@ impl ServerBoundPacketHandler for Plot {
             &self.players[player],
             &plugin_message.channel,
             &plugin_message.data,
-            self.world.x,
-            self.world.z,
         ) {
             return;
         }

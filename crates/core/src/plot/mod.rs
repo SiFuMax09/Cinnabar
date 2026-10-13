@@ -746,7 +746,7 @@ impl Plot {
             .packet_senders
             .push(PlayerPacketSender::new(&player.client));
         self.scoreboard.add_player(&player);
-        map_ids::send_xaero_ids(&player, self.world.x, self.world.z);
+        map_ids::send_xaero_ids(&player);
         self.perf.mark_dirty();
         self.environment.sync_player(&player);
         self.players.push(player);
