@@ -445,7 +445,11 @@ impl PerfDisplay {
     }
 
     /// The title, progress, colour and style of the bar of a player
-    fn bar_for(snapshot: &PerfSnapshot, mode: PerfMode, ping_ms: u32) -> (TextComponent, f32, ShownBar) {
+    fn bar_for(
+        snapshot: &PerfSnapshot,
+        mode: PerfMode,
+        ping_ms: u32,
+    ) -> (TextComponent, f32, ShownBar) {
         match mode {
             PerfMode::Full => (
                 snapshot.title(),

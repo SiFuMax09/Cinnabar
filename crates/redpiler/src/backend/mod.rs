@@ -5,9 +5,9 @@ use std::sync::Arc;
 use super::compile_graph::CompileGraph;
 use super::task_monitor::TaskMonitor;
 use super::CompilerOptions;
-use enum_dispatch::enum_dispatch;
 use cinnabar_blocks::BlockPos;
 use cinnabar_world::{TickEntry, World};
+use enum_dispatch::enum_dispatch;
 
 #[enum_dispatch]
 pub trait JITBackend {

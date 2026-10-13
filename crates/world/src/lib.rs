@@ -5,10 +5,10 @@ pub mod storage;
 pub mod testing;
 pub mod transport;
 
-use game_event::{EventContext, EventPos, GameEvent};
 use cinnabar_blocks::block_entities::BlockEntity;
 use cinnabar_blocks::blocks::Block;
 use cinnabar_blocks::BlockPos;
+use game_event::{EventContext, EventPos, GameEvent};
 use serde::{Deserialize, Serialize};
 use storage::Chunk;
 

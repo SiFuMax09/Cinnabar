@@ -7,7 +7,6 @@ use crate::utils::HyphenatedUUID;
 use crate::{permissions, utils};
 use backtrace::Backtrace;
 use bus::Bus;
-use hmac::{Hmac, Mac};
 use cinnabar_blocks::BlockPos;
 use cinnabar_network::packets::clientbound::{
     CConfigurationPluginMessage, CDisconnectLogin, CFinishConfiguration, CGameEvent,
@@ -27,6 +26,7 @@ use cinnabar_network::packets::{
 use cinnabar_network::{NetworkServer, NetworkState, PlayerPacketSender};
 use cinnabar_text::TextComponent;
 use cinnabar_world::{MC_VERSION, PROTOCOL_VERSION};
+use hmac::{Hmac, Mac};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::json;

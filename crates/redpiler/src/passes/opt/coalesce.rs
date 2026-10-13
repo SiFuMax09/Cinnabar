@@ -1,8 +1,8 @@
 use crate::compile_graph::{CompileGraph, Direction, LinkType, NodeIdx, NodeType};
 use crate::passes::{AnalysisInfos, Pass};
 use crate::{CompilerInput, CompilerOptions};
-use itertools::Itertools;
 use cinnabar_world::World;
+use itertools::Itertools;
 use tracing::trace;
 
 pub struct Coalesce;

@@ -398,7 +398,11 @@ mod tests {
     use super::*;
 
     fn temp_path(name: &str) -> std::path::PathBuf {
-        std::env::temp_dir().join(format!("cinnabar_schematic_{}_{}", std::process::id(), name))
+        std::env::temp_dir().join(format!(
+            "cinnabar_schematic_{}_{}",
+            std::process::id(),
+            name
+        ))
     }
 
     #[test]

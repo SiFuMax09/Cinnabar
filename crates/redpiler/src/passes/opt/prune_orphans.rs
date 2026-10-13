@@ -6,8 +6,8 @@
 use crate::compile_graph::{CompileGraph, Direction};
 use crate::passes::{AnalysisInfos, Pass};
 use crate::{CompilerInput, CompilerOptions};
-use itertools::Itertools;
 use cinnabar_world::World;
+use itertools::Itertools;
 
 pub struct PruneOrphans;
 

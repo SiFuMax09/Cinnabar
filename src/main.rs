@@ -1,5 +1,5 @@
-use clap::Parser;
 use cinnabar_core::server::{get_version_string, MinecraftServer};
+use clap::Parser;
 use std::fs;
 use std::path::Path;
 use tracing::debug;

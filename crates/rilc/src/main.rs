@@ -1,5 +1,3 @@
-use clap::{Parser, Subcommand};
-use line_index::{LineIndex, TextSize};
 use cinnabar_blocks::BlockPos;
 use cinnabar_redpiler::{
     passes::{PassPipeline, PassPipelineBuilder, PassRegistry},
@@ -8,6 +6,8 @@ use cinnabar_redpiler::{
 };
 use cinnabar_schematic::{load_schematic, paste_clipboard};
 use cinnabar_world::testing::TestWorld;
+use clap::{Parser, Subcommand};
+use line_index::{LineIndex, TextSize};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 

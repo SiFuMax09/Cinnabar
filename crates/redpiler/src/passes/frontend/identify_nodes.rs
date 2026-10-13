@@ -10,12 +10,12 @@
 use crate::compile_graph::{Annotations, CompileGraph, CompileNode, NodeIdx, NodeState, NodeType};
 use crate::passes::{AnalysisInfos, Pass};
 use crate::{CompilerInput, CompilerOptions};
-use itertools::Itertools;
 use cinnabar_blocks::block_entities::BlockEntity;
 use cinnabar_blocks::blocks::Block;
 use cinnabar_blocks::{BlockDirection, BlockFace, BlockPos};
 use cinnabar_redstone::{self, comparator, noteblock, wire};
 use cinnabar_world::{for_each_block_optimized, World};
+use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 use smallvec::smallvec;

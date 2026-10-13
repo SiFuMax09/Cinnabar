@@ -121,9 +121,16 @@ mod tests {
 
     #[test]
     fn durations() {
-        assert_eq!(press_duration(button("minecraft:oak_button", "wall", "north")), 15);
         assert_eq!(
-            press_duration(button("minecraft:polished_blackstone_button", "wall", "north")),
+            press_duration(button("minecraft:oak_button", "wall", "north")),
+            15
+        );
+        assert_eq!(
+            press_duration(button(
+                "minecraft:polished_blackstone_button",
+                "wall",
+                "north"
+            )),
             10
         );
     }

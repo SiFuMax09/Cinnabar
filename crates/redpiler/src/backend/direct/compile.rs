@@ -1,9 +1,9 @@
 use crate::backend::direct::node::ForwardLinks;
 use crate::compile_graph::{CompileGraph, Direction, LinkType, NodeIdx};
 use crate::{CompilerOptions, TaskMonitor};
-use itertools::Itertools;
 use cinnabar_blocks::blocks::Block;
 use cinnabar_world::TickEntry;
+use itertools::Itertools;
 use rustc_hash::FxHashMap;
 use std::sync::Arc;
 use tracing::trace;

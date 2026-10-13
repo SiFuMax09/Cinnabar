@@ -1291,7 +1291,9 @@ pub(super) fn execute_replace_container(ctx: CommandExecuteContext<'_>) {
             enabled: true,
             facing: HopperFacing::Down,
         },
-        other => Block::Generic(cinnabar_blocks::generic::default_state(&other.to_string()).unwrap()),
+        other => {
+            Block::Generic(cinnabar_blocks::generic::default_state(&other.to_string()).unwrap())
+        }
     };
     let slots = to.num_slots() as u32;
 
