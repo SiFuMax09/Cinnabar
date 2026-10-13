@@ -38,6 +38,11 @@ jobs:
             type=sha,format=short
             type=ref,event=pr
 
+      - name: Compute cache reference
+        id: cache
+        # GHCR needs lowercase names; github.repository keeps the original case.
+        run: echo "ref=${REGISTRY}/${GITHUB_REPOSITORY,,}:buildcache" >> "$GITHUB_OUTPUT"
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
@@ -67,5 +72,10 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
             REVISION=${{ github.sha }}
             SOURCE=${{ github.server_url }}/${{ github.repository }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # The registry cache survives the 10 GB GitHub cache limit and is shared
+          # by every branch; pull requests (possibly from forks) only use the
+          # GitHub cache for writing.
+          cache-from: |
+            type=registry,ref=${{ steps.cache.outputs.ref }}
+            type=gha
+          cache-to: ${{ github.event_name != 'pull_request' && format('type=registry,ref={0},mode=max,image-manifest=true,oci-mediatypes=true', steps.cache.outputs.ref) || 'type=gha,mode=max' }}
