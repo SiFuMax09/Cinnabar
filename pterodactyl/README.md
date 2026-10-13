@@ -9,7 +9,7 @@
 
 ### Image placeholder
 
-The egg points at `ghcr.io/sifumax09/mtrmc:latest` (and `:26.2`), derived from this repository's git remote. If you use another fork, replace it with `ghcr.io/<owner>/<repo>:latest` (lowercase) in the egg's "Docker Images" section. The image is published by `.github/workflows/docker.yml`; make the GHCR package public or configure registry credentials in Wings.
+The egg points at `ghcr.io/sifumax09/cinnabar:latest` (and `:26.2`), derived from this repository's git remote. If you use another fork, replace it with `ghcr.io/<owner>/<repo>:latest` (lowercase) in the egg's "Docker Images" section. The image is published by `.github/workflows/docker.yml`; make the GHCR package public or configure registry credentials in Wings.
 
 ## How it works
 

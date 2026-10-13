@@ -2,7 +2,7 @@
 # Replace the image with ghcr.io/<owner>/<repo>:latest of your fork, or use `build: .`
 services:
   cinnabar:
-    image: ghcr.io/sifumax09/mtrmc:latest
+    image: ghcr.io/sifumax09/cinnabar:latest
     # build: .
     container_name: cinnabar
     restart: unless-stopped

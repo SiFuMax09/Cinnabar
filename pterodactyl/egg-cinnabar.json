@@ -10,8 +10,8 @@
     "description": "Cinnabar - Minecraft High Performance Redstone Server for Minecraft 26.2. Each plot runs on its own thread and redstone can be compiled with Redpiler. Players need a Minecraft 26.2 client. Uses the prebuilt container image; change the image in the Docker Images section if you host your own fork (ghcr.io/<owner>/<repo>).",
     "features": null,
     "docker_images": {
-        "Cinnabar (GHCR, latest)": "ghcr.io/sifumax09/mtrmc:latest",
-        "Cinnabar (GHCR, Minecraft 26.2)": "ghcr.io/sifumax09/mtrmc:26.2"
+        "Cinnabar (GHCR, latest)": "ghcr.io/sifumax09/cinnabar:latest",
+        "Cinnabar (GHCR, Minecraft 26.2)": "ghcr.io/sifumax09/cinnabar:26.2"
     },
     "file_denylist": [],
     "startup": "./cinnabar",

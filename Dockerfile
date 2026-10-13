@@ -33,7 +33,7 @@ FROM alpine:3.22 AS runtime
 
 ARG VERSION=dev
 ARG REVISION=unknown
-ARG SOURCE=https://github.com/SiFuMax09/MTRMC
+ARG SOURCE=https://github.com/SiFuMax09/Cinnabar
 LABEL org.opencontainers.image.title="Cinnabar" \
       org.opencontainers.image.description="Minecraft High Performance Redstone Server (Minecraft 26.2)" \
       org.opencontainers.image.source="${SOURCE}" \

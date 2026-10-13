@@ -1,6 +1,6 @@
 # Cinnabar
 
-[![Build Status](https://github.com/SiFuMax09/MTRMC/actions/workflows/build.yml/badge.svg)](https://github.com/SiFuMax09/MTRMC/actions/workflows/build.yml)
+[![Build Status](https://github.com/SiFuMax09/Cinnabar/actions/workflows/build.yml/badge.svg)](https://github.com/SiFuMax09/Cinnabar/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Discord Banner 2](https://discordapp.com/api/guilds/724072903083163679/widget.png)](https://discord.com/invite/svK9JU7)
 
@@ -34,8 +34,8 @@ MCHPRS, the project Cinnabar is based on, made it possible to run programs such 
 If the Rust compiler is not already installed, you can find out how [on their official website](https://www.rust-lang.org/tools/install).
 
 ```shell
-git clone https://github.com/SiFuMax09/MTRMC.git
-cd MTRMC
+git clone https://github.com/SiFuMax09/Cinnabar.git
+cd Cinnabar
 cargo build --release
 ```
 
@@ -46,7 +46,7 @@ Once complete, the optimized executable will be located at `./target/release/cin
 Multi-arch (amd64/arm64) images are published to GHCR as `ghcr.io/<owner>/<repo>` with the tags `latest`, `26.2`, semver and short commit sha. The server runs as a non-root user (uid 10001) and keeps everything (`Config.toml`, `world/`, `schems/`, `logs/`) in the `/data` volume.
 
 ```shell
-docker run -d --name cinnabar -p 25565:25565 -v cinnabar-data:/data ghcr.io/sifumax09/mtrmc:latest
+docker run -d --name cinnabar -p 25565:25565 -v cinnabar-data:/data ghcr.io/sifumax09/cinnabar:latest
 ```
 
 See [docker-compose.yml](docker-compose.yml) for a compose example. Optional environment variables are written to `Config.toml` only when set: `CINNABAR_LOG`, `CINNABAR_MOTD`, `CINNABAR_MAX_PLAYERS`, `CINNABAR_VIEW_DISTANCE`, `CINNABAR_BIND_ADDRESS`, `CINNABAR_VELOCITY_SECRET` (enables Velocity) and `CINNABAR_VELOCITY_ENABLED`. Stop with `docker stop` (the server saves on SIGINT/SIGTERM). Build locally with `docker build -t cinnabar .`.
