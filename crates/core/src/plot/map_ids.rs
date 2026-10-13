@@ -36,6 +36,11 @@ pub struct WorldIdRequest {
 }
 
 impl WorldIdRequest {
+    /// The framing current JourneyMap and VoxelMap versions expect: one zero byte, then the marker.
+    const UNPROMPTED: WorldIdRequest = WorldIdRequest {
+        response_padding: 1,
+    };
+
     /// Parses a request the way JourneyMap and VoxelMap send it:
     /// `00 2A 00` (JourneyMap, VoxelMap Fabric 1.19.3+) or `00 00 00 2A` (older VoxelMap Fabric).
     pub fn parse(data: &[u8]) -> Option<WorldIdRequest> {
@@ -69,13 +74,21 @@ fn xaero_payload(id: i32) -> Vec<u8> {
     out
 }
 
-/// Tells Xaero's Minimap and World Map which world the player is in.
-pub fn send_xaero_ids(player: &Player) {
-    let payload = xaero_payload(world_map_id());
-    for channel in [XAERO_MINIMAP_CHANNEL, XAERO_WORLDMAP_CHANNEL] {
+/// Tells the map mods which world the player is in without waiting for a request, the way the
+/// JourneyMap server plugin does on join: Xaero's Minimap and World Map get their own packet,
+/// JourneyMap and VoxelMap get the answer to a request they might not have sent yet.
+pub fn send_ids(player: &Player) {
+    let id = world_map_id();
+    let xaero = xaero_payload(id);
+    let channels = [
+        (XAERO_MINIMAP_CHANNEL, xaero.clone()),
+        (XAERO_WORLDMAP_CHANNEL, xaero),
+        (WORLD_ID_CHANNEL, WorldIdRequest::UNPROMPTED.response(id)),
+    ];
+    for (channel, data) in channels {
         let packet = CPlayPluginMessage {
             channel: channel.to_string(),
-            data: payload.clone(),
+            data,
         }
         .encode();
         player.client.send_packet(&packet);
@@ -106,6 +119,14 @@ mod tests {
     fn journeymap_request_gets_a_prefixed_response() {
         let request = WorldIdRequest::parse(&[0, 42, 0]).unwrap();
         assert_eq!(request.response(1337), [&[0, 42, 4][..], b"1337"].concat());
+    }
+
+    #[test]
+    fn unprompted_response_uses_the_current_framing() {
+        assert_eq!(
+            WorldIdRequest::UNPROMPTED.response(1),
+            [&[0, 42, 1][..], b"1"].concat()
+        );
     }
 
     #[test]
