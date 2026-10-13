@@ -5,6 +5,7 @@ mod edge_mirror;
 mod entities;
 mod environment;
 pub(crate) mod fluids;
+mod map_ids;
 mod minecart;
 mod monitor;
 mod packet_handlers;
@@ -745,6 +746,7 @@ impl Plot {
             .packet_senders
             .push(PlayerPacketSender::new(&player.client));
         self.scoreboard.add_player(&player);
+        map_ids::send_xaero_ids(&player, self.world.x, self.world.z);
         self.perf.mark_dirty();
         self.environment.sync_player(&player);
         self.players.push(player);

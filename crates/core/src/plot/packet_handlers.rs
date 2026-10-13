@@ -1,4 +1,5 @@
 use super::entities::{Entity, EntityKind};
+use super::map_ids;
 use super::physics::Vec3;
 use super::Plot;
 use crate::config::CONFIG;
@@ -336,6 +337,15 @@ impl ServerBoundPacketHandler for Plot {
     }
 
     fn handle_plugin_message(&mut self, plugin_message: SPluginMessage, player: usize) {
+        if map_ids::handle_request(
+            &self.players[player],
+            &plugin_message.channel,
+            &plugin_message.data,
+            self.world.x,
+            self.world.z,
+        ) {
+            return;
+        }
         if plugin_message.channel == "worldedit:cui" {
             // The mod renders the selection itself, so the particle outline would be a duplicate
             self.players[player].selection_viz.cui = true;
