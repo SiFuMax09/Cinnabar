@@ -43,7 +43,7 @@ Once complete, the optimized executable will be located at `./target/release/cin
 
 ## Docker
 
-Multi-arch (amd64/arm64) images are published to GHCR as `ghcr.io/<owner>/<repo>` with the tags `latest`, `26.2`, semver and short commit sha. The server runs as a non-root user (uid 10001) and keeps everything (`Config.toml`, `world/`, `schems/`, `logs/`) in the `/data` volume.
+Multi-arch (amd64/arm64) images are published to GHCR as `ghcr.io/sifumax09/cinnabar`. Every push to `main` updates the tags `latest` and `26.2`; each build also gets a short commit sha tag, and version tags (`vX.Y.Z`) additionally publish `X.Y.Z` and `X.Y`. The server runs as a non-root user (uid 10001) and keeps everything (`Config.toml`, `world/`, `schems/`, `logs/`) in the `/data` volume. If you host your own fork, replace the image name with `ghcr.io/<owner>/<repo>` (lowercase).
 
 ```shell
 docker run -d --name cinnabar -p 25565:25565 -v cinnabar-data:/data ghcr.io/sifumax09/cinnabar:latest
