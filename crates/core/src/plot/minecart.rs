@@ -14,8 +14,10 @@ use cinnabar_world::World;
 pub const RAIL_HEIGHT: f64 = 0.0625;
 /// How far the cart can be from the track and still be on it
 const ON_TRACK_DISTANCE: f64 = 0.6;
-/// The acceleration of gravity per tick
+/// The acceleration of gravity per tick, for the entities that fall
 pub const GRAVITY: f64 = 0.04;
+/// What a slope adds to the horizontal speed of a cart per tick, downhill or against it uphill
+const SLOPE_PULL: f64 = 0.0078125;
 /// The speed a minecart can't go faster than, in blocks per tick
 const MAX_SPEED: f64 = 0.4;
 /// The push of a powered rail that is powered, in blocks per tick
@@ -175,6 +177,12 @@ pub fn push_from_player(cart: Vec3, player: Vec3) -> Option<Vec3> {
     Some(Vec3::new(-dx * strength, 0.0, -dz * strength))
 }
 
+/// The share of a movement along the direction that is horizontal. The game keeps the horizontal
+/// speed of a cart, so the speed along a track changes by this when the track changes its slope.
+fn horizontal_share(direction: Vec3) -> f64 {
+    (1.0 - direction.y * direction.y).sqrt().max(0.1)
+}
+
 /// What the cart did in the tick
 pub struct Movement {
     /// The rail the cart is on, when it is on a track
@@ -189,8 +197,15 @@ pub struct Movement {
 pub fn drive(world: &impl World, pos: &mut Vec3, vel: &mut Vec3) -> Option<Movement> {
     let (mut track, mut along) = find_track(world, *pos)?;
     let unit = track.direction();
-    // The velocity along the track, positive towards the end, with the pull of gravity on slopes
-    let along_speed = (vel.dot(unit) - GRAVITY * unit.y).clamp(-MAX_SPEED, MAX_SPEED);
+    // The velocity along the track, positive towards the end, with the pull of the slope. The
+    // game adds the pull to the horizontal speed, which is only part of the speed along a slope.
+    let horizontal = horizontal_share(unit);
+    let pull = if unit.y.abs() > 1e-6 {
+        SLOPE_PULL / horizontal * unit.y.signum()
+    } else {
+        0.0
+    };
+    let along_speed = (vel.dot(unit) - pull).clamp(-MAX_SPEED, MAX_SPEED);
     let mut direction = if along_speed < 0.0 { -1.0 } else { 1.0 };
     let mut speed = along_speed.abs();
 
@@ -207,10 +222,6 @@ pub fn drive(world: &impl World, pos: &mut Vec3, vel: &mut Vec3) -> Option<Movem
             }
         }
     }
-    speed *= FRICTION;
-    if speed < MIN_SPEED {
-        speed = 0.0;
-    }
 
     // Move along the track. At the end of a rail the cart continues on the next one, which is
     // at most one rail away since the speed is below the length of a rail.
@@ -221,6 +232,11 @@ pub fn drive(world: &impl World, pos: &mut Vec3, vel: &mut Vec3) -> Option<Movem
         let overshoot = if at_end { target - length } else { -target };
         match next_track(world, &track, at_end) {
             Some(next) => {
+                // The horizontal speed and distance carry over to a track with another slope
+                let scale =
+                    horizontal_share(track.direction()) / horizontal_share(next.direction());
+                speed *= scale;
+                let overshoot = overshoot * scale;
                 // Entering the next track at its start means moving along its direction
                 let entered_at_start =
                     next.end_at(if at_end { track.end } else { track.start }) == Some(true);
@@ -245,7 +261,9 @@ pub fn drive(world: &impl World, pos: &mut Vec3, vel: &mut Vec3) -> Option<Movem
 
     *pos = track.point(along);
     let direction_vec = track.direction() * direction;
-    *vel = direction_vec * speed;
+    // The cart moved with its full speed this tick, the friction slows the next one down
+    let slowed = speed * FRICTION;
+    *vel = direction_vec * if slowed < MIN_SPEED { 0.0 } else { slowed };
 
     let horizontal = (direction_vec.x * direction_vec.x + direction_vec.z * direction_vec.z).sqrt();
     let yaw = (-direction_vec.x).atan2(direction_vec.z).to_degrees() as f32;
@@ -473,6 +491,45 @@ mod tests {
             "the cart should have rolled away from the player: {last:?}"
         );
         assert!((last.z - 5.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn cart_released_on_a_slope_rolls_as_far_as_in_the_game() {
+        let mut world = floor_world();
+        let mut rails = vec![(at(6, 1, 5), "minecraft:rail")];
+        for x in 0..=5 {
+            rails.push((at(x, 1, 5), "minecraft:rail"));
+        }
+        lay_rails(&mut world, &rails);
+        let slope =
+            generic::with_property(world.get_block_raw(at(6, 1, 5)), "shape", "ascending_east");
+        world.set_block_raw(at(6, 1, 5), slope);
+        // Released at the top of a slope that is one block high; the wiki measures about 2.8 blocks
+        let mut pos = Vec3::new(6.99, 2.0 + RAIL_HEIGHT, 5.5);
+        let mut vel = Vec3::ZERO;
+        let start = pos.x;
+        run(&world, &mut pos, &mut vel, 400);
+        let traveled = start - pos.x;
+        assert!(
+            (2.3..4.0).contains(&traveled),
+            "the cart rolled {traveled} blocks"
+        );
+    }
+
+    #[test]
+    fn cart_coasts_as_far_as_the_friction_allows() {
+        let mut world = floor_world();
+        lay_rails(&mut world, &rail_line(0..=30));
+        // An empty cart keeps 96% of its speed each tick, so it rolls 0.2 / (1 - 0.96) = 5 blocks
+        let mut pos = Vec3::new(1.5, 1.0 + RAIL_HEIGHT, 5.5);
+        let mut vel = Vec3::new(0.2, 0.0, 0.0);
+        let start = pos.x;
+        run(&world, &mut pos, &mut vel, 300);
+        let traveled = pos.x - start;
+        assert!(
+            (4.6..5.1).contains(&traveled),
+            "the cart rolled {traveled} blocks"
+        );
     }
 
     #[test]
