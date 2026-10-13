@@ -15,21 +15,44 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  # One job per architecture, each on a native runner (no QEMU emulation).
+  # amd64 is published as ghcr.io/<owner>/<repo>, arm64 as a separate image
+  # ghcr.io/<owner>/<repo>-arm64 with the same tags.
   docker:
-    runs-on: ubuntu-latest
+    name: docker (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            platform: linux/amd64
+            suffix: ""
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            suffix: "-arm64"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Compute image names
+        id: names
+        # GHCR needs lowercase names; github.repository keeps the original case.
+        run: |
+          image="${REGISTRY}/${GITHUB_REPOSITORY,,}${{ matrix.suffix }}"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "cache=${image}:buildcache" >> "$GITHUB_OUTPUT"
 
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
-          # GHCR requires a lowercase image name; the action lowercases it.
-          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          images: ${{ steps.names.outputs.image }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=26.2,enable={{is_default_branch}}
@@ -37,16 +60,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,format=short
             type=ref,event=pr
-
-      - name: Compute cache reference
-        id: cache
-        # GHCR needs lowercase names; github.repository keeps the original case.
-        run: echo "ref=${REGISTRY}/${GITHUB_REPOSITORY,,}:buildcache" >> "$GITHUB_OUTPUT"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -63,7 +76,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           # Pull requests (including forks) only build; they never push.
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -72,10 +85,9 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
             REVISION=${{ github.sha }}
             SOURCE=${{ github.server_url }}/${{ github.repository }}
-          # The registry cache survives the 10 GB GitHub cache limit and is shared
-          # by every branch; pull requests (possibly from forks) only use the
-          # GitHub cache for writing.
+          # The registry cache (one per architecture) survives the 10 GB GitHub
+          # cache limit; pull requests only use the GitHub cache for writing.
           cache-from: |
-            type=registry,ref=${{ steps.cache.outputs.ref }}
-            type=gha
-          cache-to: ${{ github.event_name != 'pull_request' && format('type=registry,ref={0},mode=max,image-manifest=true,oci-mediatypes=true', steps.cache.outputs.ref) || 'type=gha,mode=max' }}
+            type=registry,ref=${{ steps.names.outputs.cache }}
+            type=gha,scope=${{ matrix.arch }}
+          cache-to: ${{ github.event_name != 'pull_request' && format('type=registry,ref={0},mode=max,image-manifest=true,oci-mediatypes=true', steps.names.outputs.cache) || format('type=gha,mode=max,scope={0}', matrix.arch) }}

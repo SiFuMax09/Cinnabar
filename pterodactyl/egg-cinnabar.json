@@ -11,7 +11,8 @@
     "features": null,
     "docker_images": {
         "Cinnabar (GHCR, latest)": "ghcr.io/sifumax09/cinnabar:latest",
-        "Cinnabar (GHCR, Minecraft 26.2)": "ghcr.io/sifumax09/cinnabar:26.2"
+        "Cinnabar (GHCR, Minecraft 26.2)": "ghcr.io/sifumax09/cinnabar:26.2",
+        "Cinnabar (GHCR, arm64, latest)": "ghcr.io/sifumax09/cinnabar-arm64:latest"
     },
     "file_denylist": [],
     "startup": "./cinnabar",
