@@ -4,7 +4,7 @@
 //! neighbours. Curves are approximated by the chord, which is close enough at the speeds of a
 //! minecart. A cart that is not on a track falls like any other entity.
 
-use super::physics::Vec3;
+use super::physics::{Aabb, Vec3};
 use cinnabar_blocks::blocks::Block;
 use cinnabar_blocks::{generic, BlockPos};
 use cinnabar_redstone::rail;
@@ -146,6 +146,33 @@ fn next_track(world: &impl World, track: &Track, at_end: bool) -> Option<Track> 
         }
     }
     None
+}
+
+/// The hitbox of a minecart and of a player, which decide when a player pushes a cart
+const CART_SIZE: (f64, f64) = (0.98, 0.7);
+const PLAYER_SIZE: (f64, f64) = (0.6, 1.8);
+/// The strength of the push two overlapping entities give each other per tick
+const PUSH: f64 = 0.05;
+
+/// The velocity a player gives a cart by overlapping with it, directed away from the player.
+/// This is the push every entity gives the entities it overlaps with in the game; the track
+/// then turns it into a movement along the rail.
+pub fn push_from_player(cart: Vec3, player: Vec3) -> Option<Vec3> {
+    let cart_box = Aabb::entity(cart, CART_SIZE.0, CART_SIZE.1);
+    let player_box = Aabb::entity(player, PLAYER_SIZE.0, PLAYER_SIZE.1);
+    let overlaps =
+        (0..3).all(|a| cart_box.max[a] > player_box.min[a] && cart_box.min[a] < player_box.max[a]);
+    if !overlaps {
+        return None;
+    }
+    let (dx, dz) = (player.x - cart.x, player.z - cart.z);
+    let distance = dx.abs().max(dz.abs());
+    if distance < 0.01 {
+        return None;
+    }
+    let distance = distance.sqrt();
+    let strength = (1.0 / distance).min(1.0) * PUSH / distance;
+    Some(Vec3::new(-dx * strength, 0.0, -dz * strength))
 }
 
 /// What the cart did in the tick
@@ -411,6 +438,41 @@ mod tests {
         let mut vel = Vec3::new(0.3, 0.0, 0.0);
         run(&world, &mut pos, &mut vel, 10);
         assert_eq!(vel, Vec3::ZERO);
+    }
+
+    #[test]
+    fn player_pushes_the_cart_away() {
+        let cart = Vec3::new(0.5, 1.0625, 0.5);
+        let push = push_from_player(cart, Vec3::new(0.0, 1.0, 0.5)).unwrap();
+        assert!(push.x > 0.0 && push.z.abs() < 1e-9 && push.y == 0.0);
+        let push = push_from_player(cart, Vec3::new(0.5, 1.0, 1.0)).unwrap();
+        assert!(push.z < 0.0 && push.x.abs() < 1e-9);
+    }
+
+    #[test]
+    fn distant_or_misplaced_players_do_not_push() {
+        let cart = Vec3::new(0.5, 1.0625, 0.5);
+        // Too far away, above the cart and exactly in its middle
+        assert!(push_from_player(cart, Vec3::new(3.0, 1.0, 0.5)).is_none());
+        assert!(push_from_player(cart, Vec3::new(0.5, 3.0, 0.5)).is_none());
+        assert!(push_from_player(cart, cart).is_none());
+    }
+
+    #[test]
+    fn pushed_cart_rolls_along_the_track() {
+        let mut world = floor_world();
+        lay_rails(&mut world, &rail_line(0..=8));
+        let mut pos = Vec3::new(4.5, 1.0 + RAIL_HEIGHT, 5.5);
+        let mut vel = push_from_player(pos, Vec3::new(4.0, 1.0, 5.5)).unwrap();
+        // The cart is pushed from the side as well: only the part along the rail counts
+        vel.z += 0.03;
+        let positions = run(&world, &mut pos, &mut vel, 10);
+        let last = positions.last().unwrap();
+        assert!(
+            last.x > 4.6,
+            "the cart should have rolled away from the player: {last:?}"
+        );
+        assert!((last.z - 5.5).abs() < 1e-6);
     }
 
     #[test]

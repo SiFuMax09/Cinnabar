@@ -9,7 +9,7 @@ use super::physics::{move_box, raycast, Aabb, Vec3};
 use super::Plot;
 use crate::config::CONFIG;
 use crate::interaction;
-use crate::player::{self, PacketSender, PlayerPos};
+use crate::player::{self, Gamemode, PacketSender, PlayerPos};
 use cinnabar_blocks::block_entities::InventoryEntry;
 use cinnabar_blocks::blocks::Block;
 use cinnabar_blocks::{generic, BlockFace, BlockPos};
@@ -628,7 +628,22 @@ impl Plot {
         let mut removed = Vec::new();
         let mut moved = Vec::new();
 
+        // Players push the minecarts they walk into; spectators don't collide with anything
+        let pushers: Vec<Vec3> = self
+            .players
+            .iter()
+            .filter(|player| !matches!(player.gamemode, Gamemode::Spectator))
+            .map(|player| Vec3::new(player.pos.x, player.pos.y, player.pos.z))
+            .collect();
+
         for entity in &mut self.entities.list {
+            if matches!(entity.kind, EntityKind::Minecart { .. }) {
+                for pusher in &pushers {
+                    if let Some(push) = minecart::push_from_player(entity.pos, *pusher) {
+                        entity.vel += push;
+                    }
+                }
+            }
             let before = entity.pos;
             let (remove, action) = tick_entity(entity, &self.world);
             if remove {
