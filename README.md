@@ -10,7 +10,7 @@ A Minecraft 26.2 creative server (clients must use Minecraft **26.2**) built for
 
 Cinnabar is very different from traditional servers. Because this server is tailored to the use of computational redstone, many things that are a part of Vanilla Minecraft servers don't exist here. That being said, Cinnabar comes with many of its own unique features.
 
-MCHPRS, the project Cinnabar is based on, made it possible to run programs such as [a limited form of Minecraft](https://www.youtube.com/watch?v=-BP7DhHTU-I) on CPUs in Minecraft. To accomplish these speeds, we created [Redpiler](docs/Redpiler.md), the "Redstone Compiler".
+MCHPRS, the project Cinnabar is based on, made it possible to run programs such as [a limited form of Minecraft](https://www.youtube.com/watch?v=-BP7DhHTU-I) on CPUs in Minecraft. To accomplish these speeds, MCHPRS created [Redpiler](docs/Redpiler.md), the "Redstone Compiler", which Cinnabar inherits from it.
 
 ## Table of Contents
 
