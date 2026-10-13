@@ -2,8 +2,8 @@ use super::*;
 use crate::storage::Chunk;
 use crate::testing::TestWorld;
 use crate::World;
-use mchprs_blocks::generic::{default_state, with_property};
-use mchprs_blocks::BlockPos;
+use cinnabar_blocks::generic::{default_state, with_property};
+use cinnabar_blocks::BlockPos;
 use std::time::{Duration, Instant};
 
 fn id(name: &str) -> u32 {
@@ -303,7 +303,7 @@ fn dirty_sections_are_tracked() {
     assert!(light.take_dirty().is_none());
 }
 
-/// Run with `cargo test --release -p mchprs_world -- --ignored --nocapture`
+/// Run with `cargo test --release -p cinnabar_world -- --ignored --nocapture`
 #[test]
 #[ignore]
 fn bench_initial_plot_light() {
@@ -349,7 +349,7 @@ fn bench_initial_plot_light() {
 }
 
 /// Prints the light packets as hex, to be decoded with the vanilla classes (`Decode.java`).
-/// Run with `cargo test -p mchprs_world --features networking dump_light_packets -- --ignored --nocapture`
+/// Run with `cargo test -p cinnabar_world --features networking dump_light_packets -- --ignored --nocapture`
 #[cfg(feature = "networking")]
 #[test]
 #[ignore]
@@ -360,7 +360,7 @@ fn dump_light_packets() {
     update(&mut world, &mut engine);
     set(&mut world, &mut engine, 8, 25, 8, id("torch"));
     let chunk = world.get_chunk_mut(0, 0).unwrap();
-    let hex = |packet: mchprs_network::packets::PacketEncoder| {
+    let hex = |packet: cinnabar_network::packets::PacketEncoder| {
         let mut bytes = Vec::new();
         packet.write_uncompressed(&mut bytes).unwrap();
         bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()

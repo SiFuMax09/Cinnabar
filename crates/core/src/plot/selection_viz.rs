@@ -3,10 +3,10 @@
 
 use super::Plot;
 use crate::player::Player;
-use mchprs_blocks::BlockPos;
-use mchprs_network::packets::clientbound::CDustParticle;
-use mchprs_network::packets::clientbound::ClientBoundPacket;
-use mchprs_text::{ColorCode, TextComponentBuilder};
+use cinnabar_blocks::BlockPos;
+use cinnabar_network::packets::clientbound::CDustParticle;
+use cinnabar_network::packets::clientbound::ClientBoundPacket;
+use cinnabar_text::{ColorCode, TextComponentBuilder};
 use std::time::{Duration, Instant};
 
 /// Dust lives for roughly 0.5 to 2 seconds, so refreshing a few times a second keeps the
@@ -143,7 +143,7 @@ pub fn selection_points(
 
 impl Player {
     fn send_action_bar(&self, message: &str) {
-        let packet = mchprs_network::packets::clientbound::CSystemChatMessage {
+        let packet = cinnabar_network::packets::clientbound::CSystemChatMessage {
             content: TextComponentBuilder::new(message.to_string())
                 .color_code(ColorCode::LightPurple)
                 .finish(),

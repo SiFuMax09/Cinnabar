@@ -1,5 +1,5 @@
 [package]
-name = "mchprs_redstone"
+name = "cinnabar_redstone"
 authors.workspace = true
 description.workspace = true
 edition.workspace = true
@@ -14,11 +14,11 @@ include.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mchprs_blocks = { path = "../blocks" }
-mchprs_world = { path = "../world" }
+cinnabar_blocks = { path = "../blocks" }
+cinnabar_world = { path = "../world" }
 tracing = { workspace = true }
 rustc-hash = { workspace = true }
 rand = { workspace = true }
 
 [dev-dependencies]
-mchprs_world = { path = "../world", features = ["testing"] }
+cinnabar_world = { path = "../world", features = ["testing"] }

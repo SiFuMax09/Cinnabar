@@ -7,8 +7,8 @@ use super::{ray_trace_block, SLICE_BUDGET};
 use crate::player::PacketSender;
 use crate::plot::Plot;
 use crate::plot::PlotWorld;
-use mchprs_blocks::BlockPos;
-use mchprs_schematic::WorldEditClipboard;
+use cinnabar_blocks::BlockPos;
+use cinnabar_schematic::WorldEditClipboard;
 use std::time::{Duration, Instant};
 
 /// How far away from the player a brush can be used
@@ -204,7 +204,7 @@ impl Plot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mchprs_world::World;
+    use cinnabar_world::World;
 
     fn sphere(size: u32) -> Brush {
         Brush {

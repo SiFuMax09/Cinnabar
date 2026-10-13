@@ -1,7 +1,7 @@
 //! The geometry behind spheres, cylinders, lines, hollowing, filling and smoothing. Everything in
 //! here is pure and works on plain numbers, so it can be tested without a world.
 
-use mchprs_blocks::BlockPos;
+use cinnabar_blocks::BlockPos;
 use std::collections::VecDeque;
 
 /// Whether the block at the offset from the center is inside of a sphere of this radius

@@ -1,9 +1,9 @@
 mod common;
 use common::*;
 
-use mchprs_blocks::blocks::{Block, ComparatorMode};
-use mchprs_blocks::BlockDirection;
-use mchprs_world::testing::TestWorld;
+use cinnabar_blocks::blocks::{Block, ComparatorMode};
+use cinnabar_blocks::BlockDirection;
+use cinnabar_world::testing::TestWorld;
 
 test_all_backends!(repeater_t_flip_flop);
 fn repeater_t_flip_flop(backend: TestBackend) {

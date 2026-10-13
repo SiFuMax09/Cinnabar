@@ -5,9 +5,9 @@
 //! player's inventory and the 9 slots of the hotbar. The menu works on a copy of the slots, so
 //! the caller is responsible for loading the container before a click and storing it after.
 
-use mchprs_blocks::block_entities::{ContainerType, Inventory, InventoryEntry};
-use mchprs_blocks::items::ItemStack;
-use mchprs_blocks::BlockPos;
+use cinnabar_blocks::block_entities::{ContainerType, Inventory, InventoryEntry};
+use cinnabar_blocks::items::ItemStack;
+use cinnabar_blocks::BlockPos;
 
 /// The slots of the main inventory in the menu come after the slots of the container
 const MAIN_SLOTS: usize = 27;
@@ -710,7 +710,7 @@ impl Menu {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mchprs_blocks::items::Item;
+    use cinnabar_blocks::items::Item;
 
     fn stack(name: &str, count: u8) -> ItemStack {
         ItemStack {
@@ -959,7 +959,7 @@ mod tests {
     #[test]
     #[ignore]
     fn dump_menu_packets() {
-        use mchprs_network::packets::clientbound::*;
+        use cinnabar_network::packets::clientbound::*;
         let menu = menu_with(
             &[(0, stack("minecraft:stone", 10))],
             &[(36, stack("minecraft:redstone", 64))],

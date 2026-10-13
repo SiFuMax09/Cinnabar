@@ -1,7 +1,7 @@
-use mchprs_redpiler::passes::{build_pass_pipeline, PassRegistry};
-use mchprs_redpiler::ril::ast::Global;
-use mchprs_redpiler::ril::dump_graph;
-use mchprs_redpiler::{CompilerInput, CompilerOptions, TaskMonitor};
+use cinnabar_redpiler::passes::{build_pass_pipeline, PassRegistry};
+use cinnabar_redpiler::ril::ast::Global;
+use cinnabar_redpiler::ril::dump_graph;
+use cinnabar_redpiler::{CompilerInput, CompilerOptions, TaskMonitor};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{fs, process};

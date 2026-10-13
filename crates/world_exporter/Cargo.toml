@@ -1,6 +1,6 @@
 
 [package]
-name = "mchprs_world_exporter"
+name = "cinnabar_world_exporter"
 authors.workspace = true
 description.workspace = true
 edition.workspace = true
@@ -15,10 +15,10 @@ include.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mchprs_blocks = { path = "../blocks" }
-mchprs_save_data = { path = "../save_data" }
-mchprs_utils = { path = "../utils" }
-mchprs_world = { path = "../world" }
+cinnabar_blocks = { path = "../blocks" }
+cinnabar_save_data = { path = "../save_data" }
+cinnabar_utils = { path = "../utils" }
+cinnabar_world = { path = "../world" }
 serde = { workspace = true }
 hematite-nbt = { workspace = true }
 anyhow = { workspace = true }

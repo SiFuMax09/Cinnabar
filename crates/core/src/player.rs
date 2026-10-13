@@ -6,15 +6,15 @@ use crate::plot::SelectionVisualizer;
 use crate::plot::PLOT_SCALE;
 use crate::utils::{self, HyphenatedUUID};
 use byteorder::{BigEndian, ReadBytesExt};
-use mchprs_blocks::block_entities::{ContainerType, Inventory, InventoryEntry};
-use mchprs_blocks::items::{Item, ItemStack};
-use mchprs_blocks::{BlockDirection, BlockFacing, BlockPos};
-use mchprs_network::packets::clientbound::*;
-use mchprs_network::packets::{PacketEncoder, PlayerProperty};
-use mchprs_network::{PlayerConn, PlayerPacketSender};
-use mchprs_proc_macros::protocol_id;
-use mchprs_schematic::WorldEditClipboard;
-use mchprs_text::{ColorCode, TextComponent, TextComponentBuilder};
+use cinnabar_blocks::block_entities::{ContainerType, Inventory, InventoryEntry};
+use cinnabar_blocks::items::{Item, ItemStack};
+use cinnabar_blocks::{BlockDirection, BlockFacing, BlockPos};
+use cinnabar_network::packets::clientbound::*;
+use cinnabar_network::packets::{PacketEncoder, PlayerProperty};
+use cinnabar_network::{PlayerConn, PlayerPacketSender};
+use cinnabar_proc_macros::protocol_id;
+use cinnabar_schematic::WorldEditClipboard;
+use cinnabar_text::{ColorCode, TextComponent, TextComponentBuilder};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fs::{self, OpenOptions};
@@ -104,7 +104,7 @@ pub fn upgrade_saved_players() {
             continue;
         };
         data.inventory.retain_mut(|entry| {
-            match mchprs_save_data::upgrade::upgrade_item_id(entry.id) {
+            match cinnabar_save_data::upgrade::upgrade_item_id(entry.id) {
                 Some(id) => {
                     entry.id = id;
                     true
@@ -120,7 +120,7 @@ pub fn upgrade_saved_players() {
         }
     }
 
-    std::fs::write(DATA_VERSION_FILE, mchprs_world::MC_VERSION).unwrap();
+    std::fs::write(DATA_VERSION_FILE, cinnabar_world::MC_VERSION).unwrap();
 }
 
 bitflags! {

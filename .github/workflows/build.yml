@@ -70,24 +70,24 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           mkdir package
-          cp target/${{ matrix.target }}/release/mchprs package/mchprs
-          tar -czf mchprs-${{ matrix.target }}.tar.gz -C package mchprs
+          cp target/${{ matrix.target }}/release/cinnabar package/cinnabar
+          tar -czf cinnabar-${{ matrix.target }}.tar.gz -C package cinnabar
 
       - name: Package binary (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path package | Out-Null
-          Copy-Item "target/${{ matrix.target }}/release/mchprs.exe" "package/mchprs.exe"
-          Compress-Archive -Path "package/mchprs.exe" -DestinationPath "mchprs-${{ matrix.target }}.zip"
+          Copy-Item "target/${{ matrix.target }}/release/cinnabar.exe" "package/cinnabar.exe"
+          Compress-Archive -Path "package/cinnabar.exe" -DestinationPath "cinnabar-${{ matrix.target }}.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mchprs-${{ matrix.target }}
+          name: cinnabar-${{ matrix.target }}
           path: |
-            mchprs-${{ matrix.target }}.tar.gz
-            mchprs-${{ matrix.target }}.zip
+            cinnabar-${{ matrix.target }}.tar.gz
+            cinnabar-${{ matrix.target }}.zip
 
   build-macos-universal:
     needs: build
@@ -95,32 +95,32 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: mchprs-x86_64-apple-darwin
+          name: cinnabar-x86_64-apple-darwin
           path: x86_64
       - uses: actions/download-artifact@v4
         with:
-          name: mchprs-aarch64-apple-darwin
+          name: cinnabar-aarch64-apple-darwin
           path: aarch64
 
       - name: Extract artifacts
         run: |
-          tar -xzf x86_64/mchprs-x86_64-apple-darwin.tar.gz -C x86_64
-          tar -xzf aarch64/mchprs-aarch64-apple-darwin.tar.gz -C aarch64
+          tar -xzf x86_64/cinnabar-x86_64-apple-darwin.tar.gz -C x86_64
+          tar -xzf aarch64/cinnabar-aarch64-apple-darwin.tar.gz -C aarch64
 
       - name: Create universal binary
-        run: lipo -create -output mchprs x86_64/mchprs aarch64/mchprs
+        run: lipo -create -output cinnabar x86_64/cinnabar aarch64/cinnabar
 
       - name: Package universal binary
         run: |
           mkdir package
-          cp mchprs package/mchprs
-          tar -czf mchprs-universal-apple-darwin.tar.gz -C package mchprs
+          cp cinnabar package/cinnabar
+          tar -czf cinnabar-universal-apple-darwin.tar.gz -C package cinnabar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mchprs-universal-apple-darwin
-          path: mchprs-universal-apple-darwin.tar.gz
+          name: cinnabar-universal-apple-darwin
+          path: cinnabar-universal-apple-darwin.tar.gz
 
   publish:
     needs: [build, build-macos-universal]

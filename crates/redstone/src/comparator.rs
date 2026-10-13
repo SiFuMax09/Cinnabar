@@ -1,7 +1,7 @@
-use mchprs_blocks::block_entities::{BlockEntity, ContainerType};
-use mchprs_blocks::blocks::{Block, Comparator, ComparatorMode};
-use mchprs_blocks::{BlockDirection, BlockFace, BlockPos};
-use mchprs_world::{TickPriority, World};
+use cinnabar_blocks::block_entities::{BlockEntity, ContainerType};
+use cinnabar_blocks::blocks::{Block, Comparator, ComparatorMode};
+use cinnabar_blocks::{BlockDirection, BlockFace, BlockPos};
+use cinnabar_world::{TickPriority, World};
 use tracing::warn;
 
 fn get_power_on_side(world: &impl World, pos: BlockPos, side: BlockDirection) -> u8 {

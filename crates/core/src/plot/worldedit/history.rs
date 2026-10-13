@@ -6,8 +6,8 @@
 //! several bytes per block. Undoing an entry records the inverse entry, which becomes the redo
 //! entry, so no new states are stored for redo.
 
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::BlockPos;
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::BlockPos;
 use rustc_hash::FxHashMap;
 use std::collections::VecDeque;
 use std::mem;

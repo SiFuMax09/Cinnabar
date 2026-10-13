@@ -1,6 +1,6 @@
 use super::{Plot, PlotWorld, PLOT_WIDTH};
 use anyhow::{Context, Result};
-use mchprs_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
+use cinnabar_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
 use std::path::Path;
 use std::sync::LazyLock;
 use std::time::Duration;

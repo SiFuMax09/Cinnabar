@@ -1,8 +1,8 @@
 use crate::blocks::Block;
 use crate::generic;
 use crate::items::Item;
-use mchprs_proc_macros::protocol_id;
-use mchprs_utils::{map, nbt_unwrap_val};
+use cinnabar_proc_macros::protocol_id;
+use cinnabar_utils::{map, nbt_unwrap_val};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;

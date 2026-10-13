@@ -4,7 +4,7 @@ mod generated;
 pub mod generic;
 pub mod items;
 
-pub use mchprs_proc_macros::BlockProperty;
+pub use cinnabar_proc_macros::BlockProperty;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;

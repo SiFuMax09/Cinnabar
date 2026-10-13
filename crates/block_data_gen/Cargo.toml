@@ -1,5 +1,5 @@
 [package]
-name = "mchprs_block_data_gen"
+name = "cinnabar_block_data_gen"
 authors.workspace = true
 description.workspace = true
 edition.workspace = true

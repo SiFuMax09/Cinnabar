@@ -7,7 +7,7 @@ use crate::compile_graph::{CompileGraph, Direction, NodeIdx};
 use crate::passes::analysis::ss_set_analysis::{SSSetAnalysis, SSSetInfo};
 use crate::passes::{AnalysisInfos, AnalysisUsage, Pass};
 use crate::{CompilerInput, CompilerOptions};
-use mchprs_world::World;
+use cinnabar_world::World;
 
 pub struct UnreachableOutput;
 

@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'mchprs'",
+            "name": "Debug executable 'cinnabar'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=mchprs",
-                    "--package=mchprs"
+                    "--bin=cinnabar",
+                    "--package=cinnabar"
                 ],
                 "filter": {
-                    "name": "mchprs",
+                    "name": "cinnabar",
                     "kind": "bin"
                 }
             },
@@ -25,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'mchprs'",
+            "name": "Debug unit tests in executable 'cinnabar'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=mchprs",
-                    "--package=mchprs"
+                    "--bin=cinnabar",
+                    "--package=cinnabar"
                 ],
                 "filter": {
-                    "name": "mchprs",
+                    "name": "cinnabar",
                     "kind": "bin"
                 }
             },

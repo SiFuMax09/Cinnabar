@@ -1,11 +1,11 @@
 //! The block side of sculk sensors and calibrated sculk sensors: the phases they go through, the
 //! redstone signal they output and what a comparator reads from them. Listening for vibrations
-//! and the timing of the phases is up to the plot, see `vibrations` in `mchprs_core`.
+//! and the timing of the phases is up to the plot, see `vibrations` in `cinnabar_core`.
 
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{generic, BlockFace, BlockPos};
-use mchprs_world::World;
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::{generic, BlockFace, BlockPos};
+use cinnabar_world::World;
 
 /// How long a sensor stays in the cooldown phase
 pub const COOLDOWN_TICKS: u32 = 10;
@@ -190,9 +190,9 @@ pub fn advance_phase(world: &mut impl World, pos: BlockPos) -> Option<Phase> {
 mod tests {
     use super::*;
     use crate::comparator;
-    use mchprs_blocks::blocks::{Comparator, ComparatorMode};
-    use mchprs_blocks::BlockDirection;
-    use mchprs_world::testing::TestWorld;
+    use cinnabar_blocks::blocks::{Comparator, ComparatorMode};
+    use cinnabar_blocks::BlockDirection;
+    use cinnabar_world::testing::TestWorld;
 
     fn sensor_state(name: &str, props: &[(&str, &str)]) -> u32 {
         let mut id = generic::default_state(name).unwrap();

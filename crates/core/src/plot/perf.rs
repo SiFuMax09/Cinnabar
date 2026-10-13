@@ -4,12 +4,12 @@
 //! already maintains, so no extra work happens per tick or per packet.
 
 use crate::player::{PacketSender, Player};
-use mchprs_network::packets::clientbound::{
+use cinnabar_network::packets::clientbound::{
     BossBarColor, BossBarOverlay, CBossEvent, CSystemChatMessage, ClientBoundPacket,
 };
-use mchprs_redpiler::CompilerOptions;
-use mchprs_save_data::plot_data::Tps;
-use mchprs_text::{ColorCode, TextComponent};
+use cinnabar_redpiler::CompilerOptions;
+use cinnabar_save_data::plot_data::Tps;
+use cinnabar_text::{ColorCode, TextComponent};
 use rustc_hash::FxHashMap;
 use std::sync::atomic::AtomicUsize;
 use std::sync::{LazyLock, Mutex};

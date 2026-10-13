@@ -18,12 +18,12 @@ use super::commands::CommandFlags;
 use super::{Plot, PlotWorld};
 use crate::player::{PacketSender, Player, PlayerPos};
 use execute::*;
-use mchprs_blocks::block_entities::ContainerType;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{BlockFacing, BlockPos};
-use mchprs_network::packets::clientbound::{CCommandsNode, CDeclareCommandsNodeParser};
-use mchprs_utils::map;
-use mchprs_world::{for_each_block_mut_optimized, World};
+use cinnabar_blocks::block_entities::ContainerType;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::{BlockFacing, BlockPos};
+use cinnabar_network::packets::clientbound::{CCommandsNode, CDeclareCommandsNodeParser};
+use cinnabar_utils::map;
+use cinnabar_world::{for_each_block_mut_optimized, World};
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::sync::LazyLock;
@@ -1020,7 +1020,7 @@ static COMMANDS: LazyLock<HashMap<&'static str, WorldeditCommand>> = LazyLock::n
             execute_fn: execute_update,
             reads_world: true,
             description: "Updates all blocks in the selection",
-            permission_node: "mchprs.we.update",
+            permission_node: "cinnabar.we.update",
             requires_positions: false,
             flags: &[
                 flag!('p', None, "Update the entire plot"),
@@ -1052,7 +1052,7 @@ static COMMANDS: LazyLock<HashMap<&'static str, WorldeditCommand>> = LazyLock::n
            execute_fn: execute_replace_container,
             reads_world: true,
            description: "Replaces all container types in the selection",
-           permission_node: "mchprs.we.replacecontainer",
+           permission_node: "cinnabar.we.replacecontainer",
            requires_positions: true,
            ..Default::default()
         }
@@ -1175,7 +1175,7 @@ fn expand_selection(player: &mut Player, amount: BlockPos, contract: bool) {
 fn update(plot: &mut PlotWorld, first_pos: BlockPos, second_pos: BlockPos) {
     for_each_block_mut_optimized(plot, first_pos, second_pos, |plot, pos| {
         let block = plot.get_block(pos);
-        mchprs_redstone::update(block, plot, pos);
+        cinnabar_redstone::update(block, plot, pos);
     });
 }
 

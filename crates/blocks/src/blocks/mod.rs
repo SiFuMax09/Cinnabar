@@ -2,7 +2,7 @@ mod props;
 
 pub use crate::generated::Block;
 use crate::{generic, BlockDirection, BlockFacing, BlockProperty};
-use mchprs_proc_macros::BlockTransform;
+use cinnabar_proc_macros::BlockTransform;
 pub use props::*;
 
 #[derive(Clone, Copy, Debug)]

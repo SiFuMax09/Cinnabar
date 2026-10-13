@@ -24,7 +24,7 @@ SYNCED = [
 # The plot dimension type and biome are sent with data by the server, see `CRegistryData::all`.
 CUSTOM = {
     "minecraft:dimension_type": ["minecraft:overworld"],
-    "minecraft:worldgen/biome": ["mchprs:plot", "minecraft:plains"],
+    "minecraft:worldgen/biome": ["cinnabar:plot", "minecraft:plains"],
 }
 # Registries whose entries are known to the client without being synchronized
 STATIC_TAGGED = [

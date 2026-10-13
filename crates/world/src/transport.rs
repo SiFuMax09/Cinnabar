@@ -2,9 +2,9 @@
 //! block entities: hopper cooldowns, which blocks have to be ticked and the items that move
 //! between the redstone logic and the entities of the plot.
 
-use mchprs_blocks::block_entities::InventoryEntry;
-use mchprs_blocks::blocks::{Block, HopperFacing};
-use mchprs_blocks::{generic, BlockPos};
+use cinnabar_blocks::block_entities::InventoryEntry;
+use cinnabar_blocks::blocks::{Block, HopperFacing};
+use cinnabar_blocks::{generic, BlockPos};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::ops::Range;
 use std::sync::OnceLock;

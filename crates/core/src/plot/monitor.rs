@@ -1,4 +1,4 @@
-use mchprs_save_data::plot_data::Tps;
+use cinnabar_save_data::plot_data::Tps;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};

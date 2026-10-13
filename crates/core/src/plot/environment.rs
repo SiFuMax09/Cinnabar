@@ -3,11 +3,11 @@
 
 use super::Plot;
 use crate::player::{PacketSender, Player};
-use mchprs_network::packets::clientbound::{
+use cinnabar_network::packets::clientbound::{
     CGameEvent, CGameEventType, ClientBoundPacket, ClockNetworkState, UpdateTime,
 };
-use mchprs_network::packets::PacketEncoder;
-use mchprs_save_data::plot_data::{EnvironmentData, WeatherData};
+use cinnabar_network::packets::PacketEncoder;
+use cinnabar_save_data::plot_data::{EnvironmentData, WeatherData};
 use std::time::{Duration, Instant};
 
 pub const DAY_TICKS: u64 = 24000;

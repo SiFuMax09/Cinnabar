@@ -2,7 +2,7 @@
 
 use super::{ChunkData, PlotData, PlotLoadError, Tps, WorldSendRate, PLOT_MAGIC};
 use byteorder::{LittleEndian, ReadBytesExt};
-use mchprs_world::TickEntry;
+use cinnabar_world::TickEntry;
 use serde::Deserialize;
 use std::fs::File;
 use std::io::Read;

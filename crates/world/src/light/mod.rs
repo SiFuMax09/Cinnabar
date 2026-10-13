@@ -18,7 +18,7 @@ mod layer;
 pub use engine::LightEngine;
 pub use layer::Nibbles;
 
-use mchprs_blocks::generic::{light_emission, light_occluding_faces, light_opacity};
+use cinnabar_blocks::generic::{light_emission, light_occluding_faces, light_opacity};
 
 pub const MAX_LIGHT: u8 = 15;
 
@@ -184,8 +184,8 @@ impl ChunkLight {
         &self,
         sky_filter: Option<u128>,
         block_filter: Option<u128>,
-    ) -> mchprs_network::packets::clientbound::LightData {
-        use mchprs_network::packets::clientbound::{LightData, LightSection};
+    ) -> cinnabar_network::packets::clientbound::LightData {
+        use cinnabar_network::packets::clientbound::{LightData, LightSection};
         let convert = |layers: &[Nibbles], filter: Option<u128>| {
             layers
                 .iter()

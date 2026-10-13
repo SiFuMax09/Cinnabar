@@ -1,8 +1,8 @@
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{generic, BlockPos};
-use mchprs_redstone::piston::{self, StructureResolver};
-use mchprs_world::testing::TestWorld;
-use mchprs_world::World;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::{generic, BlockPos};
+use cinnabar_redstone::piston::{self, StructureResolver};
+use cinnabar_world::testing::TestWorld;
+use cinnabar_world::World;
 
 const Y: i32 = 1;
 const Z: i32 = 8;
@@ -35,7 +35,7 @@ fn name(world: &TestWorld, pos: BlockPos) -> &'static str {
 }
 
 fn notify(world: &mut TestWorld, pos: BlockPos) {
-    mchprs_redstone::update_surrounding_blocks(world, pos);
+    cinnabar_redstone::update_surrounding_blocks(world, pos);
 }
 
 /// One redstone tick: the scheduled ticks and two game ticks of block events
@@ -45,7 +45,7 @@ fn tick(world: &mut TestWorld) {
     }
     while let Some(idx) = world.to_be_ticked.iter().position(|e| e.ticks_left == 0) {
         let entry = world.to_be_ticked.remove(idx);
-        mchprs_redstone::tick(world.get_block(entry.pos), world, entry.pos);
+        cinnabar_redstone::tick(world.get_block(entry.pos), world, entry.pos);
     }
     piston::run_game_tick(world, notify);
     piston::run_game_tick(world, notify);
@@ -54,8 +54,8 @@ fn tick(world: &mut TestWorld) {
 /// Places the block and updates the neighbors like a player placing it would
 fn place(world: &mut TestWorld, pos: BlockPos, block: Block) {
     world.set_block(pos, block);
-    mchprs_redstone::update_surrounding_blocks(world, pos);
-    mchprs_redstone::update(world.get_block(pos), world, pos);
+    cinnabar_redstone::update_surrounding_blocks(world, pos);
+    cinnabar_redstone::update(world.get_block(pos), world, pos);
 }
 
 fn extended(world: &TestWorld, pos: BlockPos) -> bool {
@@ -85,7 +85,7 @@ fn extend_and_retract_timing() {
     assert_eq!(name(&world, pos(5)), "minecraft:stone");
 
     world.set_block(power, Block::Air);
-    mchprs_redstone::update_surrounding_blocks(&mut world, power);
+    cinnabar_redstone::update_surrounding_blocks(&mut world, power);
     tick(&mut world);
     // Without sticky the head is removed right away and the piston itself is moving back
     assert_eq!(name(&world, base), "minecraft:moving_piston");
@@ -117,7 +117,7 @@ fn pulse_shorter_than_the_event_does_nothing() {
     let power = BlockPos::new(3, Y, Z - 1);
     place(&mut world, power, Block::RedstoneBlock);
     world.set_block(power, Block::Air);
-    mchprs_redstone::update_surrounding_blocks(&mut world, power);
+    cinnabar_redstone::update_surrounding_blocks(&mut world, power);
     tick(&mut world);
     assert!(!extended(&world, base));
     assert_eq!(name(&world, pos(4)), "minecraft:air");
@@ -137,7 +137,7 @@ fn sticky_piston_pulls_block() {
     assert_eq!(name(&world, pos(5)), "minecraft:stone");
 
     world.set_block(power, Block::Air);
-    mchprs_redstone::update_surrounding_blocks(&mut world, power);
+    cinnabar_redstone::update_surrounding_blocks(&mut world, power);
     tick(&mut world);
     assert_eq!(name(&world, pos(4)), "minecraft:moving_piston");
     assert_eq!(name(&world, pos(5)), "minecraft:air");
@@ -158,7 +158,7 @@ fn sticky_piston_drops_block_on_short_pulse() {
     tick(&mut world);
     // The pushed block is still on its way when the power goes away
     world.set_block(power, Block::Air);
-    mchprs_redstone::update_surrounding_blocks(&mut world, power);
+    cinnabar_redstone::update_surrounding_blocks(&mut world, power);
     tick(&mut world);
     tick(&mut world);
     assert_eq!(name(&world, pos(5)), "minecraft:stone");
@@ -182,8 +182,8 @@ fn moved_piston_extends_when_it_arrives() {
 
 fn resolve(world: &TestWorld, extending: bool, facing: &str) -> Option<StructureResolver> {
     let direction = match facing {
-        "east" => mchprs_blocks::BlockFace::East,
-        _ => mchprs_blocks::BlockFace::West,
+        "east" => cinnabar_blocks::BlockFace::East,
+        _ => cinnabar_blocks::BlockFace::West,
     };
     let mut resolver = StructureResolver::new(pos(1), direction, extending);
     resolver.resolve(world).then_some(resolver)
@@ -338,7 +338,7 @@ fn retracting_sticky_piston_resolves_the_pulled_blocks() {
     world.set_block(pos(3), block("minecraft:stone", &[]));
     // The piston removes its head before it looks for the blocks to pull
     world.set_block(pos(2), Block::Air);
-    let mut resolver = StructureResolver::new(pos(1), mchprs_blocks::BlockFace::East, false);
+    let mut resolver = StructureResolver::new(pos(1), cinnabar_blocks::BlockFace::East, false);
     assert!(resolver.resolve(&world));
     assert_eq!(resolver.to_push, vec![pos(3)]);
 }

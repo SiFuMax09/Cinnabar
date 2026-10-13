@@ -5,10 +5,10 @@ mod v4_to_v5;
 
 use self::fixer::FixInfo;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::BlockPos;
-use mchprs_world::storage::{Chunk, ChunkSection};
-use mchprs_world::TickEntry;
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::BlockPos;
+use cinnabar_world::storage::{Chunk, ChunkSection};
+use cinnabar_world::TickEntry;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::fs::File;

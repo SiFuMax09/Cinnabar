@@ -6,9 +6,9 @@ pub mod testing;
 pub mod transport;
 
 use game_event::{EventContext, EventPos, GameEvent};
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::BlockPos;
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::BlockPos;
 use serde::{Deserialize, Serialize};
 use storage::Chunk;
 

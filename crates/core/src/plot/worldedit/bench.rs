@@ -1,5 +1,5 @@
 //! Benchmarks for the bulk operations. Run with
-//! `cargo test --release -p mchprs_core worldedit::bench -- --ignored --nocapture`
+//! `cargo test --release -p cinnabar_core worldedit::bench -- --ignored --nocapture`
 //!
 //! The numbers of the old implementation (per-block pattern picking, a full copy of the area for
 //! undo, per-block clipboard access) for the same operations on a 128x64x128 area (1M blocks)

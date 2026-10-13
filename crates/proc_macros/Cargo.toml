@@ -1,5 +1,5 @@
 [package]
-name = "mchprs_proc_macros"
+name = "cinnabar_proc_macros"
 authors.workspace = true
 description.workspace = true
 edition.workspace = true

@@ -5,25 +5,25 @@
         "update_url": null
     },
     "exported_at": "2026-10-12T00:00:00+00:00",
-    "name": "MCHPRS",
+    "name": "Cinnabar",
     "author": "osw1970@gmail.com",
-    "description": "MCHPRS - Minecraft High Performance Redstone Server for Minecraft 26.2. Each plot runs on its own thread and redstone can be compiled with Redpiler. Players need a Minecraft 26.2 client. Uses the prebuilt container image; change the image in the Docker Images section if you host your own fork (ghcr.io/<owner>/<repo>).",
+    "description": "Cinnabar - Minecraft High Performance Redstone Server for Minecraft 26.2. Each plot runs on its own thread and redstone can be compiled with Redpiler. Players need a Minecraft 26.2 client. Uses the prebuilt container image; change the image in the Docker Images section if you host your own fork (ghcr.io/<owner>/<repo>).",
     "features": null,
     "docker_images": {
-        "MCHPRS (GHCR, latest)": "ghcr.io/sifumax09/mtrmc:latest",
-        "MCHPRS (GHCR, Minecraft 26.2)": "ghcr.io/sifumax09/mtrmc:26.2"
+        "Cinnabar (GHCR, latest)": "ghcr.io/sifumax09/mtrmc:latest",
+        "Cinnabar (GHCR, Minecraft 26.2)": "ghcr.io/sifumax09/mtrmc:26.2"
     },
     "file_denylist": [],
-    "startup": "./mchprs",
+    "startup": "./cinnabar",
     "config": {
-        "files": "{\n    \"Config.toml\": {\n        \"parser\": \"file\",\n        \"find\": {\n            \"bind_address\": \"bind_address = \\\"0.0.0.0:{{server.build.default.port}}\\\"\",\n            \"motd\": \"motd = \\\"{{env.MCHPRS_MOTD}}\\\"\",\n            \"max_players\": \"max_players = {{env.MAX_PLAYERS}}\",\n            \"view_distance\": \"view_distance = {{env.VIEW_DISTANCE}}\"\n        }\n    }\n}",
+        "files": "{\n    \"Config.toml\": {\n        \"parser\": \"file\",\n        \"find\": {\n            \"bind_address\": \"bind_address = \\\"0.0.0.0:{{server.build.default.port}}\\\"\",\n            \"motd\": \"motd = \\\"{{env.CINNABAR_MOTD}}\\\"\",\n            \"max_players\": \"max_players = {{env.MAX_PLAYERS}}\",\n            \"view_distance\": \"view_distance = {{env.VIEW_DISTANCE}}\"\n        }\n    }\n}",
         "startup": "{\n    \"done\": \"Done! Start took\"\n}",
         "logs": "{}",
         "stop": "^C"
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/ash\n# Nothing to install: the server binary ships inside the container image.\nmkdir -p /mnt/server\necho \"MCHPRS is provided by the container image; nothing to install.\"\n",
+            "script": "#!/bin/ash\n# Nothing to install: the server binary ships inside the container image.\nmkdir -p /mnt/server\necho \"Cinnabar is provided by the container image; nothing to install.\"\n",
             "container": "alpine:3.22",
             "entrypoint": "ash"
         }
@@ -31,8 +31,8 @@
     "variables": [
         {
             "name": "Log filter",
-            "description": "Logging filter (MCHPRS_LOG), e.g. info, debug or mchprs_core=debug,info.",
-            "env_variable": "MCHPRS_LOG",
+            "description": "Logging filter (CINNABAR_LOG), e.g. info, debug or cinnabar_core=debug,info.",
+            "env_variable": "CINNABAR_LOG",
             "default_value": "info",
             "user_viewable": true,
             "user_editable": true,
@@ -42,7 +42,7 @@
         {
             "name": "MOTD",
             "description": "Message of the day shown in the server list (Config.toml: motd).",
-            "env_variable": "MCHPRS_MOTD",
+            "env_variable": "CINNABAR_MOTD",
             "default_value": "Minecraft High Performance Redstone Server",
             "user_viewable": true,
             "user_editable": true,

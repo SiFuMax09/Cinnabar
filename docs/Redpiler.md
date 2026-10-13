@@ -158,4 +158,4 @@ There are several types of backends, but the one which is in use today is known 
 
 ## Pistons
 
-Redpiler does not simulate pistons: plots that contain piston, sticky piston, piston head or moving piston blocks are not compiled (`/rp compile` reports an error and auto redpiler stays off). Piston logic runs in the regular tick (`mchprs_redstone::piston`).
+Redpiler does not simulate pistons: plots that contain piston, sticky piston, piston head or moving piston blocks are not compiled (`/rp compile` reports an error and auto redpiler stays off). Piston logic runs in the regular tick (`cinnabar_redstone::piston`).

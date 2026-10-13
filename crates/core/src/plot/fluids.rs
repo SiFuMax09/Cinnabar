@@ -13,12 +13,12 @@ use super::physics::{raycast, Vec3};
 use super::{Plot, PLOT_BLOCK_HEIGHT};
 use crate::interaction;
 use crate::player::PacketSender;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{generic, BlockFace, BlockPos};
-use mchprs_network::packets::serverbound::SUseItem;
-use mchprs_proc_macros::protocol_id;
-use mchprs_redstone as redstone;
-use mchprs_world::World;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::{generic, BlockFace, BlockPos};
+use cinnabar_network::packets::serverbound::SUseItem;
+use cinnabar_proc_macros::protocol_id;
+use cinnabar_redstone as redstone;
+use cinnabar_world::World;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
@@ -980,8 +980,8 @@ fn bucket_target(world: &impl World, eye: Vec3, dir: Vec3, kind: Kind) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mchprs_blocks::blocks::SlabType;
-    use mchprs_world::testing::TestWorld;
+    use cinnabar_blocks::blocks::SlabType;
+    use cinnabar_world::testing::TestWorld;
     use std::collections::VecDeque;
 
     fn water(level: u32) -> u32 {

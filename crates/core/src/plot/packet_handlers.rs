@@ -7,14 +7,14 @@ use crate::player::Gamemode;
 use crate::player::{PacketSender, PlayerPos, SkinParts};
 use crate::server::Message;
 use crate::utils::{self, HyphenatedUUID};
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::items::{Item, ItemStack};
-use mchprs_blocks::BlockPos;
-use mchprs_network::packets::clientbound::*;
-use mchprs_network::packets::serverbound::*;
-use mchprs_redstone::transport::{read_inventory, write_inventory};
-use mchprs_world::World;
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::items::{Item, ItemStack};
+use cinnabar_blocks::BlockPos;
+use cinnabar_network::packets::clientbound::*;
+use cinnabar_network::packets::serverbound::*;
+use cinnabar_redstone::transport::{read_inventory, write_inventory};
+use cinnabar_world::World;
 use serde_json::json;
 use std::fs;
 use std::path::PathBuf;
@@ -557,14 +557,14 @@ impl ServerBoundPacketHandler for Plot {
                 let eye = Vec3::new(owner.pos.x, owner.pos.y + eye_height, owner.pos.z);
                 let dir = Vec3::from_rotation(use_item.yaw, use_item.pitch);
                 let uuid = owner.uuid;
-                let context = mchprs_world::game_event::EventContext {
+                let context = cinnabar_world::game_event::EventContext {
                     sneaking: owner.crouching,
                     spectator: matches!(owner.gamemode, crate::player::Gamemode::Spectator),
                     dampened: false,
                 };
                 let shoot_pos = (owner.pos.x, owner.pos.y, owner.pos.z);
                 self.world.game_event(
-                    mchprs_world::game_event::GameEvent::ProjectileShoot,
+                    cinnabar_world::game_event::GameEvent::ProjectileShoot,
                     shoot_pos,
                     context,
                 );

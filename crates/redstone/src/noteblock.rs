@@ -1,7 +1,7 @@
-use mchprs_blocks::blocks::{Block, Instrument};
-use mchprs_blocks::{BlockFace, BlockPos};
-use mchprs_world::game_event::{block_center, EventContext, GameEvent};
-use mchprs_world::World;
+use cinnabar_blocks::blocks::{Block, Instrument};
+use cinnabar_blocks::{BlockFace, BlockPos};
+use cinnabar_world::game_event::{block_center, EventContext, GameEvent};
+use cinnabar_world::World;
 
 pub fn is_noteblock_unblocked(world: &impl World, pos: BlockPos) -> bool {
     matches!(world.get_block(pos.offset(BlockFace::Top)), Block::Air)

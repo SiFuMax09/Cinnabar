@@ -1,4 +1,4 @@
-//! The goal of this module is to make upgrading to newer version of mchprs
+//! The goal of this module is to make upgrading to newer version of cinnabar
 //! easier by providing automatic conversion from old world data.
 //!
 //! Eventually this module might help recover currupted plot data.

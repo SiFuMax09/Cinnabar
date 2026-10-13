@@ -4,8 +4,8 @@ use crate::compile_graph::{
 use crate::passes::{AnalysisInfos, AnalysisUsage, Pass};
 use crate::{CompilerInput, CompilerOptions};
 use itertools::Itertools;
-use mchprs_blocks::blocks::ComparatorMode as CComparatorMode;
-use mchprs_world::World;
+use cinnabar_blocks::blocks::ComparatorMode as CComparatorMode;
+use cinnabar_world::World;
 use redpiler_graph::{
     serialize, BlockPos, ComparatorMode, Link, LinkType, Node, NodeState, NodeType,
 };

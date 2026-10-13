@@ -6,9 +6,9 @@ pub mod string_replacer;
 pub mod task_monitor;
 
 use backend::{BackendDispatcher, JITBackend};
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::BlockPos;
-use mchprs_world::{for_each_block_mut_optimized, TickEntry, World};
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::BlockPos;
+use cinnabar_world::{for_each_block_mut_optimized, TickEntry, World};
 use std::sync::Arc;
 use std::time::Instant;
 use tracing::{debug, error, trace, warn};
@@ -213,7 +213,7 @@ impl Compiler {
             let (first_pos, second_pos) = bounds;
             for_each_block_mut_optimized(world, first_pos, second_pos, |world, pos| {
                 let block = world.get_block(pos);
-                mchprs_redstone::update(block, world, pos);
+                cinnabar_redstone::update(block, world, pos);
             });
         }
         self.options = Default::default();

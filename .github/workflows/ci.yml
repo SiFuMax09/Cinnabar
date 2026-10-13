@@ -75,4 +75,4 @@ jobs:
         run: shellcheck docker/entrypoint.sh
 
       - name: Validate Pterodactyl egg
-        run: python3 pterodactyl/validate_egg.py pterodactyl/egg-mchprs.json
+        run: python3 pterodactyl/validate_egg.py pterodactyl/egg-cinnabar.json

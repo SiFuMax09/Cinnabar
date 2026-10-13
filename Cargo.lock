@@ -290,6 +290,210 @@ dependencies = [
 ]
 
 [[package]]
+name = "cinnabar"
+version = "0.5.2-dev"
+dependencies = [
+ "cinnabar_blocks",
+ "cinnabar_core",
+ "cinnabar_redpiler",
+ "cinnabar_redstone",
+ "cinnabar_world",
+ "clap",
+ "paste",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "cinnabar_block_data_gen"
+version = "0.5.2-dev"
+dependencies = [
+ "convert_case",
+ "indexmap",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+]
+
+[[package]]
+name = "cinnabar_blocks"
+version = "0.5.2-dev"
+dependencies = [
+ "cinnabar_proc_macros",
+ "cinnabar_utils",
+ "hematite-nbt",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "cinnabar_core"
+version = "0.5.2-dev"
+dependencies = [
+ "anyhow",
+ "backtrace",
+ "bincode",
+ "bitflags",
+ "bus",
+ "byteorder",
+ "cinnabar_blocks",
+ "cinnabar_network",
+ "cinnabar_proc_macros",
+ "cinnabar_redpiler",
+ "cinnabar_redstone",
+ "cinnabar_save_data",
+ "cinnabar_schematic",
+ "cinnabar_text",
+ "cinnabar_utils",
+ "cinnabar_world",
+ "ctrlc",
+ "hematite-nbt",
+ "hmac",
+ "itertools",
+ "md5",
+ "mysql",
+ "rand",
+ "regex",
+ "reqwest",
+ "rusqlite",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "toml",
+ "toml_edit 0.23.10+spec-1.0.0",
+ "tracing",
+]
+
+[[package]]
+name = "cinnabar_network"
+version = "0.5.2-dev"
+dependencies = [
+ "bitvec",
+ "byteorder",
+ "cinnabar_proc_macros",
+ "cinnabar_text",
+ "flate2",
+ "hematite-nbt",
+ "serde",
+ "tracing",
+]
+
+[[package]]
+name = "cinnabar_proc_macros"
+version = "0.5.2-dev"
+dependencies = [
+ "nom",
+ "quote",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "syn",
+]
+
+[[package]]
+name = "cinnabar_redpiler"
+version = "0.5.2-dev"
+dependencies = [
+ "cinnabar_blocks",
+ "cinnabar_redstone",
+ "cinnabar_world",
+ "enum_dispatch",
+ "indexmap",
+ "itertools",
+ "petgraph",
+ "redpiler_graph",
+ "rustc-hash",
+ "serde_json",
+ "smallvec",
+ "tracing",
+]
+
+[[package]]
+name = "cinnabar_redstone"
+version = "0.5.2-dev"
+dependencies = [
+ "cinnabar_blocks",
+ "cinnabar_world",
+ "rand",
+ "rustc-hash",
+ "tracing",
+]
+
+[[package]]
+name = "cinnabar_save_data"
+version = "0.5.2-dev"
+dependencies = [
+ "bincode",
+ "byteorder",
+ "cinnabar_blocks",
+ "cinnabar_world",
+ "rustc-hash",
+ "serde",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
+name = "cinnabar_schematic"
+version = "0.5.2-dev"
+dependencies = [
+ "anyhow",
+ "cinnabar_blocks",
+ "cinnabar_world",
+ "hematite-nbt",
+ "itertools",
+ "regex",
+ "rustc-hash",
+ "serde",
+]
+
+[[package]]
+name = "cinnabar_text"
+version = "0.5.2-dev"
+dependencies = [
+ "regex",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "cinnabar_utils"
+version = "0.5.2-dev"
+
+[[package]]
+name = "cinnabar_world"
+version = "0.5.2-dev"
+dependencies = [
+ "cinnabar_blocks",
+ "cinnabar_network",
+ "cinnabar_world",
+ "hematite-nbt",
+ "rustc-hash",
+ "serde",
+]
+
+[[package]]
+name = "cinnabar_world_exporter"
+version = "0.5.2-dev"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "cinnabar_blocks",
+ "cinnabar_save_data",
+ "cinnabar_utils",
+ "cinnabar_world",
+ "clap",
+ "hematite-nbt",
+ "rayon",
+ "serde",
+]
+
+[[package]]
 name = "clap"
 version = "4.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1280,210 +1484,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mchprs"
-version = "0.5.2-dev"
-dependencies = [
- "clap",
- "mchprs_blocks",
- "mchprs_core",
- "mchprs_redpiler",
- "mchprs_redstone",
- "mchprs_world",
- "paste",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "mchprs_block_data_gen"
-version = "0.5.2-dev"
-dependencies = [
- "convert_case",
- "indexmap",
- "proc-macro2",
- "quote",
- "serde",
- "serde_json",
- "serde_yaml_ng",
-]
-
-[[package]]
-name = "mchprs_blocks"
-version = "0.5.2-dev"
-dependencies = [
- "hematite-nbt",
- "mchprs_proc_macros",
- "mchprs_utils",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "mchprs_core"
-version = "0.5.2-dev"
-dependencies = [
- "anyhow",
- "backtrace",
- "bincode",
- "bitflags",
- "bus",
- "byteorder",
- "ctrlc",
- "hematite-nbt",
- "hmac",
- "itertools",
- "mchprs_blocks",
- "mchprs_network",
- "mchprs_proc_macros",
- "mchprs_redpiler",
- "mchprs_redstone",
- "mchprs_save_data",
- "mchprs_schematic",
- "mchprs_text",
- "mchprs_utils",
- "mchprs_world",
- "md5",
- "mysql",
- "rand",
- "regex",
- "reqwest",
- "rusqlite",
- "rustc-hash",
- "serde",
- "serde_json",
- "sha2",
- "tokio",
- "toml",
- "toml_edit 0.23.10+spec-1.0.0",
- "tracing",
-]
-
-[[package]]
-name = "mchprs_network"
-version = "0.5.2-dev"
-dependencies = [
- "bitvec",
- "byteorder",
- "flate2",
- "hematite-nbt",
- "mchprs_proc_macros",
- "mchprs_text",
- "serde",
- "tracing",
-]
-
-[[package]]
-name = "mchprs_proc_macros"
-version = "0.5.2-dev"
-dependencies = [
- "nom",
- "quote",
- "rustc-hash",
- "serde",
- "serde_json",
- "syn",
-]
-
-[[package]]
-name = "mchprs_redpiler"
-version = "0.5.2-dev"
-dependencies = [
- "enum_dispatch",
- "indexmap",
- "itertools",
- "mchprs_blocks",
- "mchprs_redstone",
- "mchprs_world",
- "petgraph",
- "redpiler_graph",
- "rustc-hash",
- "serde_json",
- "smallvec",
- "tracing",
-]
-
-[[package]]
-name = "mchprs_redstone"
-version = "0.5.2-dev"
-dependencies = [
- "mchprs_blocks",
- "mchprs_world",
- "rand",
- "rustc-hash",
- "tracing",
-]
-
-[[package]]
-name = "mchprs_save_data"
-version = "0.5.2-dev"
-dependencies = [
- "bincode",
- "byteorder",
- "mchprs_blocks",
- "mchprs_world",
- "rustc-hash",
- "serde",
- "thiserror 2.0.18",
- "tracing",
-]
-
-[[package]]
-name = "mchprs_schematic"
-version = "0.5.2-dev"
-dependencies = [
- "anyhow",
- "hematite-nbt",
- "itertools",
- "mchprs_blocks",
- "mchprs_world",
- "regex",
- "rustc-hash",
- "serde",
-]
-
-[[package]]
-name = "mchprs_text"
-version = "0.5.2-dev"
-dependencies = [
- "regex",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "mchprs_utils"
-version = "0.5.2-dev"
-
-[[package]]
-name = "mchprs_world"
-version = "0.5.2-dev"
-dependencies = [
- "hematite-nbt",
- "mchprs_blocks",
- "mchprs_network",
- "mchprs_world",
- "rustc-hash",
- "serde",
-]
-
-[[package]]
-name = "mchprs_world_exporter"
-version = "0.5.2-dev"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "hematite-nbt",
- "mchprs_blocks",
- "mchprs_save_data",
- "mchprs_utils",
- "mchprs_world",
- "rayon",
- "serde",
-]
-
-[[package]]
 name = "md5"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2079,12 +2079,12 @@ name = "rilc"
 version = "0.5.2-dev"
 dependencies = [
  "anstream",
+ "cinnabar_blocks",
+ "cinnabar_redpiler",
+ "cinnabar_schematic",
+ "cinnabar_world",
  "clap",
  "line-index",
- "mchprs_blocks",
- "mchprs_redpiler",
- "mchprs_schematic",
- "mchprs_world",
  "owo-colors",
  "tracing-subscriber",
 ]

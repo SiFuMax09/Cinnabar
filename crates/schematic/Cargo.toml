@@ -1,5 +1,5 @@
 [package]
-name = "mchprs_schematic"
+name = "cinnabar_schematic"
 authors.workspace = true
 description.workspace = true
 edition.workspace = true
@@ -12,8 +12,8 @@ repository.workspace = true
 include.workspace = true
 
 [dependencies]
-mchprs_world = { path = "../world", features = ["testing"] }
-mchprs_blocks = { path = "../blocks" }
+cinnabar_world = { path = "../world", features = ["testing"] }
+cinnabar_blocks = { path = "../blocks" }
 serde = { workspace = true }
 itertools = { workspace = true }
 anyhow = { workspace = true }

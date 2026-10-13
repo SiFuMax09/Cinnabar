@@ -6,7 +6,7 @@ use crate::string_replacer::StringReplacer;
 use crate::CompilerOptions;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use mchprs_blocks::blocks::{ComparatorMode, Instrument};
+use cinnabar_blocks::blocks::{ComparatorMode, Instrument};
 use rustc_hash::FxHashMap;
 use std::iter::Peekable;
 use std::str::CharIndices;

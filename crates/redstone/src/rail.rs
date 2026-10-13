@@ -5,9 +5,9 @@
 //! placed next to it are connected to it in the same way. Powered and activator rails are only
 //! ever straight, detector rails report whether a minecart is on them.
 
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{generic, BlockFace, BlockPos};
-use mchprs_world::World;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::{generic, BlockFace, BlockPos};
+use cinnabar_world::World;
 
 const RAIL: &str = "minecraft:rail";
 const POWERED_RAIL: &str = "minecraft:powered_rail";
@@ -586,7 +586,7 @@ pub fn placement_shape(looking_east_west: bool) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mchprs_world::testing::TestWorld;
+    use cinnabar_world::testing::TestWorld;
 
     /// A world with a stone floor at y = 0
     fn floor_world() -> TestWorld {

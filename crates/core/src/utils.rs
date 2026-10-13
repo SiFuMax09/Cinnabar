@@ -1,6 +1,6 @@
-use mchprs_blocks::block_entities::InventoryEntry;
-use mchprs_blocks::items::{Item, ItemStack};
-use mchprs_network::packets::SlotData;
+use cinnabar_blocks::block_entities::InventoryEntry;
+use cinnabar_blocks::items::{Item, ItemStack};
+use cinnabar_network::packets::SlotData;
 use serde::de::Visitor;
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;

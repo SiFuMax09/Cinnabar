@@ -1,5 +1,5 @@
 [package]
-name = "mchprs_text"
+name = "cinnabar_text"
 authors.workspace = true
 description.workspace = true
 edition.workspace = true

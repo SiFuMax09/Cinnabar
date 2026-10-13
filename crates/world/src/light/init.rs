@@ -4,7 +4,7 @@ use super::engine::{Entry, Kind, LightEngine, Node};
 use super::{edge_occluded, ChunkLight, Nibbles, DIRECTIONS, MAX_LIGHT};
 use crate::storage::Chunk;
 use crate::World;
-use mchprs_blocks::generic::light_emission;
+use cinnabar_blocks::generic::light_emission;
 
 /// Index of the directions north, south, west and east in `DIRECTIONS`
 const SIDES: [usize; 4] = [2, 3, 4, 5];

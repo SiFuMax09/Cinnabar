@@ -1,5 +1,5 @@
 [package]
-name = "mchprs_network"
+name = "cinnabar_network"
 authors.workspace = true
 description.workspace = true
 edition.workspace = true
@@ -14,8 +14,8 @@ include.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mchprs_proc_macros = { path = "../proc_macros" }
-mchprs_text = { path = "../text" }
+cinnabar_proc_macros = { path = "../proc_macros" }
+cinnabar_text = { path = "../text" }
 hematite-nbt = { workspace = true }
 flate2 = { workspace = true }
 serde = { workspace = true }

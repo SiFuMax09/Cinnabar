@@ -1,5 +1,5 @@
 use anstream::println;
-use mchprs_redpiler::{
+use cinnabar_redpiler::{
     passes::{build_pass_pipeline, PassRegistry},
     ril::{self, RILModule, RILTest},
     string_replacer::StringReplacer,

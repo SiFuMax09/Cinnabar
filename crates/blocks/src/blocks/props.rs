@@ -1,4 +1,4 @@
-use mchprs_proc_macros::protocol_id;
+use cinnabar_proc_macros::protocol_id;
 
 use super::{Block, BlockDirection, BlockProperty, BlockTransform, FlipDirection};
 

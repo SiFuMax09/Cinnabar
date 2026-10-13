@@ -1,14 +1,16 @@
-# Minecraft High-Performance Redstone Server
+# Cinnabar
 
-[![Build Status](https://github.com/MCHPR/MCHPRS/actions/workflows/build.yml/badge.svg)](https://github.com/MCHPR/MCHPRS/actions/workflows/build.yml)
+[![Build Status](https://github.com/SiFuMax09/MTRMC/actions/workflows/build.yml/badge.svg)](https://github.com/SiFuMax09/MTRMC/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Discord Banner 2](https://discordapp.com/api/guilds/724072903083163679/widget.png)](https://discord.com/invite/svK9JU7)
 
+> **Cinnabar is a fork of [MCHPRS](https://github.com/MCHPR/MCHPRS)** (Minecraft High Performance Redstone Server) by Ojas Landge and the MCHPRS contributors, ported to Minecraft 26.2. All the credit for the original design, Redpiler and the plot system goes to them. The plot-save format stays compatible with MCHPRS.
+
 A Minecraft 26.2 creative server (clients must use Minecraft **26.2**) built for redstone. Each 512x512 plot runs on a separate thread, allowing for less lag, more concurrency, and many awesome extra features!
 
-MCHPRS is very different from traditional servers. Because this server is tailored to the use of computational redstone, many things that are a part of Vanilla Minecraft servers don't exist here. That being said, MCHPRS comes with many of its own unique features.
+Cinnabar is very different from traditional servers. Because this server is tailored to the use of computational redstone, many things that are a part of Vanilla Minecraft servers don't exist here. That being said, Cinnabar comes with many of its own unique features.
 
-MCHPRS has made it possible to run programs such as [a limited form of Minecraft](https://www.youtube.com/watch?v=-BP7DhHTU-I) on CPUs in Minecraft. To accomplish these speeds, we created [Redpiler](docs/Redpiler.md), the "Redstone Compiler".
+MCHPRS, the project Cinnabar is based on, made it possible to run programs such as [a limited form of Minecraft](https://www.youtube.com/watch?v=-BP7DhHTU-I) on CPUs in Minecraft. To accomplish these speeds, we created [Redpiler](docs/Redpiler.md), the "Redstone Compiler".
 
 ## Table of Contents
 
@@ -32,30 +34,30 @@ MCHPRS has made it possible to run programs such as [a limited form of Minecraft
 If the Rust compiler is not already installed, you can find out how [on their official website](https://www.rust-lang.org/tools/install).
 
 ```shell
-git clone https://github.com/MCHPR/MCHPRS.git
-cd MCHPRS
+git clone https://github.com/SiFuMax09/MTRMC.git
+cd MTRMC
 cargo build --release
 ```
 
-Once complete, the optimized executable will be located at `./target/release/mchprs` or `./target/release/mchprs.exe` depending on your operating system.
+Once complete, the optimized executable will be located at `./target/release/cinnabar` or `./target/release/cinnabar.exe` depending on your operating system.
 
 ## Docker
 
 Multi-arch (amd64/arm64) images are published to GHCR as `ghcr.io/<owner>/<repo>` with the tags `latest`, `26.2`, semver and short commit sha. The server runs as a non-root user (uid 10001) and keeps everything (`Config.toml`, `world/`, `schems/`, `logs/`) in the `/data` volume.
 
 ```shell
-docker run -d --name mchprs -p 25565:25565 -v mchprs-data:/data ghcr.io/sifumax09/mtrmc:latest
+docker run -d --name cinnabar -p 25565:25565 -v cinnabar-data:/data ghcr.io/sifumax09/mtrmc:latest
 ```
 
-See [docker-compose.yml](docker-compose.yml) for a compose example. Optional environment variables are written to `Config.toml` only when set: `MCHPRS_LOG`, `MCHPRS_MOTD`, `MCHPRS_MAX_PLAYERS`, `MCHPRS_VIEW_DISTANCE`, `MCHPRS_BIND_ADDRESS`, `MCHPRS_VELOCITY_SECRET` (enables Velocity) and `MCHPRS_VELOCITY_ENABLED`. Stop with `docker stop` (the server saves on SIGINT/SIGTERM). Build locally with `docker build -t mchprs .`.
+See [docker-compose.yml](docker-compose.yml) for a compose example. Optional environment variables are written to `Config.toml` only when set: `CINNABAR_LOG`, `CINNABAR_MOTD`, `CINNABAR_MAX_PLAYERS`, `CINNABAR_VIEW_DISTANCE`, `CINNABAR_BIND_ADDRESS`, `CINNABAR_VELOCITY_SECRET` (enables Velocity) and `CINNABAR_VELOCITY_ENABLED`. Stop with `docker stop` (the server saves on SIGINT/SIGTERM). Build locally with `docker build -t cinnabar .`.
 
 ## Pterodactyl
 
-Import [pterodactyl/egg-mchprs.json](pterodactyl/egg-mchprs.json) into your panel. See [pterodactyl/README.md](pterodactyl/README.md) for the image placeholder, variables and details.
+Import [pterodactyl/egg-cinnabar.json](pterodactyl/egg-cinnabar.json) into your panel. See [pterodactyl/README.md](pterodactyl/README.md) for the image placeholder, variables and details.
 
 ## Configuration
 
-MCHPRS will generate a `Config.toml` file in the current working directory when starting the server if it does not exist.
+Cinnabar will generate a `Config.toml` file in the current working directory when starting the server if it does not exist.
 
 The following options are available at the toplevel (under no header):
 | Field | Description | Default |
@@ -74,7 +76,7 @@ To change the plot size edit the constants defined in [plot/mod.rs](./crates/cor
 
 ### Velocity
 
-MCHPRS has no support for player authentication on its own, but supports Velocity modern ip-forwarding.
+Cinnabar has no support for player authentication on its own, but supports Velocity modern ip-forwarding.
 
 To use [Velocity](https://papermc.io/software/velocity) ip-forwarding, you must have a Velocity proxy set up and configured. Make sure `player-info-forwarding-mode` is set to `modern` in your Velocity config. Then, append this to your `Config.toml`:
 
@@ -88,7 +90,7 @@ secret = "<secret>"
 
 ### LuckPerms
 
-MCHPRS has basic support for LuckPerms with MySQL or MariaDB remote database storage. This implementation has no commands or interface and would have to be managed through LuckPerms running on a proxy (`/lpb`) or other server (`/lp`)
+Cinnabar has basic support for LuckPerms with MySQL or MariaDB remote database storage. This implementation has no commands or interface and would have to be managed through LuckPerms running on a proxy (`/lpb`) or other server (`/lp`)
 
 To use LuckPerms, append this to your `Config.toml`:
 
@@ -123,7 +125,7 @@ server_context = "global"
 | `/stop`                     | None            | Stops the server.                                                                                                                                                     |
 
 ### Plot Ownership
-The plot ownership system in MCHPRS is very incomplete.
+The plot ownership system in Cinnabar is very incomplete.
 These are the commands that are currently implemented:
 | Command | Alias | Description |
 | --- | --- |--- |
@@ -138,7 +140,7 @@ These are the commands that are currently implemented:
 | `/plot select` | `/p sel` | Uses WorldEdit to select the entire plot. |
 
 ### Worldedit
-MCHPRS provides its own implementation of [WorldEdit](https://github.com/EngineHub/WorldEdit). Visit their [documentation](https://worldedit.enginehub.org/en/latest/commands/) for more information.
+Cinnabar provides its own implementation of [WorldEdit](https://github.com/EngineHub/WorldEdit). Visit their [documentation](https://worldedit.enginehub.org/en/latest/commands/) for more information.
 These are the commands that are currently implemented:
 | Command | Alias | Description |
 | --- | --- | --- |
@@ -173,7 +175,7 @@ These are the commands that are currently implemented:
 
 ### Redpiler
 
-MCHPRS provides Redpiler, the redstone compiler. This allows redstone simulation much faster than otherwise possible.
+Cinnabar provides Redpiler, the redstone compiler. This allows redstone simulation much faster than otherwise possible.
 While redpiler is running, all redstone connections are pre-computed, thus interaction with the world is limited in this state.
 Placing or breaking blocks while redpiler is running will cause a reset and disable redpiler.
 
@@ -196,6 +198,7 @@ Placing or breaking blocks while redpiler is running will cause a reset and disa
 | `--print-before-backend` | None  | Print out the RIL circuit before starting backend compilation. Used for debugging/development.                                                                                                                          |
 
 ## Acknowledgments
+- [MCHPRS](https://github.com/MCHPR/MCHPRS) and its authors, first of all [Ojas Landge](https://github.com/StackDoubleFlow), on whose work this whole project is built. Cinnabar is a fork of it.
 - [@AL1L](https://github.com/AL1L) for his contributions to worldedit and other various features.
 - [@DavidGarland](https://github.com/DavidGarland) for a faster and overall better implementation of `get_entry` in the in-memory storage. This simple function runs 30% of the runtime for redstone.
 
@@ -203,4 +206,4 @@ Placing or breaking blocks while redpiler is running will cause a reset and disa
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
-[MIT](https://choosealicense.com/licenses/mit/)
+[MIT](LICENSE). The original copyright (c) 2020 Ojas Landge (MCHPRS) is retained.

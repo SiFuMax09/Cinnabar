@@ -6,9 +6,9 @@ use super::pattern::{Mask, Pattern, PatternEnv};
 use super::session::{apply_entities, apply_section_changes, clamp_to_plot, read_box, EditSession};
 use super::shapes;
 use crate::plot::PlotWorld;
-use mchprs_blocks::BlockPos;
-use mchprs_schematic::WorldEditClipboard;
-use mchprs_world::World;
+use cinnabar_blocks::BlockPos;
+use cinnabar_schematic::WorldEditClipboard;
+use cinnabar_world::World;
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
 
@@ -765,5 +765,5 @@ mod tests {
         job.run_for_test(world)
     }
 
-    use mchprs_blocks::blocks::Block;
+    use cinnabar_blocks::blocks::Block;
 }

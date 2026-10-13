@@ -3,15 +3,15 @@ use crate::generic_placement;
 use crate::player::{Gamemode, Player, PlayerPos};
 use crate::plot::fluids;
 use crate::plot::{PlotWorld, PLOT_BLOCK_HEIGHT};
-use mchprs_blocks::block_entities::{BlockEntity, ContainerType, Inventory};
-use mchprs_blocks::items::{Item, ItemStack};
-use mchprs_blocks::{blocks::*, BlockDirection, BlockFacing};
-use mchprs_blocks::{BlockFace, BlockPos};
-use mchprs_network::packets::clientbound::{COpenSignEditor, ClientBoundPacket};
-use mchprs_redstone as redstone;
-use mchprs_utils::nbt_unwrap_val;
-use mchprs_world::game_event::{block_center, dampens_vibrations, EventContext, GameEvent};
-use mchprs_world::{storage::Chunk, PistonQueue, TickPriority, World};
+use cinnabar_blocks::block_entities::{BlockEntity, ContainerType, Inventory};
+use cinnabar_blocks::items::{Item, ItemStack};
+use cinnabar_blocks::{blocks::*, BlockDirection, BlockFacing};
+use cinnabar_blocks::{BlockFace, BlockPos};
+use cinnabar_network::packets::clientbound::{COpenSignEditor, ClientBoundPacket};
+use cinnabar_redstone as redstone;
+use cinnabar_utils::nbt_unwrap_val;
+use cinnabar_world::game_event::{block_center, dampens_vibrations, EventContext, GameEvent};
+use cinnabar_world::{storage::Chunk, PistonQueue, TickPriority, World};
 
 /// A world where every block is air. Placement state computed against it ignores neighbours,
 /// which is what a plot needs when the neighbouring blocks belong to another plot's thread.
@@ -375,9 +375,9 @@ pub fn place_in_world(
     };
     world.set_block(pos, block);
     if let Block::Generic(id) = block
-        && mchprs_redstone::rail::is_rail(id)
+        && cinnabar_redstone::rail::is_rail(id)
     {
-        mchprs_redstone::rail::on_placed(world, pos);
+        cinnabar_redstone::rail::on_placed(world, pos);
     }
     if let Block::Hopper { .. } = block {
         redstone::update(block, world, pos);
@@ -458,9 +458,9 @@ pub fn is_valid_position(block: Block, world: &impl World, pos: BlockPos) -> boo
     }
 
     if let Block::Generic(id) = block
-        && mchprs_redstone::rail::is_rail(id)
+        && cinnabar_redstone::rail::is_rail(id)
     {
-        return mchprs_redstone::rail::is_supported(world, pos, id);
+        return cinnabar_redstone::rail::is_supported(world, pos, id);
     }
 
     let check_bottom = matches!(
@@ -531,9 +531,9 @@ pub fn change(block: Block, world: &mut impl World, pos: BlockPos, direction: Bl
         return;
     }
     if let Block::Generic(id) = block
-        && mchprs_redstone::rail::is_rail(id)
+        && cinnabar_redstone::rail::is_rail(id)
     {
-        mchprs_redstone::rail::on_neighbor_changed(world, pos);
+        cinnabar_redstone::rail::on_neighbor_changed(world, pos);
     }
     if let Block::RedstoneWire(wire) = block {
         let new_state = redstone::wire::on_neighbor_changed(wire, world, pos, direction);
@@ -595,7 +595,7 @@ pub struct UseOnBlockContext<'a> {
 fn collides_with_player(block: Block, pos: BlockPos, ctx: &UseOnBlockContext<'_>) -> bool {
     const HALF_WIDTH: f64 = 0.3;
 
-    let Some(shape) = mchprs_blocks::generic::collision_box(block.get_id()) else {
+    let Some(shape) = cinnabar_blocks::generic::collision_box(block.get_id()) else {
         return false;
     };
     let [min_x, min_y, min_z, max_x, max_y, max_z] = shape;
@@ -693,11 +693,11 @@ pub fn use_item_on_block(
 #[cfg(test)]
 mod rail_tests {
     use super::*;
-    use mchprs_world::testing::TestWorld;
+    use cinnabar_world::testing::TestWorld;
 
     fn floor_world() -> TestWorld {
         let mut world = TestWorld::new(2, 2, 2);
-        let stone = mchprs_blocks::generic::default_state("minecraft:stone").unwrap();
+        let stone = cinnabar_blocks::generic::default_state("minecraft:stone").unwrap();
         for x in 0..32 {
             for z in 0..32 {
                 world.set_block_raw(BlockPos::new(x, 0, z), stone);
@@ -707,13 +707,13 @@ mod rail_tests {
     }
 
     fn rail(shape: &str) -> Block {
-        let id = mchprs_blocks::generic::default_state("minecraft:rail").unwrap();
-        Block::Generic(mchprs_blocks::generic::with_property(id, "shape", shape))
+        let id = cinnabar_blocks::generic::default_state("minecraft:rail").unwrap();
+        Block::Generic(cinnabar_blocks::generic::with_property(id, "shape", shape))
     }
 
     fn shape_at(world: &TestWorld, pos: BlockPos) -> Option<&'static str> {
         match world.get_block(pos) {
-            Block::Generic(id) => mchprs_blocks::generic::get_property(id, "shape"),
+            Block::Generic(id) => cinnabar_blocks::generic::get_property(id, "shape"),
             _ => None,
         }
     }

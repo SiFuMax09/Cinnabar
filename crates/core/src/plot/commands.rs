@@ -3,15 +3,15 @@ use crate::player::{Gamemode, PacketSender, PlayerPos};
 use crate::plot::data::sleep_time_for_tps;
 use crate::profile::PlayerProfile;
 use crate::server::{get_version_string, Message};
-use mchprs_blocks::items::ItemStack;
-use mchprs_network::packets::clientbound::{
+use cinnabar_blocks::items::ItemStack;
+use cinnabar_network::packets::clientbound::{
     CCommands, CCommandsNode as Node, CDeclareCommandsNodeParser as Parser, ClientBoundPacket,
 };
-use mchprs_network::packets::PacketEncoder;
-use mchprs_network::PlayerPacketSender;
-use mchprs_redpiler::CompilerOptions;
-use mchprs_save_data::plot_data::{Tps, WorldSendRate};
-use mchprs_text::TextComponent;
+use cinnabar_network::packets::PacketEncoder;
+use cinnabar_network::PlayerPacketSender;
+use cinnabar_redpiler::CompilerOptions;
+use cinnabar_save_data::plot_data::{Tps, WorldSendRate};
+use cinnabar_text::TextComponent;
 use std::ops::Add;
 use std::str::FromStr;
 use std::sync::LazyLock;

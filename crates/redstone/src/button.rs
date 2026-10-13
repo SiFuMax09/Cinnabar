@@ -2,11 +2,11 @@
 //! blackstone button. They behave like the stone button, which is a dedicated block.
 
 use crate::{emit_event, update_surrounding_blocks};
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::generic;
-use mchprs_blocks::{BlockFace, BlockPos};
-use mchprs_world::game_event::GameEvent;
-use mchprs_world::{TickPriority, World};
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::generic;
+use cinnabar_blocks::{BlockFace, BlockPos};
+use cinnabar_world::game_event::GameEvent;
+use cinnabar_world::{TickPriority, World};
 
 pub fn is_button(id: u32) -> bool {
     generic::state_name(id).ends_with("_button")

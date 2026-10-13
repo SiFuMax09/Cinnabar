@@ -1,8 +1,8 @@
 mod turbo;
 
-use mchprs_blocks::blocks::{Block, RedstoneWire, RedstoneWireSide};
-use mchprs_blocks::{BlockDirection, BlockFace, BlockPos};
-use mchprs_world::World;
+use cinnabar_blocks::blocks::{Block, RedstoneWire, RedstoneWireSide};
+use cinnabar_blocks::{BlockDirection, BlockFace, BlockPos};
+use cinnabar_world::World;
 use turbo::RedstoneWireTurbo;
 
 pub fn make_cross(power: u8) -> RedstoneWire {

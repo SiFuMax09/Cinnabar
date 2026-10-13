@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use crate::compile_graph::{CompileGraph, CompileNode, Direction, NodeIdx, NodeState, NodeType};
 use crate::passes::{AnalysisInfos, Pass};
 use crate::{CompilerInput, CompilerOptions};
-use mchprs_world::World;
+use cinnabar_world::World;
 use petgraph::unionfind::UnionFind;
 use rustc_hash::{FxHashMap, FxHashSet};
 

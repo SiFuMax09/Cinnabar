@@ -1,8 +1,8 @@
 //! Rotating and flipping clipboards.
 
-use mchprs_blocks::blocks::{Block, FlipDirection, RotateAmt};
-use mchprs_blocks::BlockPos;
-use mchprs_schematic::WorldEditClipboard;
+use cinnabar_blocks::blocks::{Block, FlipDirection, RotateAmt};
+use cinnabar_blocks::BlockPos;
+use cinnabar_schematic::WorldEditClipboard;
 use rustc_hash::FxHashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

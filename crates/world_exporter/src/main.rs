@@ -10,11 +10,11 @@ use std::path::{Path, PathBuf};
 pub const MC_VERSION: &str = "26.2";
 pub const MC_DATA_VERSION: i32 = 4903;
 
-/// MCHPRS world export tool
+/// Cinnabar world export tool
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Path to MCHPRS world directory.
+    /// Path to Cinnabar world directory.
     world_path: PathBuf,
 
     /// Path to minecraft saves directory. A new save will be created.
@@ -25,7 +25,7 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     let now_utc: DateTime<Utc> = Utc::now();
-    let level_name = format!("MCHPRS World Export {}", now_utc);
+    let level_name = format!("Cinnabar World Export {}", now_utc);
     let output_path = Path::new(&args.output_path).join(&level_name);
     fs::create_dir(&output_path)?;
 

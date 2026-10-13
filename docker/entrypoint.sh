@@ -1,5 +1,5 @@
 #!/bin/sh
-# MCHPRS container entrypoint.
+# Cinnabar container entrypoint.
 #
 # Applies optional environment variables to Config.toml (only the ones that are
 # set; everything else is left to the server defaults / the existing file), then
@@ -7,24 +7,24 @@
 # (STARTUP is set, cwd /home/container).
 #
 # Variables (aliases in parentheses):
-#   MCHPRS_LOG              tracing filter, default "info"
-#   MCHPRS_BIND_ADDRESS     bind_address            (BIND_PORT or SERVER_PORT -> 0.0.0.0:<port>)
-#   MCHPRS_MOTD             motd
-#   MCHPRS_MAX_PLAYERS      max_players             (MAX_PLAYERS)
-#   MCHPRS_VIEW_DISTANCE    view_distance           (VIEW_DISTANCE)
-#   MCHPRS_VELOCITY_SECRET  [velocity] secret       (VELOCITY_SECRET)
-#   MCHPRS_VELOCITY_ENABLED [velocity] enabled      (VELOCITY_ENABLED); defaults
+#   CINNABAR_LOG              tracing filter, default "info"
+#   CINNABAR_BIND_ADDRESS     bind_address            (BIND_PORT or SERVER_PORT -> 0.0.0.0:<port>)
+#   CINNABAR_MOTD             motd
+#   CINNABAR_MAX_PLAYERS      max_players             (MAX_PLAYERS)
+#   CINNABAR_VIEW_DISTANCE    view_distance           (VIEW_DISTANCE)
+#   CINNABAR_VELOCITY_SECRET  [velocity] secret       (VELOCITY_SECRET)
+#   CINNABAR_VELOCITY_ENABLED [velocity] enabled      (VELOCITY_ENABLED); defaults
 #                           to true when a secret is given
 set -eu
 
-export MCHPRS_LOG="${MCHPRS_LOG:-info}"
+export CINNABAR_LOG="${CINNABAR_LOG:-info}"
 
 CONFIG=Config.toml
 
-# Pterodactyl: run in the server volume and expose the binary as ./mchprs.
+# Pterodactyl: run in the server volume and expose the binary as ./cinnabar.
 if [ -n "${STARTUP:-}" ]; then
     cd /home/container
-    ln -sf /usr/local/bin/mchprs ./mchprs
+    ln -sf /usr/local/bin/cinnabar ./cinnabar
 fi
 
 toml_str() { # escape for a TOML basic string
@@ -53,18 +53,18 @@ set_int() {
     esac
 }
 
-MAX_PLAYERS_V="${MCHPRS_MAX_PLAYERS:-${MAX_PLAYERS:-}}"
-VIEW_DISTANCE_V="${MCHPRS_VIEW_DISTANCE:-${VIEW_DISTANCE:-}}"
-SECRET_V="${MCHPRS_VELOCITY_SECRET:-${VELOCITY_SECRET:-}}"
-ENABLED_V="${MCHPRS_VELOCITY_ENABLED:-${VELOCITY_ENABLED:-}}"
+MAX_PLAYERS_V="${CINNABAR_MAX_PLAYERS:-${MAX_PLAYERS:-}}"
+VIEW_DISTANCE_V="${CINNABAR_VIEW_DISTANCE:-${VIEW_DISTANCE:-}}"
+SECRET_V="${CINNABAR_VELOCITY_SECRET:-${VELOCITY_SECRET:-}}"
+ENABLED_V="${CINNABAR_VELOCITY_ENABLED:-${VELOCITY_ENABLED:-}}"
 
-if [ -n "${MCHPRS_BIND_ADDRESS:-}" ]; then
-    set_top bind_address "\"$(toml_str "$MCHPRS_BIND_ADDRESS")\""
+if [ -n "${CINNABAR_BIND_ADDRESS:-}" ]; then
+    set_top bind_address "\"$(toml_str "$CINNABAR_BIND_ADDRESS")\""
 elif [ -n "${BIND_PORT:-${SERVER_PORT:-}}" ]; then
     # SERVER_PORT is injected by Pterodactyl with the allocated port.
     set_top bind_address "\"0.0.0.0:$(toml_str "${BIND_PORT:-$SERVER_PORT}")\""
 fi
-[ -z "${MCHPRS_MOTD:-}" ] || set_top motd "\"$(toml_str "$MCHPRS_MOTD")\""
+[ -z "${CINNABAR_MOTD:-}" ] || set_top motd "\"$(toml_str "$CINNABAR_MOTD")\""
 [ -z "$MAX_PLAYERS_V" ] || set_int max_players "$MAX_PLAYERS_V"
 [ -z "$VIEW_DISTANCE_V" ] || set_int view_distance "$VIEW_DISTANCE_V"
 
@@ -93,10 +93,10 @@ if [ -n "$SECRET_V" ] || [ -n "$ENABLED_V" ]; then
 fi
 
 if [ -n "${STARTUP:-}" ]; then
-    # Pterodactyl passes e.g. "./mchprs" with optional {{VAR}} placeholders.
+    # Pterodactyl passes e.g. "./cinnabar" with optional {{VAR}} placeholders.
     MODIFIED_STARTUP=$(printf '%s' "$STARTUP" | sed -e 's/{{/${/g' -e 's/}}/}/g')
     echo ":/home/container$ ${MODIFIED_STARTUP}"
     eval "exec ${MODIFIED_STARTUP}"
 fi
 
-exec /usr/local/bin/mchprs "$@"
+exec /usr/local/bin/cinnabar "$@"

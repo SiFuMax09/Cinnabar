@@ -8,25 +8,25 @@ use crate::{permissions, utils};
 use backtrace::Backtrace;
 use bus::Bus;
 use hmac::{Hmac, Mac};
-use mchprs_blocks::BlockPos;
-use mchprs_network::packets::clientbound::{
+use cinnabar_blocks::BlockPos;
+use cinnabar_network::packets::clientbound::{
     CConfigurationPluginMessage, CDisconnectLogin, CFinishConfiguration, CGameEvent,
     CGameEventType, CLogin, CLoginPluginRequest, CLoginSuccess, CPlayerInfoActions,
     CPlayerInfoAddPlayer, CPlayerInfoUpdate, CPlayerInfoUpdatePlayer, CPong, CRegistryData,
     CResponse, CSelectKnownPacks, CSetCompression, CSetContainerContent, CSetHeldItem,
     CSynchronizePlayerPosition, CUpdateTags, ClientBoundPacket,
 };
-use mchprs_network::packets::serverbound::{
+use cinnabar_network::packets::serverbound::{
     SAcknowledgeFinishConfiguration, SHandshake, SLoginAcknowledged, SLoginPluginResponse,
     SLoginStart, SPing, SRequest, SSelectKnownPacks, ServerBoundPacketHandler,
     VelocityResponseData,
 };
-use mchprs_network::packets::{
+use cinnabar_network::packets::{
     PacketEncoder, PacketEncoderExt, PlayerProperty, SlotData, COMPRESSION_THRESHOLD,
 };
-use mchprs_network::{NetworkServer, NetworkState, PlayerPacketSender};
-use mchprs_text::TextComponent;
-use mchprs_world::{MC_VERSION, PROTOCOL_VERSION};
+use cinnabar_network::{NetworkServer, NetworkState, PlayerPacketSender};
+use cinnabar_text::TextComponent;
+use cinnabar_world::{MC_VERSION, PROTOCOL_VERSION};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::json;

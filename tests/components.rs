@@ -1,9 +1,9 @@
 mod common;
 use common::*;
 
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::BlockDirection;
-use mchprs_world::{testing::TestWorld, TickPriority, World};
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::BlockDirection;
+use cinnabar_world::{testing::TestWorld, TickPriority, World};
 
 test_all_backends!(lever_on_off);
 fn lever_on_off(backend: TestBackend) {

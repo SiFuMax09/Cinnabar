@@ -34,7 +34,7 @@ impl IdxT for u32 {
     }
 
     fn index(self) -> usize {
-        // This would fail on 16 bit systems, hopefully MCHPRS never runs on one
+        // This would fail on 16 bit systems, hopefully Cinnabar never runs on one
         self as usize
     }
 

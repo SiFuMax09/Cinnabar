@@ -1,7 +1,7 @@
 use crate::compile_graph::CompileGraph;
 use crate::passes::{AnalysisInfos, Pass};
 use crate::{CompilerInput, CompilerOptions};
-use mchprs_world::World;
+use cinnabar_world::World;
 
 pub struct ClampWeights;
 

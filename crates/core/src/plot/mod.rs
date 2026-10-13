@@ -24,24 +24,24 @@ use crate::server::{BroadcastMessage, EditPermissions, ForwardedEdit, Message, P
 use crate::utils::HyphenatedUUID;
 use anyhow::Error;
 use bus::BusReader;
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::items::{Item, ItemStack};
-use mchprs_blocks::{BlockFace, BlockPos};
-use mchprs_network::packets::clientbound::*;
-use mchprs_network::packets::serverbound::SUseItemOn;
-use mchprs_network::PlayerPacketSender;
-use mchprs_proc_macros::protocol_id;
-use mchprs_redpiler::{Compiler, CompilerOptions};
-use mchprs_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
-use mchprs_text::TextComponent;
-use mchprs_world::game_event::{
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::items::{Item, ItemStack};
+use cinnabar_blocks::{BlockFace, BlockPos};
+use cinnabar_network::packets::clientbound::*;
+use cinnabar_network::packets::serverbound::SUseItemOn;
+use cinnabar_network::PlayerPacketSender;
+use cinnabar_proc_macros::protocol_id;
+use cinnabar_redpiler::{Compiler, CompilerOptions};
+use cinnabar_save_data::plot_data::{ChunkData, PlotData, Tps, WorldSendRate};
+use cinnabar_text::TextComponent;
+use cinnabar_world::game_event::{
     block_center, dampens_vibrations, EventContext, EventPos, GameEvent,
 };
-use mchprs_world::light::LightEngine;
-use mchprs_world::storage::Chunk;
-use mchprs_world::transport::{self, ItemTransport};
-use mchprs_world::{PistonEvent, PistonQueue, TickEntry, TickPriority, World};
+use cinnabar_world::light::LightEngine;
+use cinnabar_world::storage::Chunk;
+use cinnabar_world::transport::{self, ItemTransport};
+use cinnabar_world::{PistonEvent, PistonQueue, TickEntry, TickPriority, World};
 use monitor::TimingsMonitor;
 use perf::{LOADED_PLOTS, ONLINE_PLAYERS};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -251,7 +251,7 @@ impl PlotWorld {
     fn rebuild_transport(&mut self) {
         let (first, second) = self.get_corners();
         let mut found = Vec::new();
-        mchprs_world::for_each_block_optimized(&*self, first, second, |pos| {
+        cinnabar_world::for_each_block_optimized(&*self, first, second, |pos| {
             let id = self.get_block_raw(pos);
             if transport::TransportKind::of_state(id).is_some() {
                 found.push((pos, id));
@@ -325,7 +325,7 @@ impl World for PlotWorld {
             return false;
         }
 
-        if mchprs_blocks::generic::is_sculk_sensor(block) {
+        if cinnabar_blocks::generic::is_sculk_sensor(block) {
             self.new_sensors.push(pos);
             self.listening = true;
         }
@@ -581,12 +581,12 @@ impl Plot {
         }
         while self.world.to_be_ticked.first().map_or(1, |e| e.ticks_left) == 0 {
             let entry = self.world.to_be_ticked.remove(0);
-            mchprs_redstone::tick(self.world.get_block(entry.pos), &mut self.world, entry.pos);
+            cinnabar_redstone::tick(self.world.get_block(entry.pos), &mut self.world, entry.pos);
         }
 
         // A redstone tick is two game ticks, which is what pistons are timed in
         for _ in 0..2 {
-            mchprs_redstone::piston::run_game_tick(
+            cinnabar_redstone::piston::run_game_tick(
                 &mut self.world,
                 interaction::piston_notify::<PlotWorld>,
             );
@@ -602,9 +602,9 @@ impl Plot {
         }
         let (first_pos, second_pos) = self.world.get_corners();
         let mut found = false;
-        mchprs_world::for_each_block_optimized(&self.world, first_pos, second_pos, |pos| {
+        cinnabar_world::for_each_block_optimized(&self.world, first_pos, second_pos, |pos| {
             found =
-                found || mchprs_redstone::piston::is_piston_family(self.world.get_block_raw(pos));
+                found || cinnabar_redstone::piston::is_piston_family(self.world.get_block_raw(pos));
         });
         self.world.has_pistons = Some(found);
         found
@@ -687,8 +687,8 @@ impl Plot {
         if let Some(powered) = block.get_pressure_plate_powered() {
             *powered = new_powered;
             self.world.set_block(pos, block);
-            mchprs_redstone::update_surrounding_blocks(&mut self.world, pos);
-            mchprs_redstone::update_surrounding_blocks(
+            cinnabar_redstone::update_surrounding_blocks(&mut self.world, pos);
+            cinnabar_redstone::update_surrounding_blocks(
                 &mut self.world,
                 pos.offset(BlockFace::Bottom),
             );
@@ -976,7 +976,7 @@ impl Plot {
         if let Some(item) = &item_in_hand
             && item.item_type.get_name() == "minecraft:minecart"
             && let Block::Generic(id) = self.world.get_block(block_pos)
-            && mchprs_redstone::rail::is_rail(id)
+            && cinnabar_redstone::rail::is_rail(id)
         {
             // Minecarts are placed on rails, and nothing else is placed on them
             if !self.spawn_minecart(block_pos) {

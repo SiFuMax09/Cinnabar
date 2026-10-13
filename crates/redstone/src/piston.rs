@@ -11,11 +11,11 @@
 //! `notify` function that sends the shape and redstone updates around a position.
 
 use crate::{get_redstone_power, update};
-use mchprs_blocks::block_entities::{BlockEntity, MovingPistonEntity};
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::generic::{self, PushReaction};
-use mchprs_blocks::{BlockFace, BlockPos};
-use mchprs_world::{PistonEvent, World};
+use cinnabar_blocks::block_entities::{BlockEntity, MovingPistonEntity};
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::generic::{self, PushReaction};
+use cinnabar_blocks::{BlockFace, BlockPos};
+use cinnabar_world::{PistonEvent, World};
 
 /// Updates the blocks around a position where a block changed
 pub type Notify<W> = fn(&mut W, BlockPos);

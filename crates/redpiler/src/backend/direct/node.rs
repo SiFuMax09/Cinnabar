@@ -1,4 +1,4 @@
-use mchprs_blocks::blocks::ComparatorMode;
+use cinnabar_blocks::blocks::ComparatorMode;
 use std::num::NonZeroU8;
 use std::ops::{Index, IndexMut};
 

@@ -10,8 +10,8 @@ use super::pattern::Mask;
 use super::session::{clamp_to_plot, EditSession};
 use crate::player::{PacketSender, Player};
 use crate::plot::{Plot, PlotWorld};
-use mchprs_blocks::BlockPos;
-use mchprs_world::World;
+use cinnabar_blocks::BlockPos;
+use cinnabar_world::World;
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 

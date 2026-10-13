@@ -5,10 +5,10 @@
 //! minecart. A cart that is not on a track falls like any other entity.
 
 use super::physics::Vec3;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{generic, BlockPos};
-use mchprs_redstone::rail;
-use mchprs_world::World;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::{generic, BlockPos};
+use cinnabar_redstone::rail;
+use cinnabar_world::World;
 
 /// The height of the top of a flat rail above the bottom of its block
 pub const RAIL_HEIGHT: f64 = 0.0625;
@@ -233,7 +233,7 @@ pub fn drive(world: &impl World, pos: &mut Vec3, vel: &mut Vec3) -> Option<Movem
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mchprs_world::testing::TestWorld;
+    use cinnabar_world::testing::TestWorld;
 
     /// A world with a stone floor at y = 0
     fn floor_world() -> TestWorld {
@@ -251,7 +251,7 @@ mod tests {
     fn lay_rails(world: &mut TestWorld, rails: &[(BlockPos, &str)]) {
         for (pos, name) in rails {
             world.set_block_raw(*pos, generic::default_state(name).unwrap());
-            mchprs_redstone::rail::on_placed(world, *pos);
+            cinnabar_redstone::rail::on_placed(world, *pos);
         }
     }
 

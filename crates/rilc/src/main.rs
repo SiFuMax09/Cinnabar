@@ -1,13 +1,13 @@
 use clap::{Parser, Subcommand};
 use line_index::{LineIndex, TextSize};
-use mchprs_blocks::BlockPos;
-use mchprs_redpiler::{
+use cinnabar_blocks::BlockPos;
+use cinnabar_redpiler::{
     passes::{PassPipeline, PassPipelineBuilder, PassRegistry},
     ril::RILModule,
     CompilerOptions,
 };
-use mchprs_schematic::{load_schematic, paste_clipboard};
-use mchprs_world::testing::TestWorld;
+use cinnabar_schematic::{load_schematic, paste_clipboard};
+use cinnabar_world::testing::TestWorld;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 

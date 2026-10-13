@@ -3,7 +3,7 @@ mod frontend;
 mod misc;
 mod opt;
 
-use mchprs_world::World;
+use cinnabar_world::World;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::ril::DumpGraph;

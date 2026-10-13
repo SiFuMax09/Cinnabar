@@ -2,7 +2,7 @@
 members = ["crates/block_data_gen","crates/proc_macros", "crates/redpiler_graph", "crates/rilc", "crates/schematic", "crates/world_exporter"]
 
 [package]
-name = "mchprs"
+name = "cinnabar"
 authors.workspace = true
 description.workspace = true
 edition.workspace = true
@@ -18,17 +18,17 @@ include.workspace = true
 authors = ["StackDoubleFlow <ojaslandge@gmail.com>"]
 description = "A multithreaded minecraft server built for redstone."
 edition = "2024"
-homepage = "https://github.com/MCHPR/MCHPRS"
+homepage = "https://github.com/SiFuMax09/MTRMC"
 keywords = ["minecraft", "server", "redstone"]
 readme = "README.md"
 version = "0.5.2-dev"
 license = "MIT"
-repository = "https://github.com/MCHPR/MCHPRS"
+repository = "https://github.com/SiFuMax09/MTRMC"
 
 include = ["**/*.rs", "Cargo.toml"]
 
 [profile.dev]
-# MCHPRS runs far too slow without any optimizations to even be usable for testing
+# Cinnabar runs far too slow without any optimizations to even be usable for testing
 opt-level = 1
 
 [profile.release]
@@ -36,17 +36,17 @@ opt-level = 1
 lto = "fat"
 
 [dependencies]
-mchprs_core = { path = "./crates/core" }
+cinnabar_core = { path = "./crates/core" }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing-appender = { workspace = true }
 tracing = { workspace = true }
 clap = { workspace = true }
 
 [dev-dependencies]
-mchprs_world = { path = "./crates/world", features = ["testing"] }
-mchprs_blocks = { path = "./crates/blocks" }
-mchprs_redpiler = { path = "./crates/redpiler" }
-mchprs_redstone = { path = "./crates/redstone" }
+cinnabar_world = { path = "./crates/world", features = ["testing"] }
+cinnabar_blocks = { path = "./crates/blocks" }
+cinnabar_redpiler = { path = "./crates/redpiler" }
+cinnabar_redstone = { path = "./crates/redstone" }
 paste = { workspace = true }
 
 [workspace.dependencies]

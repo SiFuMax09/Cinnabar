@@ -1,6 +1,6 @@
-use mchprs_blocks::blocks::{Block, Repeater};
-use mchprs_blocks::{BlockDirection, BlockFace, BlockPos};
-use mchprs_world::{TickPriority, World};
+use cinnabar_blocks::blocks::{Block, Repeater};
+use cinnabar_blocks::{BlockDirection, BlockFace, BlockPos};
+use cinnabar_world::{TickPriority, World};
 
 pub fn get_state_for_placement(
     world: &impl World,

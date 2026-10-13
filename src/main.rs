@@ -1,5 +1,5 @@
 use clap::Parser;
-use mchprs_core::server::{get_version_string, MinecraftServer};
+use cinnabar_core::server::{get_version_string, MinecraftServer};
 use std::fs;
 use std::path::Path;
 use tracing::debug;
@@ -22,10 +22,10 @@ fn main() {
     }
 
     // Setup logging
-    let logfile = tracing_appender::rolling::daily("./logs", "mchprs.log");
+    let logfile = tracing_appender::rolling::daily("./logs", "cinnabar.log");
     let env_filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
-        .with_env_var("MCHPRS_LOG")
+        .with_env_var("CINNABAR_LOG")
         .from_env_lossy();
     tracing_subscriber::fmt()
         .with_writer(logfile.and(std::io::stdout))

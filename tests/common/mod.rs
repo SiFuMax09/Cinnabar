@@ -1,9 +1,9 @@
-use mchprs_blocks::blocks::{Block, Comparator, ComparatorMode, LeverFace, Repeater};
-use mchprs_blocks::{BlockDirection, BlockPos};
-use mchprs_redpiler::{BackendVariant, Compiler, CompilerOptions};
-use mchprs_redstone::wire::make_cross;
-use mchprs_world::testing::TestWorld;
-use mchprs_world::World;
+use cinnabar_blocks::blocks::{Block, Comparator, ComparatorMode, LeverFace, Repeater};
+use cinnabar_blocks::{BlockDirection, BlockPos};
+use cinnabar_redpiler::{BackendVariant, Compiler, CompilerOptions};
+use cinnabar_redstone::wire::make_cross;
+use cinnabar_world::testing::TestWorld;
+use cinnabar_world::World;
 
 struct RedpilerInstance {
     options: CompilerOptions,
@@ -72,7 +72,7 @@ impl BackendRunner {
         }
         while self.world.to_be_ticked.first().map_or(1, |e| e.ticks_left) == 0 {
             let entry = self.world.to_be_ticked.remove(0);
-            mchprs_redstone::tick(self.world.get_block(entry.pos), &mut self.world, entry.pos);
+            cinnabar_redstone::tick(self.world.get_block(entry.pos), &mut self.world, entry.pos);
         }
     }
 
@@ -82,7 +82,7 @@ impl BackendRunner {
             redpiler.compiler.flush(&mut self.world);
             return;
         }
-        mchprs_redstone::on_use(self.world.get_block(pos), &mut self.world, pos);
+        cinnabar_redstone::on_use(self.world.get_block(pos), &mut self.world, pos);
     }
 
     pub fn check_block_powered(&self, pos: BlockPos, powered: bool) {
@@ -136,14 +136,14 @@ macro_rules! test_all_backends {
             #[test]
             fn [< $name _rp_direct >]() {
                 $name(TestBackend::Redpiler {
-                    variant: ::mchprs_redpiler::BackendVariant::Direct,
+                    variant: ::cinnabar_redpiler::BackendVariant::Direct,
                     optimize: false,
                 })
             }
             #[test]
             fn [< $name _rp_direct_optimized >]() {
                 $name(TestBackend::Redpiler {
-                    variant: ::mchprs_redpiler::BackendVariant::Direct,
+                    variant: ::cinnabar_redpiler::BackendVariant::Direct,
                     optimize: true,
                 })
             }

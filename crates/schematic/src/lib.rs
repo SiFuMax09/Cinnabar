@@ -2,10 +2,10 @@
 //! https://github.com/SpongePowered/Schematic-Specification/blob/master/versions/schematic-2.md
 
 use anyhow::{bail, Result};
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::BlockPos;
-use mchprs_world::{World, MC_DATA_VERSION};
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::BlockPos;
+use cinnabar_world::{World, MC_DATA_VERSION};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use std::fs::{self, File};
@@ -398,7 +398,7 @@ mod tests {
     use super::*;
 
     fn temp_path(name: &str) -> std::path::PathBuf {
-        std::env::temp_dir().join(format!("mchprs_schematic_{}_{}", std::process::id(), name))
+        std::env::temp_dir().join(format!("cinnabar_schematic_{}_{}", std::process::id(), name))
     }
 
     #[test]

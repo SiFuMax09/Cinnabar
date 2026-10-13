@@ -6,10 +6,10 @@
 use crate::compile_graph::{CompileGraph, CompileLink, LinkType, NodeIdx};
 use crate::passes::{AnalysisInfos, Pass};
 use crate::{CompilerInput, CompilerOptions};
-use mchprs_blocks::blocks::{Block, LeverFace};
-use mchprs_blocks::{BlockDirection, BlockFace, BlockPos};
-use mchprs_redstone::{self, comparator, wire};
-use mchprs_world::World;
+use cinnabar_blocks::blocks::{Block, LeverFace};
+use cinnabar_blocks::{BlockDirection, BlockFace, BlockPos};
+use cinnabar_redstone::{self, comparator, wire};
+use cinnabar_world::World;
 use rustc_hash::FxHashMap;
 
 pub struct InputSearch;
@@ -253,7 +253,7 @@ impl<'a, W: World> InputSearchState<'a, W> {
     fn search_repeater_side(&mut self, id: NodeIdx, pos: BlockPos, side: BlockDirection) {
         let side_pos = pos.offset(side.block_face());
         let side_block = self.block_lookup_cache.get_block(side_pos);
-        if mchprs_redstone::is_diode(side_block)
+        if cinnabar_redstone::is_diode(side_block)
             && provides_weak_power(side_block, side.block_face())
         {
             self.graph
@@ -264,7 +264,7 @@ impl<'a, W: World> InputSearchState<'a, W> {
     fn search_comparator_side(&mut self, id: NodeIdx, pos: BlockPos, side: BlockDirection) {
         let side_pos = pos.offset(side.block_face());
         let side_block = self.block_lookup_cache.get_block(side_pos);
-        if (mchprs_redstone::is_diode(side_block)
+        if (cinnabar_redstone::is_diode(side_block)
             && provides_weak_power(side_block, side.block_face()))
             || matches!(side_block, Block::RedstoneBlock)
         {

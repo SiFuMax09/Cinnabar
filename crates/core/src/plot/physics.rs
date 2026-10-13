@@ -1,8 +1,8 @@
 //! Collision and ray casting against the blocks of a world
 
-use mchprs_blocks::generic;
-use mchprs_blocks::{BlockFace, BlockPos};
-use mchprs_world::World;
+use cinnabar_blocks::generic;
+use cinnabar_blocks::{BlockFace, BlockPos};
+use cinnabar_world::World;
 use std::ops::{Add, AddAssign, Mul, Sub};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]

@@ -25,16 +25,16 @@ RUN cargo chef cook --release --recipe-path recipe.json
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ ./crates/
 COPY src/ ./src/
-RUN cargo build --release --bin mchprs \
- && strip target/release/mchprs
+RUN cargo build --release --bin cinnabar \
+ && strip target/release/cinnabar
 
 # ---- Runtime ----------------------------------------------------------------
 FROM alpine:3.22 AS runtime
 
 ARG VERSION=dev
 ARG REVISION=unknown
-ARG SOURCE=https://github.com/MCHPR/MCHPRS
-LABEL org.opencontainers.image.title="MCHPRS" \
+ARG SOURCE=https://github.com/SiFuMax09/MTRMC
+LABEL org.opencontainers.image.title="Cinnabar" \
       org.opencontainers.image.description="Minecraft High Performance Redstone Server (Minecraft 26.2)" \
       org.opencontainers.image.source="${SOURCE}" \
       org.opencontainers.image.licenses="MIT" \
@@ -43,20 +43,20 @@ LABEL org.opencontainers.image.title="MCHPRS" \
 
 # ca-certificates: Mojang skin lookup uses HTTPS (reqwest with rustls and the
 # platform verifier, which reads the system trust store).
-# "mchprs" is the default user; "container" (uid 988, home /home/container) is
+# "cinnabar" is the default user; "container" (uid 988, home /home/container) is
 # what Pterodactyl Wings expects an image to provide.
 RUN apk add --no-cache ca-certificates tzdata \
- && adduser -D -u 10001 -h /data mchprs \
+ && adduser -D -u 10001 -h /data cinnabar \
  && adduser -D -u 988 -h /home/container container \
  && mkdir -p /data /home/container \
- && chown mchprs:mchprs /data \
+ && chown cinnabar:cinnabar /data \
  && chown container:container /home/container
 
-COPY --from=builder /app/target/release/mchprs /usr/local/bin/mchprs
+COPY --from=builder /app/target/release/cinnabar /usr/local/bin/cinnabar
 COPY --chmod=0755 docker/entrypoint.sh /entrypoint.sh
 
-ENV MCHPRS_LOG=info
-USER mchprs
+ENV CINNABAR_LOG=info
+USER cinnabar
 WORKDIR /data
 VOLUME ["/data"]
 EXPOSE 25565/tcp

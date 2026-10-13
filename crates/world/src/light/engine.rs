@@ -1,8 +1,8 @@
 use super::{DIRECTIONS, MAX_LIGHT, OPPOSITE, UP};
 use crate::storage::Chunk;
 use crate::World;
-use mchprs_blocks::generic::{light_emission, light_occluding_faces, light_opacity};
-use mchprs_blocks::BlockPos;
+use cinnabar_blocks::generic::{light_emission, light_occluding_faces, light_opacity};
+use cinnabar_blocks::BlockPos;
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 

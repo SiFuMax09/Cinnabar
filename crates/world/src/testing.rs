@@ -1,5 +1,5 @@
 use crate::{storage::Chunk, PistonQueue, TickEntry, TickPriority, World};
-use mchprs_blocks::{block_entities::BlockEntity, BlockPos};
+use cinnabar_blocks::{block_entities::BlockEntity, BlockPos};
 
 /// A reference world implementation used for testing.
 #[derive(Clone)]

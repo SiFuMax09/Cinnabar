@@ -3,13 +3,13 @@
 //! properties it has, in the same way the matching vanilla block classes do it.
 
 use crate::interaction::{BlockHit, UseOnBlockContext};
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::generic;
-use mchprs_blocks::items::Item;
-use mchprs_blocks::{BlockDirection, BlockFace, BlockFacing, BlockPos};
-use mchprs_world::game_event::{block_center, EventContext, GameEvent};
-use mchprs_world::World;
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::generic;
+use cinnabar_blocks::items::Item;
+use cinnabar_blocks::{BlockDirection, BlockFace, BlockFacing, BlockPos};
+use cinnabar_world::game_event::{block_center, EventContext, GameEvent};
+use cinnabar_world::World;
 
 /// A block state id that is being built up
 struct State(u32);
@@ -247,11 +247,11 @@ pub fn state_for_placement(item: Item, ctx: &UseOnBlockContext<'_>) -> Block {
         state.set("persistent", "true");
     }
 
-    if mchprs_redstone::rail::is_rail_name(name) {
+    if cinnabar_redstone::rail::is_rail_name(name) {
         // Rails are straight in the direction the player looks, the connections are made when
         // the rail is placed
         let east_west = matches!(player_dir, BlockDirection::East | BlockDirection::West);
-        state.set("shape", mchprs_redstone::rail::placement_shape(east_west));
+        state.set("shape", cinnabar_redstone::rail::placement_shape(east_west));
     }
 
     Block::from_id(state.0)
@@ -440,7 +440,7 @@ fn use_chiseled_bookshelf(
             last_interacted_slot: slot as i8,
         },
     );
-    mchprs_redstone::update_surrounding_blocks(world, pos);
+    cinnabar_redstone::update_surrounding_blocks(world, pos);
     true
 }
 
@@ -540,11 +540,11 @@ pub fn remove_piston_partner(world: &mut impl World, block: Block, pos: BlockPos
         let base = pos.offset(dir_from_name(opposite(face_name(facing))).unwrap());
         generic_id(world, base)
             .is_some_and(|other| {
-                mchprs_redstone::piston::piston_base(other)
+                cinnabar_redstone::piston::piston_base(other)
                     .is_some_and(|piston| piston.extended && piston.facing == facing)
             })
             .then_some(base)
-    } else if mchprs_redstone::piston::piston_base(id).is_some_and(|piston| piston.extended) {
+    } else if cinnabar_redstone::piston::piston_base(id).is_some_and(|piston| piston.extended) {
         let head = pos.offset(facing);
         generic_id(world, head)
             .is_some_and(|other| generic::state_name(other) == "minecraft:piston_head")

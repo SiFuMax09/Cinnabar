@@ -11,11 +11,11 @@ use crate::compile_graph::{Annotations, CompileGraph, CompileNode, NodeIdx, Node
 use crate::passes::{AnalysisInfos, Pass};
 use crate::{CompilerInput, CompilerOptions};
 use itertools::Itertools;
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{BlockDirection, BlockFace, BlockPos};
-use mchprs_redstone::{self, comparator, noteblock, wire};
-use mchprs_world::{for_each_block_optimized, World};
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::{BlockDirection, BlockFace, BlockPos};
+use cinnabar_redstone::{self, comparator, noteblock, wire};
+use cinnabar_world::{for_each_block_optimized, World};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 use smallvec::smallvec;
@@ -135,7 +135,7 @@ fn identify_block<W: World>(
         Block::Repeater(repeater) => (
             NodeType::Repeater {
                 delay: repeater.delay,
-                facing_diode: mchprs_redstone::is_diode(
+                facing_diode: cinnabar_redstone::is_diode(
                     world.get_block(pos.offset(repeater.facing.opposite().block_face())),
                 ),
             },
@@ -145,7 +145,7 @@ fn identify_block<W: World>(
             NodeType::Comparator {
                 mode: comparator.mode,
                 far_input: comparator::get_far_input(world, pos, comparator.facing),
-                facing_diode: mchprs_redstone::is_diode(
+                facing_diode: cinnabar_redstone::is_diode(
                     world.get_block(pos.offset(comparator.facing.opposite().block_face())),
                 ),
             },

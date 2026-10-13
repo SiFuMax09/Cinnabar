@@ -7,11 +7,11 @@
 use super::history::{push_change, HistoryEntry, Recorder};
 use super::pattern::{FastRng, Mask};
 use crate::plot::{PlotWorld, PLOT_BLOCK_HEIGHT};
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::BlockPos;
-use mchprs_schematic::WorldEditClipboard;
-use mchprs_world::World;
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::BlockPos;
+use cinnabar_schematic::WorldEditClipboard;
+use cinnabar_world::World;
 use rustc_hash::FxHashMap;
 
 pub struct EditSession<'a> {
@@ -508,7 +508,7 @@ mod tests {
         let mut world = world();
         let pos = BlockPos::new(5, 5, 5);
         let furnace = Block::Furnace {
-            facing: mchprs_blocks::BlockDirection::North,
+            facing: cinnabar_blocks::BlockDirection::North,
             lit: false,
         }
         .get_id();
@@ -518,7 +518,7 @@ mod tests {
             BlockEntity::Container {
                 comparator_override: 0,
                 inventory: Vec::new(),
-                ty: mchprs_blocks::block_entities::ContainerType::Furnace,
+                ty: cinnabar_blocks::block_entities::ContainerType::Furnace,
             },
         );
         let mut recorder = Recorder::new();

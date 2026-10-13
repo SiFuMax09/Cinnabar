@@ -18,10 +18,10 @@
 //! - `!mask`: not, `>mask`: the block above matches, `<mask`: the block below matches
 //! - `#existing` (not air), `#air`, `#solid`, `##wool` (block tags), `%50` (50% chance)
 
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{generic, BlockPos};
-use mchprs_schematic::WorldEditClipboard;
-use mchprs_world::World;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::{generic, BlockPos};
+use cinnabar_schematic::WorldEditClipboard;
+use cinnabar_world::World;
 use rand::RngExt;
 use rustc_hash::FxHashMap;
 use std::fmt;

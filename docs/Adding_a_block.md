@@ -1,10 +1,10 @@
 # Adding a block
 
-This document explains the process of adding a new block to MCHPRS.
+This document explains the process of adding a new block to Cinnabar.
 
 ### Editing the [gen_info.yaml](../mc_data/gen_info.yaml) file
 
-Blocks and items in MCHPRS are defined in the [gen_info.yaml](../mc_data/gen_info.yaml). See the comments in this file for information on how to define a block and its corresponding item.
+Blocks and items in Cinnabar are defined in the [gen_info.yaml](../mc_data/gen_info.yaml). See the comments in this file for information on how to define a block and its corresponding item.
 
 ### Implementing placement logic for complex blocks
 

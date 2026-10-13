@@ -1,5 +1,5 @@
-use mchprs_blocks::blocks::{ComparatorMode, Instrument};
-use mchprs_blocks::BlockPos;
+use cinnabar_blocks::blocks::{ComparatorMode, Instrument};
+use cinnabar_blocks::BlockPos;
 // use petgraph::stable_graph::{NodeIndex, StableGraph};
 use smallvec::SmallVec;
 use stable_graph::{NodeIndex, StableGraph};

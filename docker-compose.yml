@@ -1,26 +1,26 @@
 # Example compose file. Start with: docker compose up -d
 # Replace the image with ghcr.io/<owner>/<repo>:latest of your fork, or use `build: .`
 services:
-  mchprs:
+  cinnabar:
     image: ghcr.io/sifumax09/mtrmc:latest
     # build: .
-    container_name: mchprs
+    container_name: cinnabar
     restart: unless-stopped
     ports:
       - "25565:25565"
     volumes:
       # Holds Config.toml, world/, schems/ and logs/. Owned by uid 10001.
-      - mchprs-data:/data
+      - cinnabar-data:/data
     environment:
-      MCHPRS_LOG: info
+      CINNABAR_LOG: info
       # Optional; each is written to Config.toml only when set.
-      # MCHPRS_MOTD: "My redstone server"
-      # MCHPRS_MAX_PLAYERS: "50"
-      # MCHPRS_VIEW_DISTANCE: "8"
-      # MCHPRS_BIND_ADDRESS: "0.0.0.0:25565"
-      # MCHPRS_VELOCITY_SECRET: "change-me"   # also enables Velocity forwarding
+      # CINNABAR_MOTD: "My redstone server"
+      # CINNABAR_MAX_PLAYERS: "50"
+      # CINNABAR_VIEW_DISTANCE: "8"
+      # CINNABAR_BIND_ADDRESS: "0.0.0.0:25565"
+      # CINNABAR_VELOCITY_SECRET: "change-me"   # also enables Velocity forwarding
     stop_signal: SIGINT
     stop_grace_period: 30s
 
 volumes:
-  mchprs-data:
+  cinnabar-data:

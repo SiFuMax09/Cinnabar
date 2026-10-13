@@ -1,4 +1,4 @@
-use mchprs_world::TickPriority;
+use cinnabar_world::TickPriority;
 
 use super::node::{NodeId, NodeType};
 use super::*;

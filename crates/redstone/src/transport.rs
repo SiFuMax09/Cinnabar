@@ -4,12 +4,12 @@
 //! timing (8 tick cooldown, the order the slots are tried in, the cooldown hoppers skip when
 //! they are filled by another hopper) is the same as in vanilla.
 
-use mchprs_blocks::block_entities::{BlockEntity, ContainerType, Inventory, InventoryEntry};
-use mchprs_blocks::blocks::{Block, HopperFacing};
-use mchprs_blocks::items::Item;
-use mchprs_blocks::{generic, BlockFace, BlockPos};
-use mchprs_world::transport::{SpawnRequest, SpawnedItem, TransportKind};
-use mchprs_world::{TickPriority, World};
+use cinnabar_blocks::block_entities::{BlockEntity, ContainerType, Inventory, InventoryEntry};
+use cinnabar_blocks::blocks::{Block, HopperFacing};
+use cinnabar_blocks::items::Item;
+use cinnabar_blocks::{generic, BlockFace, BlockPos};
+use cinnabar_world::transport::{SpawnRequest, SpawnedItem, TransportKind};
+use cinnabar_world::{TickPriority, World};
 
 /// How many game ticks a hopper waits after it moved an item
 const MOVE_ITEM_SPEED: i32 = 8;
@@ -552,7 +552,7 @@ pub fn dispense_with(world: &mut impl World, pos: BlockPos, random: impl FnMut(u
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mchprs_world::testing::TestWorld;
+    use cinnabar_world::testing::TestWorld;
 
     fn stone(count: i8) -> InventoryEntry {
         InventoryEntry {
@@ -601,7 +601,7 @@ mod tests {
         world.set_block(
             barrel,
             Block::Barrel {
-                facing: mchprs_blocks::BlockFacing::Up,
+                facing: cinnabar_blocks::BlockFacing::Up,
                 open: false,
             },
         );
@@ -709,7 +709,7 @@ mod tests {
         world
             .transport()
             .items
-            .push(mchprs_world::transport::WorldItem {
+            .push(cinnabar_world::transport::WorldItem {
                 entity_id: 7,
                 pos: (2.5, 5.2, 2.5),
                 entry: stone(3),

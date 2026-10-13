@@ -4,7 +4,7 @@
 /// A position in the world, which is not necessarily the center of a block
 pub type EventPos = (f64, f64, f64);
 
-pub fn block_center(pos: mchprs_blocks::BlockPos) -> EventPos {
+pub fn block_center(pos: cinnabar_blocks::BlockPos) -> EventPos {
     (pos.x as f64 + 0.5, pos.y as f64 + 0.5, pos.z as f64 + 0.5)
 }
 

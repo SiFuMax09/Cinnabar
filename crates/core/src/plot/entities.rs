@@ -10,16 +10,16 @@ use super::Plot;
 use crate::config::CONFIG;
 use crate::interaction;
 use crate::player::{self, PacketSender, PlayerPos};
-use mchprs_blocks::block_entities::InventoryEntry;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{generic, BlockFace, BlockPos};
-use mchprs_network::packets::clientbound::*;
-use mchprs_network::packets::{PacketEncoder, PacketEncoderExt};
-use mchprs_proc_macros::protocol_id;
-use mchprs_redstone::rail;
-use mchprs_world::game_event::{block_center, EventContext, GameEvent};
-use mchprs_world::transport::{SpawnRequest, WorldItem};
-use mchprs_world::World;
+use cinnabar_blocks::block_entities::InventoryEntry;
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::{generic, BlockFace, BlockPos};
+use cinnabar_network::packets::clientbound::*;
+use cinnabar_network::packets::{PacketEncoder, PacketEncoderExt};
+use cinnabar_proc_macros::protocol_id;
+use cinnabar_redstone::rail;
+use cinnabar_world::game_event::{block_center, EventContext, GameEvent};
+use cinnabar_world::transport::{SpawnRequest, WorldItem};
+use cinnabar_world::World;
 use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
@@ -509,7 +509,7 @@ impl Plot {
                     _ => None,
                 })
                 .collect();
-            mchprs_redstone::transport::tick_hoppers(&mut self.world);
+            cinnabar_redstone::transport::tick_hoppers(&mut self.world);
             self.apply_picked_up_items();
         }
         self.spawn_transport_entities();
@@ -821,7 +821,7 @@ impl Plot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mchprs_world::testing::TestWorld;
+    use cinnabar_world::testing::TestWorld;
 
     /// Prints the packets of a TNT entity as hex, so they can be checked against the game's codecs
     #[test]
@@ -926,7 +926,7 @@ mod tests {
         for x in 5..=12 {
             let id = generic::default_state("minecraft:rail").unwrap();
             world.set_block_raw(BlockPos::new(x, 1, 5), id);
-            mchprs_redstone::rail::on_placed(&mut world, BlockPos::new(x, 1, 5));
+            cinnabar_redstone::rail::on_placed(&mut world, BlockPos::new(x, 1, 5));
         }
         world
     }

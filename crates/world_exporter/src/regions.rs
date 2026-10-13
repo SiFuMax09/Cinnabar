@@ -1,10 +1,10 @@
 use super::MC_DATA_VERSION;
 use anyhow::Result;
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::BlockPos;
-use mchprs_save_data::plot_data::{ChunkData, PlotData};
-use mchprs_utils::map;
-use mchprs_world::storage::{ChunkSection, PalettedBitBuffer};
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::BlockPos;
+use cinnabar_save_data::plot_data::{ChunkData, PlotData};
+use cinnabar_utils::map;
+use cinnabar_world::storage::{ChunkSection, PalettedBitBuffer};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use std::collections::HashMap;
 use std::fs;

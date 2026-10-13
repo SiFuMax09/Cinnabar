@@ -1,8 +1,8 @@
 use super::{PacketEncoder, PacketEncoderExt, PalettedContainer, PlayerProperty, SlotData};
 use crate::nbt_util::NBTCompound;
 use crate::registry_entries::{SYNCED_REGISTRIES, TAGS};
-use mchprs_proc_macros::protocol_id;
-use mchprs_text::TextComponent;
+use cinnabar_proc_macros::protocol_id;
+use cinnabar_text::TextComponent;
 
 pub trait ClientBoundPacket {
     fn encode(&self) -> PacketEncoder;
@@ -246,7 +246,7 @@ impl CRegistryData {
             CRegistryData {
                 registry: "minecraft:worldgen/biome".to_owned(),
                 entries: vec![
-                    ("mchprs:plot".to_owned(), Some(plot_biome())),
+                    ("cinnabar:plot".to_owned(), Some(plot_biome())),
                     // The client needs this to exist (MC-267103)
                     ("minecraft:plains".to_owned(), None),
                 ],
@@ -1715,7 +1715,7 @@ impl ClientBoundPacket for CBossEvent {
 #[cfg(test)]
 mod boss_event_tests {
     use super::*;
-    use mchprs_text::{ColorCode, TextComponentBuilder};
+    use cinnabar_text::{ColorCode, TextComponentBuilder};
 
     const UUID: u128 = 0x0102_0304_0506_0708_090a_0b0c_0d0e_0f10;
 

@@ -1,6 +1,6 @@
 use crate::utils::HyphenatedUUID;
 use anyhow::Result;
-use mchprs_network::packets::PlayerProperty;
+use cinnabar_network::packets::PlayerProperty;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};

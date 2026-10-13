@@ -10,13 +10,13 @@ use crate::config::CONFIG;
 use crate::player::PacketSender;
 use crate::plot::PLOT_BLOCK_HEIGHT;
 use crate::utils::{self, HyphenatedUUID};
-use mchprs_blocks::block_entities::{BlockEntity, InventoryEntry};
-use mchprs_blocks::blocks::{Block, HopperFacing};
-use mchprs_blocks::items::{Item, ItemStack};
-use mchprs_blocks::{BlockDirection, BlockFace, BlockFacing, BlockPos};
-use mchprs_network::packets::clientbound::*;
-use mchprs_schematic::{load_schematic, save_schematic, WorldEditClipboard};
-use mchprs_text::{ColorCode, TextComponentBuilder};
+use cinnabar_blocks::block_entities::{BlockEntity, InventoryEntry};
+use cinnabar_blocks::blocks::{Block, HopperFacing};
+use cinnabar_blocks::items::{Item, ItemStack};
+use cinnabar_blocks::{BlockDirection, BlockFace, BlockFacing, BlockPos};
+use cinnabar_network::packets::clientbound::*;
+use cinnabar_schematic::{load_schematic, save_schematic, WorldEditClipboard};
+use cinnabar_text::{ColorCode, TextComponentBuilder};
 use regex::Regex;
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -261,7 +261,7 @@ fn update_stage(world: &PlotWorld, min: BlockPos, max: BlockPos) -> Stage {
                         let pos = BlockPos::new(x, y, z);
                         if session.get(pos) != 0 {
                             let block = session.world.get_block(pos);
-                            mchprs_redstone::update(block, session.world, pos);
+                            cinnabar_redstone::update(block, session.world, pos);
                         }
                     }
                 }
@@ -1291,7 +1291,7 @@ pub(super) fn execute_replace_container(ctx: CommandExecuteContext<'_>) {
             enabled: true,
             facing: HopperFacing::Down,
         },
-        other => Block::Generic(mchprs_blocks::generic::default_state(&other.to_string()).unwrap()),
+        other => Block::Generic(cinnabar_blocks::generic::default_state(&other.to_string()).unwrap()),
     };
     let slots = to.num_slots() as u32;
 

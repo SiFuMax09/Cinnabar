@@ -12,11 +12,11 @@ pub mod sculk;
 pub mod transport;
 pub mod wire;
 
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::blocks::{Block, LeverFace, RedstoneWire};
-use mchprs_blocks::{BlockDirection, BlockFace, BlockPos};
-use mchprs_world::game_event::{block_center, EventContext, GameEvent};
-use mchprs_world::{TickPriority, World};
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::blocks::{Block, LeverFace, RedstoneWire};
+use cinnabar_blocks::{BlockDirection, BlockFace, BlockPos};
+use cinnabar_world::game_event::{block_center, EventContext, GameEvent};
+use cinnabar_world::{TickPriority, World};
 
 fn emit_event(world: &mut impl World, event: GameEvent, pos: BlockPos) {
     world.game_event(event, block_center(pos), EventContext::NONE);
@@ -219,7 +219,7 @@ fn diode_get_input_strength(world: &impl World, pos: BlockPos, facing: BlockDire
 
 /// Blocks that don't have a dedicated variant but still react to redstone power
 fn update_generic(id: u32, world: &mut impl World, pos: BlockPos) {
-    use mchprs_blocks::generic;
+    use cinnabar_blocks::generic;
 
     if rail::is_rail(id) {
         rail::on_redstone_update(world, pos, id);
@@ -375,7 +375,7 @@ pub fn tick(block: Block, world: &mut impl World, pos: BlockPos) {
     match block {
         Block::Generic(id) => {
             if matches!(
-                mchprs_blocks::generic::state_name(id),
+                cinnabar_blocks::generic::state_name(id),
                 "minecraft:dropper" | "minecraft:dispenser"
             ) {
                 transport::dispense(world, pos);

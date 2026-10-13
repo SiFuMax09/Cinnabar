@@ -12,10 +12,10 @@ repository.workspace = true
 include.workspace = true
 
 [dependencies]
-mchprs_redpiler = { path = "../redpiler" }
-mchprs_blocks = { path = "../blocks" }
-mchprs_world = { path = "../world", features = ["testing"] }
-mchprs_schematic = { path = "../schematic" }
+cinnabar_redpiler = { path = "../redpiler" }
+cinnabar_blocks = { path = "../blocks" }
+cinnabar_world = { path = "../world", features = ["testing"] }
+cinnabar_schematic = { path = "../schematic" }
 line-index = { workspace = true }
 clap = { workspace = true }
 anstream = { workspace = true }

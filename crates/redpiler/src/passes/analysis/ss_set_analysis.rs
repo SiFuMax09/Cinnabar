@@ -12,8 +12,8 @@
 use crate::compile_graph::{CompileGraph, Direction, LinkType, NodeIdx, NodeState, NodeType};
 use crate::passes::{AnalysisInfo, AnalysisInfos, AnalysisUsage, Pass};
 use crate::{CompilerInput, CompilerOptions};
-use mchprs_blocks::blocks::ComparatorMode;
-use mchprs_world::World;
+use cinnabar_blocks::blocks::ComparatorMode;
+use cinnabar_world::World;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SSSet(u16);

@@ -2,9 +2,9 @@
 //! the accelorator created by theosib. For more information, see:
 //! https://bugs.mojang.com/browse/MC-81098.
 
-use mchprs_blocks::blocks::{Block, RedstoneWire};
-use mchprs_blocks::{BlockFace, BlockPos};
-use mchprs_world::World;
+use cinnabar_blocks::blocks::{Block, RedstoneWire};
+use cinnabar_blocks::{BlockFace, BlockPos};
+use cinnabar_world::World;
 use rustc_hash::FxHashMap;
 
 fn unwrap_wire(block: Block) -> RedstoneWire {

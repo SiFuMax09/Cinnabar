@@ -1,11 +1,11 @@
 use crate::light::ChunkLight;
-use mchprs_blocks::block_entities::BlockEntity;
-use mchprs_blocks::BlockPos;
+use cinnabar_blocks::block_entities::BlockEntity;
+use cinnabar_blocks::BlockPos;
 use rustc_hash::FxHashMap;
 use std::mem;
 
 #[cfg(feature = "networking")]
-use mchprs_network::packets::{
+use cinnabar_network::packets::{
     clientbound::{
         CChunkData, CChunkDataBlockEntity, CChunkDataSection, CLightUpdate, CUpdateSectionBlocks,
         CUpdateSectionBlocksRecord, ClientBoundPacket, LightData, LightSection,

@@ -2,7 +2,7 @@
 
 use super::{ChunkData, EnvironmentData, PlotData, PlotLoadError, Tps, WorldSendRate, PLOT_MAGIC};
 use byteorder::{LittleEndian, ReadBytesExt};
-use mchprs_world::TickEntry;
+use cinnabar_world::TickEntry;
 use serde::Deserialize;
 use std::fs::File;
 use std::io::Read;
@@ -66,7 +66,7 @@ mod tests {
             Vec::<TickEntry>::new(),
         ))
         .unwrap();
-        let path = std::env::temp_dir().join(format!("mchprs_v4_test_{}", std::process::id()));
+        let path = std::env::temp_dir().join(format!("cinnabar_v4_test_{}", std::process::id()));
         let mut file = PLOT_MAGIC.to_vec();
         file.extend_from_slice(&4u32.to_le_bytes());
         file.extend_from_slice(&old);

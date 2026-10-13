@@ -3,7 +3,7 @@
 //! Things that happen in the plot are reported to the world as game events (see
 //! `World::game_event`). Every tick they are handed to the sensors that are close enough to hear
 //! them. A sensor picks the closest vibration of a tick, the vibration travels at one block per
-//! tick and when it arrives the sensor activates, see `mchprs_redstone::sculk` for what that does
+//! tick and when it arrives the sensor activates, see `cinnabar_redstone::sculk` for what that does
 //! to the block. This follows `VibrationSystem` of Minecraft.
 //!
 //! Sensors are found by `PlotWorld::set_block_raw` and by scanning the plot when it is loaded.
@@ -13,16 +13,16 @@
 
 use super::Plot;
 use crate::player::{Gamemode, PlayerPos};
-use mchprs_blocks::blocks::Block;
-use mchprs_blocks::{BlockFace, BlockPos};
-use mchprs_proc_macros::protocol_id;
-use mchprs_redstone::sculk::{self, Phase};
-use mchprs_world::game_event::{
+use cinnabar_blocks::blocks::Block;
+use cinnabar_blocks::{BlockFace, BlockPos};
+use cinnabar_proc_macros::protocol_id;
+use cinnabar_redstone::sculk::{self, Phase};
+use cinnabar_world::game_event::{
     block_center, dampens_vibrations, occludes_vibrations, redstone_strength_for_distance,
     travel_time, EventContext, EventPos, GameEvent,
 };
-use mchprs_world::storage::Chunk;
-use mchprs_world::World;
+use cinnabar_world::storage::Chunk;
+use cinnabar_world::World;
 use rustc_hash::FxHashMap;
 
 /// How many game events are kept until the next tick
@@ -654,8 +654,8 @@ impl Plot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mchprs_blocks::generic;
-    use mchprs_world::testing::TestWorld;
+    use cinnabar_blocks::generic;
+    use cinnabar_world::testing::TestWorld;
 
     const SENSOR: &str = "minecraft:sculk_sensor";
     const CALIBRATED: &str = "minecraft:calibrated_sculk_sensor";
@@ -1013,7 +1013,7 @@ mod tests {
         }
         assert_eq!(phase_at(&world, sensor), Phase::Active);
         assert_eq!(power_at(&world, sensor), 10);
-        let Some(mchprs_blocks::block_entities::BlockEntity::SculkSensor {
+        let Some(cinnabar_blocks::block_entities::BlockEntity::SculkSensor {
             last_vibration_frequency,
             ..
         }) = world.get_block_entity(sensor)

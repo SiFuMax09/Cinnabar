@@ -8,8 +8,8 @@
 use super::{Plot, PLOT_WIDTH};
 use crate::config::CONFIG;
 use crate::server::Message;
-use mchprs_network::packets::PacketEncoder;
-use mchprs_world::World;
+use cinnabar_network::packets::PacketEncoder;
+use cinnabar_world::World;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
