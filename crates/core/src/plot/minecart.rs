@@ -24,8 +24,17 @@ const MAX_SPEED: f64 = 0.4;
 const POWERED_BOOST: f64 = 0.06;
 /// The share of the speed that is kept each tick on a track
 const FRICTION: f64 = 0.96;
-/// Carts that are braked by a powered rail that is not powered stop below this speed
-const MIN_SPEED: f64 = 0.01;
+/// A cart slower than this stops completely, which the game does not need to do since its
+/// movement is too small to see long before this
+const MIN_SPEED: f64 = 0.003;
+/// A cart on a powered rail that is not powered stops below this horizontal speed and is slowed to
+/// half of it above
+const BRAKE_STOP_SPEED: f64 = 0.03;
+/// A cart on a powered rail needs this horizontal speed to be pushed by it; slower carts are
+/// only launched when there is a block next to the rail
+const BOOST_MIN_SPEED: f64 = 0.01;
+/// The speed of a cart that is launched off a block next to a powered rail
+const LAUNCH_SPEED: f64 = 0.02;
 
 /// A rail with the points where its track starts and ends
 #[derive(Clone, Copy, Debug)]
@@ -183,6 +192,22 @@ fn horizontal_share(direction: Vec3) -> f64 {
     (1.0 - direction.y * direction.y).sqrt().max(0.1)
 }
 
+/// The direction along a straight track a cart at rest on a powered rail is launched in, away from
+/// a solid block at one of its ends
+fn launch_direction(world: &impl World, track: &Track) -> Option<f64> {
+    if track.direction().y.abs() > 1e-6 {
+        return None;
+    }
+    let solid = |pos: BlockPos| world.get_block(pos).is_solid();
+    if solid(track.connections[0]) {
+        Some(1.0)
+    } else if solid(track.connections[1]) {
+        Some(-1.0)
+    } else {
+        None
+    }
+}
+
 /// What the cart did in the tick
 pub struct Movement {
     /// The rail the cart is on, when it is on a track
@@ -205,27 +230,31 @@ pub fn drive(world: &impl World, pos: &mut Vec3, vel: &mut Vec3) -> Option<Movem
     } else {
         0.0
     };
-    let along_speed = (vel.dot(unit) - pull).clamp(-MAX_SPEED, MAX_SPEED);
+    // Only the distance of a tick is limited to the maximum speed, the speed itself is not
+    let along_speed = vel.dot(unit) - pull;
     let mut direction = if along_speed < 0.0 { -1.0 } else { 1.0 };
     let mut speed = along_speed.abs();
 
-    if let Block::Generic(id) = world.get_block(track.rail)
-        && generic::state_name(id) == "minecraft:powered_rail"
-    {
-        if generic::get_property(id, "powered") == Some("true") {
-            speed = (speed + POWERED_BOOST).min(MAX_SPEED);
-        } else {
-            // Unpowered powered rails brake the cart
-            speed *= 0.5;
-            if speed < MIN_SPEED {
-                speed = 0.0;
-            }
+    // Whether the powered rail the cart starts the tick on is powered
+    let powered = match world.get_block(track.rail) {
+        Block::Generic(id) if generic::state_name(id) == "minecraft:powered_rail" => {
+            Some(generic::get_property(id, "powered") == Some("true"))
         }
+        _ => None,
+    };
+    if powered == Some(false) {
+        // Unpowered powered rails brake the cart
+        speed = if speed * horizontal < BRAKE_STOP_SPEED {
+            0.0
+        } else {
+            speed * 0.5
+        };
     }
+    let launch_track = track;
 
     // Move along the track. At the end of a rail the cart continues on the next one, which is
     // at most one rail away since the speed is below the length of a rail.
-    let target = along + speed * direction;
+    let target = along + speed.min(MAX_SPEED) * direction;
     let length = track.length();
     if !(0.0..=length).contains(&target) {
         let at_end = target > length;
@@ -260,10 +289,21 @@ pub fn drive(world: &impl World, pos: &mut Vec3, vel: &mut Vec3) -> Option<Movem
     }
 
     *pos = track.point(along);
+    // The friction slows the cart down after it moved
+    speed *= FRICTION;
+    if powered == Some(true) {
+        // The powered rail pushes the cart after the move, a cart that is almost at rest is
+        // only launched off a block next to the rail
+        let share = horizontal_share(track.direction());
+        if speed * share > BOOST_MIN_SPEED {
+            speed += POWERED_BOOST / share;
+        } else if let Some(launch) = launch_direction(world, &launch_track) {
+            direction = launch;
+            speed = LAUNCH_SPEED;
+        }
+    }
     let direction_vec = track.direction() * direction;
-    // The cart moved with its full speed this tick, the friction slows the next one down
-    let slowed = speed * FRICTION;
-    *vel = direction_vec * if slowed < MIN_SPEED { 0.0 } else { slowed };
+    *vel = direction_vec * if speed < MIN_SPEED { 0.0 } else { speed };
 
     let horizontal = (direction_vec.x * direction_vec.x + direction_vec.z * direction_vec.z).sqrt();
     let yaw = (-direction_vec.x).atan2(direction_vec.z).to_degrees() as f32;
@@ -416,29 +456,68 @@ mod tests {
         assert_eq!(vel, Vec3::ZERO);
     }
 
-    #[test]
-    fn powered_rail_boosts_the_cart() {
+    /// A single powered rail at x = 5 followed by plain rails, with the powered state set
+    fn powered_rail_world(powered: bool) -> TestWorld {
         let mut world = floor_world();
-        lay_rails(
-            &mut world,
-            &[
-                (at(5, 1, 5), "minecraft:powered_rail"),
-                (at(6, 1, 5), "minecraft:powered_rail"),
-                (at(7, 1, 5), "minecraft:powered_rail"),
-                (at(8, 1, 5), "minecraft:rail"),
-            ],
-        );
-        // The rails are powered by the redstone around them, which is not part of this test
-        for x in 5..=7 {
-            let id = world.get_block_raw(at(x, 1, 5));
-            world.set_block_raw(at(x, 1, 5), generic::with_property(id, "powered", "true"));
+        let mut rails = vec![(at(5, 1, 5), "minecraft:powered_rail")];
+        for x in 6..=30 {
+            rails.push((at(x, 1, 5), "minecraft:rail"));
         }
+        lay_rails(&mut world, &rails);
+        let id = world.get_block_raw(at(5, 1, 5));
+        let state = if powered { "true" } else { "false" };
+        world.set_block_raw(at(5, 1, 5), generic::with_property(id, "powered", state));
+        world
+    }
+
+    #[test]
+    fn powered_rail_boosts_a_moving_cart() {
+        let world = powered_rail_world(true);
         let mut pos = Vec3::new(5.5, 1.0 + RAIL_HEIGHT, 5.5);
-        let mut vel = Vec3::ZERO;
+        let mut vel = Vec3::new(0.02, 0.0, 0.0);
         run(&world, &mut pos, &mut vel, 10);
         assert!(
             vel.x > 0.1,
             "the powered rail should push the cart, speed {vel:?}"
+        );
+    }
+
+    #[test]
+    fn cart_at_rest_on_a_powered_rail_stays_without_a_block_next_to_it() {
+        let world = powered_rail_world(true);
+        let mut pos = Vec3::new(5.5, 1.0 + RAIL_HEIGHT, 5.5);
+        let mut vel = Vec3::ZERO;
+        run(&world, &mut pos, &mut vel, 10);
+        assert_eq!(vel, Vec3::ZERO);
+        assert!((pos.x - 5.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn cart_is_launched_off_a_block_next_to_a_powered_rail() {
+        let mut world = powered_rail_world(true);
+        // The block at the west end of the track: the cart is pushed east, away from it
+        let stone = generic::default_state("minecraft:stone").unwrap();
+        world.set_block_raw(at(4, 1, 5), stone);
+        let mut pos = Vec3::new(5.5, 1.0 + RAIL_HEIGHT, 5.5);
+        let mut vel = Vec3::ZERO;
+        run(&world, &mut pos, &mut vel, 20);
+        assert!(
+            pos.x > 6.0,
+            "the cart should have been launched, at {pos:?}"
+        );
+    }
+
+    #[test]
+    fn cart_rolls_as_far_after_a_powered_rail_as_in_the_game() {
+        let world = powered_rail_world(true);
+        // Launched from the middle of one powered rail the cart rolls about 7.5 blocks beyond it
+        let mut pos = Vec3::new(5.5, 1.0 + RAIL_HEIGHT, 5.5);
+        let mut vel = Vec3::new(0.02, 0.0, 0.0);
+        run(&world, &mut pos, &mut vel, 400);
+        let beyond = pos.x - 6.0;
+        assert!(
+            (6.8..8.2).contains(&beyond),
+            "the cart rolled {beyond} blocks beyond the rail"
         );
     }
 
