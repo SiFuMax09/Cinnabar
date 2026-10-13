@@ -78,6 +78,9 @@ gen_config! {
     redpiler_scoreboard: bool = false,
     // true restores the legacy road grid between plots and empty (void) neighbour chunks
     plot_borders: bool = false,
+    // The world id JourneyMap, VoxelMap and Xaero use to tell this server's map from the maps of
+    // other servers behind the same proxy. Has to differ from the ids of the other servers.
+    map_world_id: i64 = 1128811086,
     velocity: Option<VelocityConfig> = None
 }
 

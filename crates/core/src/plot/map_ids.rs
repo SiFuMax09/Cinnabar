@@ -8,6 +8,7 @@
 //! JourneyMap and VoxelMap ask for the id themselves on `worldinfo:world_id`, Xaero's mods have to
 //! be told on their own channels.
 
+use crate::config::CONFIG;
 use crate::player::Player;
 use cinnabar_network::packets::clientbound::{CPlayPluginMessage, ClientBoundPacket};
 
@@ -18,8 +19,14 @@ const XAERO_WORLDMAP_CHANNEL: &str = "xaeroworldmap:main";
 /// First byte of a request or response that is not zero padding.
 const MAGIC_MARKER: u8 = 42;
 
-/// The id of the one world every player is in.
-const WORLD_MAP_ID: i32 = 1;
+/// The id of the one world every player is in. Configurable so that it can be told apart from the
+/// ids other servers behind the same proxy send; ids outside the `i32` range are ignored.
+fn world_map_id() -> i32 {
+    i32::try_from(CONFIG.map_world_id).unwrap_or(DEFAULT_WORLD_MAP_ID)
+}
+
+/// "CINN"; unlikely to collide with the ids other servers or proxies hand out.
+const DEFAULT_WORLD_MAP_ID: i32 = 0x43_49_4e_4e;
 
 /// How a client framed its request. The response has to use the same framing.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -64,7 +71,7 @@ fn xaero_payload(id: i32) -> Vec<u8> {
 
 /// Tells Xaero's Minimap and World Map which world the player is in.
 pub fn send_xaero_ids(player: &Player) {
-    let payload = xaero_payload(WORLD_MAP_ID);
+    let payload = xaero_payload(world_map_id());
     for channel in [XAERO_MINIMAP_CHANNEL, XAERO_WORLDMAP_CHANNEL] {
         let packet = CPlayPluginMessage {
             channel: channel.to_string(),
@@ -83,7 +90,7 @@ pub fn handle_request(player: &Player, channel: &str, data: &[u8]) -> bool {
     if let Some(request) = WorldIdRequest::parse(data) {
         let packet = CPlayPluginMessage {
             channel: WORLD_ID_CHANNEL.to_string(),
-            data: request.response(WORLD_MAP_ID),
+            data: request.response(world_map_id()),
         }
         .encode();
         player.client.send_packet(&packet);

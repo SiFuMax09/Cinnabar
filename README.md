@@ -71,6 +71,7 @@ The following options are available at the toplevel (under no header):
 | `schemati` | Mimic the verification and directory layout used by the Open Redstone Engineers [Schemati plugin](https://github.com/OpenRedstoneEngineers/Schemati) | `false` |
 | `block_in_hitbox` | Allow placing blocks inside of players (hitbox logic is simplified) | `true` |
 | `auto_redpiler` | Use redpiler automatically | `false` |
+| `map_world_id` | World id sent to JourneyMap, VoxelMap and Xaero (see [Map mods](#map-mods)). Must differ from the ids of other servers behind your proxy | `1128811086` |
 
 To change the plot size edit the constants defined in [plot/mod.rs](./crates/core/src/plot/mod.rs).
 
@@ -90,7 +91,7 @@ secret = "<secret>"
 
 ### Map mods
 
-JourneyMap, VoxelMap and Xaero's Minimap/World Map can tell worlds apart only if the server names them. Cinnabar does this natively, so no WorldNamePacket or MapModCompanion plugin is needed: the server is one big world and every player gets the same world id, so all plots share one map. JourneyMap and VoxelMap ask on `worldinfo:world_id`, Xaero's mods are told on `xaerominimap:main` and `xaeroworldmap:main` when you enter a plot. Behind Velocity you do not need MapModCompanion either, as long as the proxy does not rewrite these channels.
+JourneyMap, VoxelMap and Xaero's Minimap/World Map can tell worlds apart only if the server names them. Cinnabar does this natively, so no WorldNamePacket or MapModCompanion plugin is needed: the server is one big world and every player gets the same world id, so all plots share one map. The id is `map_world_id` in `Config.toml`; it has to differ from the ids your other servers (e.g. a Paper game server with MapModCompanion) send, otherwise their maps overwrite each other. JourneyMap and VoxelMap ask on `worldinfo:world_id`, Xaero's mods are told on `xaerominimap:main` and `xaeroworldmap:main` when you enter a plot. Behind Velocity you do not need MapModCompanion either, as long as the proxy does not rewrite these channels.
 
 ### LuckPerms
 
