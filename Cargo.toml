@@ -15,7 +15,7 @@ repository.workspace = true
 include.workspace = true
 
 [workspace.package]
-authors = ["StackDoubleFlow <ojaslandge@gmail.com>"]
+authors = ["SiFuMax09 <me@max-witt.de>"]
 description = "A multithreaded minecraft server built for redstone."
 edition = "2024"
 homepage = "https://github.com/SiFuMax09/Cinnabar"
