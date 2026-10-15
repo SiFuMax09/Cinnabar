@@ -8,6 +8,7 @@ use cinnabar_blocks::blocks::Block;
 use cinnabar_blocks::generic;
 use cinnabar_blocks::items::Item;
 use cinnabar_blocks::{BlockDirection, BlockFace, BlockFacing, BlockPos};
+use cinnabar_redstone::transport;
 use cinnabar_world::game_event::{block_center, EventContext, GameEvent};
 use cinnabar_world::World;
 
@@ -493,6 +494,10 @@ pub fn after_place(world: &mut impl World, pos: BlockPos) {
         world.schedule_falling_block(pos);
     }
 
+    if transport::is_chest_name(name) {
+        connect_chest(world, pos, id);
+    }
+
     if is_stairs(name) || is_pane(name) || is_fence(name) || is_wall(name) {
         update_shape(world, pos);
         for dir in HORIZONTAL {
@@ -570,11 +575,58 @@ pub fn after_remove(world: &mut impl World, pos: BlockPos) {
     }
 }
 
+/// Joins a chest that was just placed to a single chest next to it that faces the same way,
+/// which makes both of them halves of a double chest
+fn connect_chest(world: &mut impl World, pos: BlockPos, id: u32) {
+    let state = State(id);
+    if state.get("type") != Some("single") {
+        return;
+    }
+    let (Some(facing), name) = (state.get("facing"), generic::state_name(id)) else {
+        return;
+    };
+    // The chest takes the side of the neighbor it is joined to: with a neighbor on the clockwise
+    // side it is the left half
+    for (side, own, other) in [
+        (clockwise_name(facing), "left", "right"),
+        (counter_clockwise(facing), "right", "left"),
+    ] {
+        let neighbor_pos = pos.offset(dir_from_name(side).unwrap());
+        let Some(neighbor) = generic_id(world, neighbor_pos) else {
+            continue;
+        };
+        let neighbor_state = State(neighbor);
+        if generic::state_name(neighbor) == name
+            && neighbor_state.get("type") == Some("single")
+            && neighbor_state.get("facing") == Some(facing)
+        {
+            world.set_block(pos, Block::Generic(generic::with_property(id, "type", own)));
+            world.set_block(
+                neighbor_pos,
+                Block::Generic(generic::with_property(neighbor, "type", other)),
+            );
+            return;
+        }
+    }
+}
+
 fn update_shape(world: &mut impl World, pos: BlockPos) {
     let Some(id) = generic_id(world, pos) else {
         return;
     };
     let name = generic::state_name(id);
+    if transport::is_chest_name(name) {
+        // A half of a double chest turns into a single chest when the other half is gone
+        if transport::chest_connected_direction(id).is_some()
+            && transport::chest_partner(world, pos).is_none()
+        {
+            world.set_block(
+                pos,
+                Block::Generic(generic::with_property(id, "type", "single")),
+            );
+        }
+        return;
+    }
     let new_id = if is_stairs(name) {
         stairs_shape(world, pos, id)
     } else if is_pane(name) || is_fence(name) || is_wall(name) {

@@ -1,7 +1,7 @@
 use crate::config::CONFIG;
 use crate::menu::Menu;
 use crate::permissions::{self, PlayerPermissionsCache};
-use crate::plot::worldedit::{Brush, History, Mask};
+use crate::plot::worldedit::{Brush, History, Mask, Tool};
 use crate::plot::SelectionVisualizer;
 use crate::plot::PLOT_SCALE;
 use crate::utils::{self, HyphenatedUUID};
@@ -178,6 +178,16 @@ impl std::fmt::Display for PlayerPos {
     }
 }
 
+/// The screen of a lectern a player has open. It has the book as its only slot and the page as
+/// its only property, the buttons of the screen are handled by the plot.
+#[derive(Clone, Copy, Debug)]
+pub struct LecternView {
+    pub window_id: i32,
+    pub pos: BlockPos,
+    /// The page the client was told
+    pub page: i32,
+}
+
 pub struct Player {
     pub uuid: u128,
     pub username: String,
@@ -186,6 +196,8 @@ pub struct Player {
     pub inventory: Vec<Option<ItemStack>>,
     /// The container screen the player has open
     pub menu: Option<Menu>,
+    /// The lectern the player is reading
+    pub lectern: Option<LecternView>,
     last_window_id: i32,
     /// The selected slot of the player's hotbar (1-9)
     pub selected_slot: u32,
@@ -227,6 +239,12 @@ pub struct Player {
     pub worldedit_mask: Option<Mask>,
     /// The brushes, by the id of the item they are bound to
     pub worldedit_brushes: rustc_hash::FxHashMap<u32, Brush>,
+    /// The brushes of a left click (`/primary`), by the id of the item they are bound to
+    pub worldedit_brushes_primary: rustc_hash::FxHashMap<u32, Brush>,
+    /// The tools (`/tool`), by the id of the item they are bound to
+    pub worldedit_tools: rustc_hash::FxHashMap<u32, Tool>,
+    /// How the brush of an item was made, for `/savebrush`
+    pub worldedit_brush_specs: rustc_hash::FxHashMap<u32, String>,
     pub worldedit_last_brush: Option<Instant>,
     /// Commands are stored so they can be handled after packets
     pub command_queue: Vec<String>,
@@ -282,6 +300,7 @@ impl Player {
             skin_parts: Default::default(),
             inventory,
             menu: None,
+            lectern: None,
             last_window_id: 0,
             selected_slot: player_data.selected_item_slot as u32,
             pos: PlayerPos {
@@ -315,6 +334,9 @@ impl Player {
             worldedit_history: History::default(),
             worldedit_mask: None,
             worldedit_brushes: Default::default(),
+            worldedit_brushes_primary: Default::default(),
+            worldedit_tools: Default::default(),
+            worldedit_brush_specs: Default::default(),
             worldedit_last_brush: None,
             command_queue: Vec::new(),
             permissions_cache,
@@ -603,6 +625,7 @@ impl Player {
     /// Opens the screen of the container for the player. Clicks in it are handled with the menu.
     pub fn open_container(&mut self, pos: BlockPos, inventory: &Inventory, ty: ContainerType) {
         // The window id 0 is the inventory of the player, the ids count up to 100 like in the game
+        self.close_lectern_on_client();
         self.last_window_id = self.last_window_id % 100 + 1;
         let infinite_materials = matches!(self.gamemode, Gamemode::Creative);
         let menu = Menu::new(
@@ -615,13 +638,134 @@ impl Player {
         );
         let open_window = COpenScreen {
             window_id: menu.window_id,
-            window_type: ty.window_type(),
-            window_title: ty.title().into(),
+            // Double chests have twice the slots and a screen with six rows
+            window_type: if inventory.len() > ty.num_slots() as usize {
+                protocol_id!("minecraft:menu", "minecraft:generic_9x6")
+            } else {
+                ty.window_type()
+            },
+            window_title: if inventory.len() > ty.num_slots() as usize {
+                match ty {
+                    ContainerType::TrappedChest => "Large Trapped Chest",
+                    _ => "Large Chest",
+                }
+            } else {
+                ty.title()
+            }
+            .into(),
         }
         .encode();
         self.client.send_packet(&open_window);
         self.menu = Some(menu);
         self.send_menu_contents();
+    }
+
+    /// Opens the screen of the lectern, which shows the book at the page
+    pub fn open_lectern(&mut self, pos: BlockPos, book: &InventoryEntry, page: i32) {
+        self.close_menu_on_client();
+        self.close_lectern_on_client();
+        self.last_window_id = self.last_window_id % 100 + 1;
+        let view = LecternView {
+            window_id: self.last_window_id,
+            pos,
+            page,
+        };
+        let open_window = COpenScreen {
+            window_id: view.window_id,
+            window_type: protocol_id!("minecraft:menu", "minecraft:lectern"),
+            window_title: "Lectern".into(),
+        }
+        .encode();
+        self.client.send_packet(&open_window);
+        self.lectern = Some(view);
+        self.send_lectern_contents(book);
+        self.send_lectern_page();
+    }
+
+    /// Sends the book of the open lectern screen to the client
+    pub fn send_lectern_contents(&self, book: &InventoryEntry) {
+        let Some(view) = &self.lectern else {
+            return;
+        };
+        let stack = utils::inventory_entry_to_stack(book);
+        let contents = CSetContainerContent {
+            window_id: view.window_id,
+            state_id: 0,
+            slot_data: vec![Some(utils::encode_slot_data(&stack))],
+            carried_item: None,
+        }
+        .encode();
+        self.client.send_packet(&contents);
+    }
+
+    /// Sends the page of the open lectern screen to the client
+    pub fn send_lectern_page(&self) {
+        let Some(view) = &self.lectern else {
+            return;
+        };
+        let page = CSetContainerData {
+            window_id: view.window_id,
+            property: 0,
+            value: view.page as i16,
+        }
+        .encode();
+        self.client.send_packet(&page);
+    }
+
+    pub fn close_lectern_on_client(&mut self) {
+        if let Some(view) = self.lectern.take() {
+            self.client.send_packet(
+                &CCloseContainer {
+                    window_id: view.window_id,
+                }
+                .encode(),
+            );
+        }
+    }
+
+    /// Puts the item into the inventory of the player and sends the changed slots. Returns what
+    /// did not fit and the slots that changed.
+    pub fn give_item(&mut self, mut stack: ItemStack) -> (Option<ItemStack>, Vec<usize>) {
+        let max = stack.item_type.max_stack_size().min(u8::MAX as u32) as u8;
+        let mut changed = Vec::new();
+        // The hotbar comes first, then the main inventory. Stacks are filled up before empty
+        // slots are used.
+        let order: Vec<usize> = (36..45).chain(9..36).collect();
+        for pass in 0..2 {
+            for &slot in &order {
+                if stack.count == 0 {
+                    break;
+                }
+                match &mut self.inventory[slot] {
+                    Some(current)
+                        if pass == 0
+                            && current.item_type.get_id() == stack.item_type.get_id()
+                            && current.nbt.as_ref().map(|nbt| &nbt.content)
+                                == stack.nbt.as_ref().map(|nbt| &nbt.content)
+                            && current.count < max =>
+                    {
+                        let moved = stack.count.min(max - current.count);
+                        current.count += moved;
+                        stack.count -= moved;
+                        changed.push(slot);
+                    }
+                    None if pass == 1 => {
+                        let moved = stack.count.min(max);
+                        let mut placed = stack.clone();
+                        placed.count = moved;
+                        stack.count -= moved;
+                        self.inventory[slot] = Some(placed);
+                        changed.push(slot);
+                    }
+                    _ => {}
+                }
+            }
+        }
+        for slot in &changed {
+            let item = self.inventory[*slot].clone();
+            self.send_inventory_slot(*slot as u32, item.as_ref());
+        }
+        ((stack.count > 0).then_some(stack), changed)
     }
 
     /// Sends all slots of the open menu and the stack on the cursor to the client

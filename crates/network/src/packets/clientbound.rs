@@ -559,6 +559,23 @@ impl ClientBoundPacket for CSetContainerContent {
     }
 }
 
+/// Sets a property of the open menu, like the page of a lectern
+pub struct CSetContainerData {
+    pub window_id: i32,
+    pub property: i16,
+    pub value: i16,
+}
+
+impl ClientBoundPacket for CSetContainerData {
+    fn encode(&self) -> PacketEncoder {
+        let mut buf = Vec::new();
+        buf.write_varint(self.window_id);
+        buf.write_short(self.property);
+        buf.write_short(self.value);
+        PacketEncoder::new(buf, 0x13)
+    }
+}
+
 pub struct CSetContainerSlot {
     pub window_id: i32,
     pub state_id: i32,

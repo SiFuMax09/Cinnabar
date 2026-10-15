@@ -479,6 +479,33 @@ impl Chunk {
                 })
             }
         }
+        // Chests are only drawn by the client when it has a block entity for them, and most chests
+        // have none on the server
+        for (section_y, section) in self.sections.iter().enumerate() {
+            for y in 0..16 {
+                for z in 0..16 {
+                    for x in 0..16 {
+                        let state = section.get_block(x, y, z);
+                        if state == 0 {
+                            continue;
+                        }
+                        let Some((ty, nbt)) =
+                            cinnabar_blocks::block_entities::render_block_entity(state)
+                        else {
+                            continue;
+                        };
+                        let world_y = section_y as i32 * 16 + y as i32;
+                        block_entities.push(CChunkDataBlockEntity {
+                            x: x as i8,
+                            z: z as i8,
+                            y: world_y as i16,
+                            data: nbt.content,
+                            ty,
+                        });
+                    }
+                }
+            }
+        }
         CChunkData {
             chunk_sections,
             chunk_x: self.x,

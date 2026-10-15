@@ -14,6 +14,7 @@ use cinnabar_blocks::items::{Item, ItemStack};
 use cinnabar_blocks::BlockPos;
 use cinnabar_network::packets::clientbound::*;
 use cinnabar_network::packets::serverbound::*;
+use cinnabar_redstone::lectern;
 use cinnabar_redstone::transport::{read_inventory, write_inventory};
 use cinnabar_world::World;
 use serde_json::json;
@@ -24,7 +25,11 @@ use tracing::error;
 
 impl Plot {
     /// Lets the other players see the item in the hand of the player when it changed
-    fn after_player_inventory_changed(&mut self, player_idx: usize, changed_slots: &[usize]) {
+    pub(super) fn after_player_inventory_changed(
+        &mut self,
+        player_idx: usize,
+        changed_slots: &[usize],
+    ) {
         let selected = self.players[player_idx].selected_slot as usize + 36;
         if !changed_slots.contains(&selected) {
             return;
@@ -43,10 +48,27 @@ impl Plot {
     /// Shows the players what hoppers and other players did to the container they have open
     pub(super) fn sync_open_menus(&mut self) {
         for player in &mut self.players {
+            let Some(view) = player.lectern else {
+                continue;
+            };
+            match cinnabar_redstone::lectern::page_info(&self.world, view.pos) {
+                None => player.close_lectern_on_client(),
+                Some((page, _)) if page != view.page => {
+                    if let Some(view) = &mut player.lectern {
+                        view.page = page;
+                    }
+                    player.send_lectern_page();
+                }
+                Some(_) => {}
+            }
+        }
+        for player in &mut self.players {
             let Some(menu) = &mut player.menu else {
                 continue;
             };
-            match read_inventory(&self.world, menu.pos).filter(|(ty, _)| *ty == menu.ty) {
+            match read_inventory(&self.world, menu.pos)
+                .filter(|(ty, inv)| *ty == menu.ty && inv.len() == menu.container_size())
+            {
                 None => player.close_menu_on_client(),
                 Some((_, container)) if container != menu.container_inventory() => {
                     menu.load(&container, &player.inventory);
@@ -186,8 +208,78 @@ impl ServerBoundPacketHandler for Plot {
         self.players[player].set_inventory_slot(creative_inventory_action.slot as u32, item);
     }
 
+    fn handle_container_button_click(&mut self, packet: SContainerButtonClick, player_idx: usize) {
+        let player = &mut self.players[player_idx];
+        let Some(view) = player.lectern else {
+            return;
+        };
+        if view.window_id != packet.window_id || matches!(player.gamemode, Gamemode::Spectator) {
+            return;
+        }
+        let Some((page, _)) = lectern::page_info(&self.world, view.pos) else {
+            player.close_lectern_on_client();
+            return;
+        };
+        // The buttons of the screen: previous page, next page, take the book and jump to a page
+        let new_page = match packet.button_id {
+            1 => Some(page - 1),
+            2 => Some(page + 1),
+            id if id >= 100 => Some(id - 100),
+            _ => None,
+        };
+        if let Some(new_page) = new_page {
+            if new_page != page {
+                self.reset_redpiler();
+                lectern::set_page(&mut self.world, view.pos, new_page);
+                self.world.flush_block_changes();
+            }
+            // The client predicts the page, so it is told the page it ends up on
+            if let Some((page, _)) = lectern::page_info(&self.world, view.pos) {
+                let player = &mut self.players[player_idx];
+                if let Some(view) = &mut player.lectern {
+                    view.page = page;
+                }
+                player.send_lectern_page();
+            }
+            return;
+        }
+        if packet.button_id != 3 {
+            return;
+        }
+        if !super::may_edit_plot(
+            self.owner,
+            self.players[player_idx].uuid,
+            self.edit_permissions(player_idx),
+        ) {
+            self.players[player_idx].send_no_permission_message();
+            return;
+        }
+        self.reset_redpiler();
+        let Some(book) = lectern::take_book(&mut self.world, view.pos) else {
+            return;
+        };
+        self.world.flush_block_changes();
+        let player = &mut self.players[player_idx];
+        player.close_lectern_on_client();
+        let (rest, changed_slots) = player.give_item(crate::menu::entry_to_stack(&book));
+        self.after_player_inventory_changed(player_idx, &changed_slots);
+        if let Some(rest) = rest {
+            self.drop_item(player_idx, rest);
+        }
+    }
+
     fn handle_container_click(&mut self, packet: SContainerClick, player_idx: usize) {
         let player = &mut self.players[player_idx];
+        if player
+            .lectern
+            .is_some_and(|view| view.window_id == packet.window_id)
+        {
+            // The book can only be taken with the button, so the screen is set back as it was
+            if let Some(book) = lectern::book(&self.world, player.lectern.unwrap().pos) {
+                player.send_lectern_contents(&book);
+            }
+            return;
+        }
         let Some(menu) = &mut player.menu else {
             return;
         };
@@ -195,8 +287,8 @@ impl ServerBoundPacketHandler for Plot {
             return;
         }
         let pos = menu.pos;
-        let Some((ty, container)) =
-            read_inventory(&self.world, pos).filter(|(ty, _)| *ty == menu.ty)
+        let Some((ty, container)) = read_inventory(&self.world, pos)
+            .filter(|(ty, inv)| *ty == menu.ty && inv.len() == menu.container_size())
         else {
             // The container was destroyed while the screen was open
             player.close_menu_on_client();
@@ -234,6 +326,13 @@ impl ServerBoundPacketHandler for Plot {
 
     fn handle_container_close(&mut self, packet: SContainerClose, player_idx: usize) {
         let player = &mut self.players[player_idx];
+        if player
+            .lectern
+            .is_some_and(|view| view.window_id == packet.window_id)
+        {
+            player.lectern = None;
+            return;
+        }
         let Some(menu) = &mut player.menu else {
             return;
         };
@@ -543,7 +642,10 @@ impl ServerBoundPacketHandler for Plot {
             return;
         };
 
-        if use_item.hand == 0 && self.try_use_brush(player, item.item_type.get_id(), None) {
+        if use_item.hand == 0
+            && (self.try_use_brush(player, item.item_type.get_id(), None)
+                || self.try_use_tool(player, item.item_type.get_id(), None, false))
+        {
             return;
         }
 

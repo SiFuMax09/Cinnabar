@@ -36,6 +36,71 @@ pub fn in_cylinder_shell(dx: i32, dz: i32, radius: f64) -> bool {
             .any(|(x, z)| !in_cylinder(dx + x, dz + z, radius))
 }
 
+/// Whether the offset is inside of an ellipsoid with these radii (x, y, z), a radius of r means
+/// r + 0.5 like it does for spheres
+pub fn in_ellipsoid(dx: i32, dy: i32, dz: i32, radii: (f64, f64, f64)) -> bool {
+    let n = |d: i32, r: f64| {
+        let r = r + 0.5;
+        (d as f64 / r) * (d as f64 / r)
+    };
+    n(dx, radii.0) + n(dy, radii.1) + n(dz, radii.2) < 1.0
+}
+
+/// Whether the block is in the one block thick shell of the ellipsoid
+pub fn in_ellipsoid_shell(dx: i32, dy: i32, dz: i32, radii: (f64, f64, f64)) -> bool {
+    in_ellipsoid(dx, dy, dz, radii)
+        && [
+            (1, 0, 0),
+            (-1, 0, 0),
+            (0, 1, 0),
+            (0, -1, 0),
+            (0, 0, 1),
+            (0, 0, -1),
+        ]
+        .iter()
+        .any(|(x, y, z)| !in_ellipsoid(dx + x, dy + y, dz + z, radii))
+}
+
+/// Parses the radius argument of the shape commands: `r` or `rx,ry,rz` (`rx,rz` if only two
+/// values are allowed). Returns the radii in x, y, z order.
+pub fn parse_radii(text: &str, allow_y: bool) -> Result<(f64, f64, f64), String> {
+    let values = text
+        .split(',')
+        .map(|part| {
+            part.trim()
+                .parse::<f64>()
+                .ok()
+                .filter(|v| *v >= 0.0 && v.is_finite())
+        })
+        .collect::<Option<Vec<f64>>>()
+        .ok_or_else(|| format!("Error parsing the radius '{text}'."))?;
+    match (values.as_slice(), allow_y) {
+        ([r], _) => Ok((*r, *r, *r)),
+        ([x, z], false) => Ok((*x, 0.0, *z)),
+        ([x, y, z], true) => Ok((*x, *y, *z)),
+        _ if allow_y => Err("You must either specify 1 or 3 radius values.".to_owned()),
+        _ => Err("You must either specify 1 or 2 radius values.".to_owned()),
+    }
+}
+
+/// Parses the "raised" argument of //sphere
+pub fn parse_bool(text: &str) -> Option<bool> {
+    match text.to_lowercase().as_str() {
+        "true" | "yes" | "on" | "y" | "1" => Some(true),
+        "false" | "no" | "off" | "n" | "0" => Some(false),
+        _ => None,
+    }
+}
+
+/// Whether the offset at layer `y` (0 is the base) is part of a pyramid of this size
+pub fn in_pyramid(dx: i32, y: i32, dz: i32, size: i32, hollow: bool) -> bool {
+    let r = size - 1 - y;
+    if y < 0 || r < 0 || dx.abs() > r || dz.abs() > r {
+        return false;
+    }
+    !hollow || y == 0 || dx.abs() == r || dz.abs() == r
+}
+
 /// The blocks on a straight line from `a` to `b`, both included
 pub fn line_points(a: BlockPos, b: BlockPos) -> Vec<BlockPos> {
     let (dx, dy, dz) = (b.x - a.x, b.y - a.y, b.z - a.z);
@@ -275,6 +340,46 @@ mod tests {
         // The same shape WorldEdit makes: everything closer than radius + 0.5
         assert_eq!(count(1), 19);
         assert!(count(5) > 600 && count(5) < 800);
+    }
+
+    #[test]
+    fn ellipsoids_and_radii() {
+        assert_eq!(parse_radii("5", true), Ok((5.0, 5.0, 5.0)));
+        assert_eq!(parse_radii("2,3,4", true), Ok((2.0, 3.0, 4.0)));
+        assert_eq!(parse_radii("2,4", false), Ok((2.0, 0.0, 4.0)));
+        assert!(parse_radii("2,3", true).is_err());
+        assert!(parse_radii("a", true).is_err());
+        assert!(parse_radii("-1", true).is_err());
+        let r = (4.0, 2.0, 4.0);
+        assert!(in_ellipsoid(0, 2, 0, r));
+        assert!(!in_ellipsoid(0, 3, 0, r));
+        assert!(in_ellipsoid(4, 0, 0, r));
+        assert!(!in_ellipsoid_shell(0, 0, 0, r));
+        for d in -5..=5 {
+            assert_eq!(
+                in_sphere(d, 1, 2, 4.0),
+                in_ellipsoid(d, 1, 2, (4.0, 4.0, 4.0))
+            );
+        }
+    }
+
+    #[test]
+    fn pyramids() {
+        let count = |hollow| {
+            let mut n = 0;
+            for y in 0..6 {
+                for x in -6..=6 {
+                    for z in -6..=6 {
+                        n += in_pyramid(x, y, z, 3, hollow) as usize;
+                    }
+                }
+            }
+            n
+        };
+        assert_eq!(count(false), 25 + 9 + 1);
+        assert_eq!(count(true), 25 + 8 + 1);
+        assert_eq!(parse_bool("yes"), Some(true));
+        assert_eq!(parse_bool("maybe"), None);
     }
 
     #[test]

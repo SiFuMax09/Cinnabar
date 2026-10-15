@@ -49,10 +49,94 @@ pub fn facing_of_generic(id: u32) -> BlockFace {
     }
 }
 
-/// Reads the items of the container at the position
+fn horizontal_face(name: &str) -> Option<BlockFace> {
+    Some(match name {
+        "north" => BlockFace::North,
+        "south" => BlockFace::South,
+        "west" => BlockFace::West,
+        "east" => BlockFace::East,
+        _ => return None,
+    })
+}
+
+fn clockwise(face: BlockFace) -> BlockFace {
+    match face {
+        BlockFace::North => BlockFace::East,
+        BlockFace::East => BlockFace::South,
+        BlockFace::South => BlockFace::West,
+        _ => BlockFace::North,
+    }
+}
+
+pub fn is_chest_name(name: &str) -> bool {
+    matches!(name, "minecraft:chest" | "minecraft:trapped_chest")
+}
+
+/// The direction the other half of a double chest is in, for the state of one half
+pub fn chest_connected_direction(id: u32) -> Option<BlockFace> {
+    if !is_chest_name(generic::state_name(id)) {
+        return None;
+    }
+    let facing = horizontal_face(generic::get_property(id, "facing")?)?;
+    match generic::get_property(id, "type")? {
+        "left" => Some(clockwise(facing)),
+        "right" => Some(opposite(clockwise(facing))),
+        _ => None,
+    }
+}
+
+/// The position of the other half of the double chest at the position, if it is one
+pub fn chest_partner(world: &impl World, pos: BlockPos) -> Option<BlockPos> {
+    let Block::Generic(id) = world.get_block(pos) else {
+        return None;
+    };
+    let direction = chest_connected_direction(id)?;
+    let partner = pos.offset(direction);
+    let Block::Generic(other) = world.get_block(partner) else {
+        return None;
+    };
+    (generic::state_name(other) == generic::state_name(id)
+        && chest_connected_direction(other) == Some(opposite(direction)))
+    .then_some(partner)
+}
+
+/// The two halves of the double chest at the position: the first one holds the slots 0 to 26 of
+/// the combined container and the second one the slots 27 to 53
+pub fn double_chest(world: &impl World, pos: BlockPos) -> Option<(BlockPos, BlockPos)> {
+    let partner = chest_partner(world, pos)?;
+    let Block::Generic(id) = world.get_block(pos) else {
+        return None;
+    };
+    if generic::get_property(id, "type") == Some("right") {
+        Some((pos, partner))
+    } else {
+        Some((partner, pos))
+    }
+}
+
+fn entries_at(world: &impl World, pos: BlockPos) -> Vec<InventoryEntry> {
+    match world.get_block_entity(pos) {
+        Some(BlockEntity::Container { inventory, .. }) => inventory.clone(),
+        _ => Vec::new(),
+    }
+}
+
+/// Reads the items of the container at the position. Both halves of a double chest are read
+/// as one container with 54 slots.
 pub fn read_inventory(world: &impl World, pos: BlockPos) -> Option<(ContainerType, Inventory)> {
     let ty = ContainerType::for_block(world.get_block(pos))?;
     let num_slots = ty.num_slots() as usize;
+    if let Some((first, second)) = double_chest(world, pos) {
+        let mut entries = entries_at(world, first);
+        entries.retain(|entry| (entry.slot as usize) < num_slots);
+        for mut entry in entries_at(world, second) {
+            if (entry.slot as usize) < num_slots {
+                entry.slot += num_slots as i8;
+                entries.push(entry);
+            }
+        }
+        return Some((ty, Inventory::from_entries(&entries, num_slots * 2)));
+    }
     let inventory = match world.get_block_entity(pos) {
         Some(BlockEntity::Container { inventory, .. }) => {
             Inventory::from_entries(inventory, num_slots)
@@ -69,6 +153,27 @@ pub fn write_inventory(
     ty: ContainerType,
     inventory: Inventory,
 ) {
+    if let Some((first, second)) = double_chest(world, pos) {
+        let old_signal = read_inventory(world, pos).map(|(_, inv)| inv.comparator_signal());
+        let new_signal = inventory.comparator_signal();
+        let half = ty.num_slots() as i8;
+        let (mut first_entries, mut second_entries) = (Vec::new(), Vec::new());
+        for mut entry in inventory.into_entries() {
+            if entry.slot < half {
+                first_entries.push(entry);
+            } else {
+                entry.slot -= half;
+                second_entries.push(entry);
+            }
+        }
+        world.set_block_entity(first, BlockEntity::container(first_entries, ty));
+        world.set_block_entity(second, BlockEntity::container(second_entries, ty));
+        if old_signal != Some(new_signal) {
+            update_comparators_around(world, first);
+            update_comparators_around(world, second);
+        }
+        return;
+    }
     let old_signal = match world.get_block_entity(pos) {
         Some(BlockEntity::Container {
             comparator_override,
@@ -588,6 +693,47 @@ mod tests {
             .filter_map(|slot| inventory.get(slot))
             .map(|entry| entry.count as i32)
             .sum()
+    }
+
+    fn chest(facing: &str, ty: &str) -> Block {
+        let id = generic::default_state("minecraft:chest").unwrap();
+        let id = generic::with_property(id, "facing", facing);
+        Block::Generic(generic::with_property(id, "type", ty))
+    }
+
+    #[test]
+    fn double_chest_is_one_container() {
+        let mut world = TestWorld::new(1, 1, 1);
+        // Facing north the left half is on the west side of the right half
+        let left = BlockPos::new(2, 5, 2);
+        let right = BlockPos::new(3, 5, 2);
+        world.set_block(right, chest("north", "right"));
+        world.set_block(left, chest("north", "left"));
+        assert_eq!(double_chest(&world, left), Some((right, left)));
+        assert_eq!(double_chest(&world, right), Some((right, left)));
+
+        fill(&mut world, left, &[(0, 3), (30, 5)]);
+        let (_, inventory) = read_inventory(&world, right).unwrap();
+        assert_eq!(inventory.len(), 54);
+        assert_eq!(inventory.get(0).unwrap().count, 3);
+        assert_eq!(inventory.get(30).unwrap().count, 5);
+        // The first 27 slots are stored in the right half, the rest in the left one
+        let Some(BlockEntity::Container { inventory, .. }) = world.get_block_entity(left) else {
+            panic!("no container");
+        };
+        assert_eq!(inventory.len(), 1);
+        assert_eq!(inventory[0].slot, 3);
+        assert!(world.get_block_entity(right).is_some());
+    }
+
+    #[test]
+    fn mismatched_chests_are_not_double() {
+        let mut world = TestWorld::new(1, 1, 1);
+        let a = BlockPos::new(2, 5, 2);
+        world.set_block(a, chest("north", "right"));
+        world.set_block(a.offset(BlockFace::East), chest("south", "left"));
+        assert!(double_chest(&world, a).is_none());
+        assert_eq!(read_inventory(&world, a).unwrap().1.len(), 27);
     }
 
     #[test]

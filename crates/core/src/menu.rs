@@ -87,6 +87,8 @@ pub struct Menu {
     pub state_id: i32,
     pub pos: BlockPos,
     pub ty: ContainerType,
+    /// The number of slots of the container, which is twice the usual for double chests
+    size: usize,
     /// The container, the main inventory, the hotbar and the offhand slot of the player, which
     /// can be a target of swaps but is not shown
     slots: Vec<Option<ItemStack>>,
@@ -111,7 +113,8 @@ impl Menu {
             state_id: 0,
             pos,
             ty,
-            slots: vec![None; ty.num_slots() as usize + MAIN_SLOTS + HOTBAR_SLOTS + 1],
+            size: container.len(),
+            slots: vec![None; container.len() + MAIN_SLOTS + HOTBAR_SLOTS + 1],
             carried: None,
             quick_craft_status: 0,
             quick_craft_type: 0,
@@ -123,7 +126,7 @@ impl Menu {
     }
 
     pub fn container_size(&self) -> usize {
-        self.ty.num_slots() as usize
+        self.size
     }
 
     /// The number of slots the client knows about

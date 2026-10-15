@@ -424,6 +424,37 @@ impl Plot {
         );
     }
 
+    /// Removes the entities of the kinds `filter` accepts within `radius` blocks of `center`
+    /// (everywhere when there is no radius). Returns how many were removed.
+    pub(super) fn remove_entities_near(
+        &mut self,
+        center: Vec3,
+        radius: Option<f64>,
+        filter: impl Fn(&EntityKind) -> bool,
+    ) -> usize {
+        let ids: Vec<i32> = self
+            .entities
+            .list
+            .iter()
+            .filter(|entity| filter(&entity.kind))
+            .filter(|entity| {
+                radius.is_none_or(|radius| {
+                    let (dx, dy, dz) = (
+                        entity.pos.x - center.x,
+                        entity.pos.y - center.y,
+                        entity.pos.z - center.z,
+                    );
+                    dx * dx + dy * dy + dz * dz <= radius * radius
+                })
+            })
+            .map(|entity| entity.id)
+            .collect();
+        for id in &ids {
+            self.remove_entity(*id);
+        }
+        ids.len()
+    }
+
     /// Spawns primed TNT that hops up a little, like it does in Minecraft
     pub fn spawn_tnt(&mut self, pos: Vec3, fuse: i32) -> bool {
         let angle = rand::random::<f64>() * std::f64::consts::TAU;

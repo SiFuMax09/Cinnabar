@@ -6,7 +6,7 @@
 //! the commands were issued.
 
 use super::history::{HistoryEntry, Recorder};
-use super::pattern::Mask;
+use super::pattern::{global_transform, GlobalTransform, Mask};
 use super::session::{clamp_to_plot, EditSession};
 use crate::player::{PacketSender, Player};
 use crate::plot::{Plot, PlotWorld};
@@ -102,6 +102,7 @@ pub struct EditJob {
     done_stages: usize,
     recorder: Recorder,
     mask: Option<Mask>,
+    transform: Option<GlobalTransform>,
     blocks: usize,
     started: Instant,
     last_progress: Instant,
@@ -122,6 +123,7 @@ impl EditJob {
             done_stages: 0,
             recorder: Recorder::new(),
             mask,
+            transform: global_transform(owner),
             blocks: 0,
             started: Instant::now(),
             last_progress: Instant::now(),
@@ -156,6 +158,14 @@ impl EditJob {
     }
 
     /// A job with a single stage that is stored in the undo history
+    /// Replaces the transform the edit goes through (by default the global transform of the owner)
+    pub fn with_transform(mut self, transform: Option<GlobalTransform>) -> EditJob {
+        if transform.is_some() {
+            self.transform = transform;
+        }
+        self
+    }
+
     pub fn single(owner: u128, mask: Option<Mask>, items: Vec<WorkItem>, run: RunFn) -> EditJob {
         EditJob::new(owner, mask).stage(Stage::new(items, run).commit_to(HistoryDest::Undo))
     }
@@ -208,7 +218,8 @@ impl EditJob {
             }
             let body = stage.body.as_mut().unwrap();
             if stage.next < body.items.len() {
-                let mut session = EditSession::new(world, &mut self.recorder, self.mask.as_ref());
+                let mut session = EditSession::new(world, &mut self.recorder, self.mask.as_ref())
+                    .with_transform(self.transform.as_ref());
                 while stage.next < body.items.len() {
                     self.blocks += (body.run)(&mut session, &body.items[stage.next]);
                     stage.next += 1;
@@ -378,5 +389,30 @@ impl Plot {
         while !self.edit_jobs.is_empty() {
             self.run_edit_jobs(Duration::from_secs(3600));
         }
+    }
+}
+
+impl Plot {
+    /// Stops the queued edits of the player (`//cancel`). What was already changed by a running
+    /// edit stays and can be undone. Returns how many edits were cancelled.
+    pub(super) fn cancel_edit_jobs(&mut self, owner: u128) -> usize {
+        let (plot_x, plot_z) = (self.world.x, self.world.z);
+        let mut cancelled = 0;
+        let mut kept = VecDeque::new();
+        while let Some(mut job) = self.edit_jobs.pop_front() {
+            if job.owner != owner {
+                kept.push_back(job);
+                continue;
+            }
+            cancelled += 1;
+            if !job.recorder.is_empty() {
+                let entry = job.recorder.take_entry(plot_x, plot_z);
+                if let Some(player) = self.players.iter_mut().find(|p| p.uuid == owner) {
+                    store_entry(player, entry, HistoryDest::Undo);
+                }
+            }
+        }
+        self.edit_jobs = kept;
+        cancelled
     }
 }

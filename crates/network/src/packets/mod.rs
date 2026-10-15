@@ -37,6 +37,26 @@ fn block_entity_data_component_id() -> i32 {
     )
 }
 
+/// The data components that are kept as they are, so that books can be read on a lectern. They
+/// are stored in the `Components` compound of the item NBT as the bytes of the encoded component.
+const KEPT_COMPONENTS: [&str; 2] = [
+    "minecraft:written_book_content",
+    "minecraft:writable_book_content",
+];
+
+fn kept_component_ids() -> [i32; 2] {
+    [
+        protocol_id!(
+            "minecraft:data_component_type",
+            "minecraft:written_book_content"
+        ),
+        protocol_id!(
+            "minecraft:data_component_type",
+            "minecraft:writable_book_content"
+        ),
+    ]
+}
+
 fn block_entity_type_id(name: &str) -> Option<i32> {
     BLOCK_ENTITY_TYPES
         .iter()
@@ -144,6 +164,7 @@ fn read_decompressed<T: PacketDecoderExt>(
             0x09 => Box::new(SChatMessage::decode(reader)?),
             0x0E => Box::new(SClientInformation::decode(reader)?),
             0x0F => Box::new(SCommandSuggestionsRequest::decode(reader)?),
+            0x11 => Box::new(SContainerButtonClick::decode(reader)?),
             0x12 => Box::new(SContainerClick::decode(reader)?),
             0x13 => Box::new(SContainerClose::decode(reader)?),
             0x16 => Box::new(SPluginMessage::decode(reader)?),
@@ -329,7 +350,18 @@ pub trait PacketDecoderExt: Read + Sized {
             let component = self.read_varint()?;
             let len = self.read_varint()?;
             let data = self.read_bytes(len as usize)?;
-            if component == block_entity_data_component_id() {
+            if let Some(index) = kept_component_ids().iter().position(|id| *id == component) {
+                let root = nbt.get_or_insert_with(NBTCompound::new);
+                let entry = root
+                    .entry("Components".to_owned())
+                    .or_insert_with(|| nbt::Value::Compound(NBTCompound::new()));
+                if let nbt::Value::Compound(components) = entry {
+                    components.insert(
+                        KEPT_COMPONENTS[index].to_owned(),
+                        nbt::Value::ByteArray(data.iter().map(|byte| *byte as i8).collect()),
+                    );
+                }
+            } else if component == block_entity_data_component_id() {
                 let mut data = Cursor::new(data);
                 let type_id = data.read_varint()?;
                 if let (Some(tag), Some(id)) = (
@@ -338,9 +370,8 @@ pub trait PacketDecoderExt: Read + Sized {
                 ) {
                     let mut tag = tag;
                     tag.insert("id".to_owned(), nbt::Value::String((*id).to_owned()));
-                    let mut root = NBTCompound::new();
+                    let root = nbt.get_or_insert_with(NBTCompound::new);
                     root.insert("BlockEntityTag".to_owned(), nbt::Value::Compound(tag));
-                    nbt = Some(root);
                 }
             }
         }
@@ -529,15 +560,35 @@ pub trait PacketEncoderExt: Write {
             tag.remove("Id");
             Some((block_entity_type_id(id)?, tag))
         });
+        let kept: Vec<(i32, &Vec<i8>)> = slot
+            .nbt
+            .as_ref()
+            .and_then(|nbt| match nbt.get("Components") {
+                Some(nbt::Value::Compound(components)) => Some(components),
+                _ => None,
+            })
+            .map(|components| {
+                kept_component_ids()
+                    .into_iter()
+                    .zip(KEPT_COMPONENTS)
+                    .filter_map(|(id, name)| match components.get(name) {
+                        Some(nbt::Value::ByteArray(data)) => Some((id, data)),
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        self.write_varint(block_entity_data.is_some() as i32 + kept.len() as i32);
+        self.write_varint(0);
         if let Some((type_id, tag)) = block_entity_data {
-            self.write_varint(1);
-            self.write_varint(0);
             self.write_varint(block_entity_data_component_id());
             self.write_varint(type_id);
             self.write_nbt(&tag);
-        } else {
-            self.write_varint(0);
-            self.write_varint(0);
+        }
+        for (id, data) in kept {
+            self.write_varint(id);
+            let data: Vec<u8> = data.iter().map(|byte| *byte as u8).collect();
+            self.write_bytes(&data);
         }
     }
 

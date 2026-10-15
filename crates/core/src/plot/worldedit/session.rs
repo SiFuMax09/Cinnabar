@@ -5,7 +5,7 @@
 //! caller flushes the world once it is done.
 
 use super::history::{push_change, HistoryEntry, Recorder};
-use super::pattern::{FastRng, Mask};
+use super::pattern::{FastRng, GlobalTransform, Mask, PatternEnv};
 use crate::plot::{PlotWorld, PLOT_BLOCK_HEIGHT};
 use cinnabar_blocks::block_entities::BlockEntity;
 use cinnabar_blocks::blocks::Block;
@@ -20,6 +20,9 @@ pub struct EditSession<'a> {
     /// Only blocks that match are replaced
     pub mask: Option<&'a Mask>,
     pub rng: FastRng,
+    /// Everything that is placed goes through the transform
+    transform: Option<&'a GlobalTransform>,
+    transform_env: PatternEnv<'static>,
 }
 
 /// Clamps a box to the blocks of the plot. Returns `None` if nothing is left.
@@ -45,7 +48,14 @@ impl<'a> EditSession<'a> {
             recorder,
             mask,
             rng: FastRng::new(),
+            transform: None,
+            transform_env: PatternEnv::new(None, BlockPos::new(0, 0, 0)),
         }
+    }
+
+    pub fn with_transform(mut self, transform: Option<&'a GlobalTransform>) -> EditSession<'a> {
+        self.transform = transform;
+        self
     }
 
     pub fn get(&self, pos: BlockPos) -> u32 {
@@ -63,6 +73,25 @@ impl<'a> EditSession<'a> {
     /// Sets a single block. Slower than [`EditSession::edit_box`], use it when blocks depend on
     /// their neighbours.
     pub fn set(&mut self, pos: BlockPos, new: u32) -> bool {
+        let Some(transform) = self.transform else {
+            return self.set_plain(pos, new);
+        };
+        let mut placements = Vec::new();
+        transform.transform.apply(
+            pos,
+            new,
+            transform.origin,
+            &mut self.transform_env,
+            &mut placements,
+        );
+        let mut changed = false;
+        for (pos, new) in placements {
+            changed |= self.set_plain(pos, new);
+        }
+        changed
+    }
+
+    fn set_plain(&mut self, pos: BlockPos, new: u32) -> bool {
         let old = self.world.get_block_raw(pos);
         if old == new || !self.allowed(pos, old) {
             return false;
@@ -137,7 +166,8 @@ impl<'a> EditSession<'a> {
         let Some((min, max)) = clamp_to_plot(self.world, min, max) else {
             return 0;
         };
-        let mask_is_complex = self.mask.is_some_and(|mask| !mask.is_state_only());
+        let mask_is_complex =
+            self.transform.is_some() || self.mask.is_some_and(|mask| !mask.is_state_only());
         if mask_is_complex {
             return self.edit_box_slow(min, max, f);
         }
@@ -533,5 +563,22 @@ mod tests {
         apply_entities(&mut s, &entry);
         assert!(world.get_block_entity(pos).is_some());
         assert_eq!(world.get_block_raw(pos), furnace);
+    }
+
+    #[test]
+    fn transform_moves_the_edits() {
+        let mut world = world();
+        let mut recorder = Recorder::new();
+        let transform = GlobalTransform::parse("#offset[0][5][0]", BlockPos::new(0, 0, 0)).unwrap();
+        let mut session =
+            EditSession::new(&mut world, &mut recorder, None).with_transform(Some(&transform));
+        let n = session.edit_box(BlockPos::new(1, 1, 1), BlockPos::new(2, 1, 1), |_, _| {
+            Some(1)
+        });
+        assert_eq!(n, 2);
+        session.set(BlockPos::new(4, 1, 4), 1);
+        assert_eq!(world.get_block_raw(BlockPos::new(1, 6, 1)), 1);
+        assert_eq!(world.get_block_raw(BlockPos::new(1, 1, 1)), 0);
+        assert_eq!(world.get_block_raw(BlockPos::new(4, 6, 4)), 1);
     }
 }

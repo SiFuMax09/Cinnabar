@@ -611,3 +611,18 @@ pub fn state_range(name: &str) -> Option<std::ops::Range<u32>> {
     let block = &BLOCKS[*BY_NAME.get(name)?];
     Some(block.first_id..block.first_id + block.num_states)
 }
+
+/// Sound id of a copper bulb turning on or off
+pub fn copper_bulb_sound(on: bool) -> i32 {
+    if on {
+        cinnabar_proc_macros::protocol_id!(
+            "minecraft:sound_event",
+            "minecraft:block.copper_bulb.turn_on"
+        )
+    } else {
+        cinnabar_proc_macros::protocol_id!(
+            "minecraft:sound_event",
+            "minecraft:block.copper_bulb.turn_off"
+        )
+    }
+}

@@ -287,6 +287,83 @@ pub enum BlockEntity {
         last_vibration_frequency: u8,
         calibrated: bool,
     },
+    /// The book on a lectern and the page it is opened at. New variants go at the end to keep
+    /// saved plots readable.
+    Lectern {
+        book: Option<InventoryEntry>,
+        page: i32,
+        /// The number of pages of the book, which is what the signal of a comparator is based on
+        page_count: i32,
+    },
+}
+
+/// The name of the data component that holds the content of a written book
+pub const WRITTEN_BOOK_COMPONENT: &str = "minecraft:written_book_content";
+/// The name of the data component that holds the content of a book and quill
+pub const WRITABLE_BOOK_COMPONENT: &str = "minecraft:writable_book_content";
+
+/// The number of pages of a book item. The server does not interpret item data components, it
+/// only keeps the encoded form of the book components of the stack in the `Components` compound
+/// of the item NBT, so the page count is read from that.
+pub fn book_page_count(entry: &InventoryEntry) -> i32 {
+    fn read_varint(data: &mut &[u8]) -> Option<i32> {
+        let mut value = 0u32;
+        for i in 0..5 {
+            let (&byte, rest) = data.split_first()?;
+            *data = rest;
+            value |= ((byte & 0x7F) as u32) << (7 * i);
+            if byte & 0x80 == 0 {
+                return Some(value as i32);
+            }
+        }
+        None
+    }
+    fn skip_string(data: &mut &[u8]) -> Option<()> {
+        let len = read_varint(data)? as usize;
+        *data = data.get(len..)?;
+        Some(())
+    }
+    fn read_bool(data: &mut &[u8]) -> Option<bool> {
+        let (&byte, rest) = data.split_first()?;
+        *data = rest;
+        Some(byte != 0)
+    }
+
+    let Some(bytes) = &entry.nbt else {
+        return 0;
+    };
+    let Ok(blob) = nbt::Blob::from_reader(&mut std::io::Cursor::new(bytes)) else {
+        return 0;
+    };
+    let Some(nbt::Value::Compound(components)) = blob.get("Components") else {
+        return 0;
+    };
+    let raw = |name: &str| -> Option<Vec<u8>> {
+        match components.get(name)? {
+            nbt::Value::ByteArray(data) => Some(data.iter().map(|byte| *byte as u8).collect()),
+            _ => None,
+        }
+    };
+    if let Some(data) = raw(WRITABLE_BOOK_COMPONENT) {
+        // The pages are the only field
+        return read_varint(&mut data.as_slice()).unwrap_or(0);
+    }
+    if let Some(data) = raw(WRITTEN_BOOK_COMPONENT) {
+        let mut data = data.as_slice();
+        let count = (|| {
+            // The title is a string that can come with a filtered version
+            skip_string(&mut data)?;
+            if read_bool(&mut data)? {
+                skip_string(&mut data)?;
+            }
+            // The author and the generation
+            skip_string(&mut data)?;
+            read_varint(&mut data)?;
+            read_varint(&mut data)
+        })();
+        return count.unwrap_or(0);
+    }
+    0
 }
 
 impl BlockEntity {
@@ -321,6 +398,17 @@ impl BlockEntity {
                     block_entity_id!("minecraft:sculk_sensor")
                 }
             }
+            BlockEntity::Lectern { .. } => block_entity_id!("minecraft:lectern"),
+        }
+    }
+
+    /// A lectern holding the book, opened at the first page
+    pub fn lectern(book: Option<InventoryEntry>) -> BlockEntity {
+        let page_count = book.as_ref().map_or(0, book_page_count);
+        BlockEntity::Lectern {
+            book,
+            page: 0,
+            page_count,
         }
     }
 
@@ -333,6 +421,21 @@ impl BlockEntity {
             inventory,
             ty,
         }
+    }
+
+    /// Reads the item stack of a lectern book
+    fn load_item(item: &HashMap<String, nbt::Value>) -> Option<InventoryEntry> {
+        let count = nbt_get_int(item, "count").or_else(|| nbt_get_int(item, "Count"))?;
+        let name = match nbt_case_insensitive(item, "id")? {
+            nbt::Value::String(name) => name,
+            _ => return None,
+        };
+        Some(InventoryEntry {
+            id: Item::from_name(name)?.get_id(),
+            slot: 0,
+            count: count as i8,
+            nbt: None,
+        })
     }
 
     fn load_container(slots_nbt: &[nbt::Value], ty: ContainerType) -> Option<BlockEntity> {
@@ -393,6 +496,24 @@ impl BlockEntity {
                     .clamp(0, 15) as u8,
                 calibrated: id == "calibrated_sculk_sensor",
             }),
+            "lectern" => {
+                let book = match nbt.get("Book") {
+                    Some(Value::Compound(item)) => BlockEntity::load_item(item),
+                    _ => None,
+                };
+                let mut lectern = BlockEntity::lectern(book);
+                if let BlockEntity::Lectern {
+                    page, page_count, ..
+                } = &mut lectern
+                {
+                    // Books saved by the game keep their pages in components, which are not read
+                    *page_count = (*page_count).max(1);
+                    *page = nbt_get_int(nbt, "Page")
+                        .unwrap_or(0)
+                        .clamp(0, *page_count - 1);
+                }
+                Some(lectern)
+            }
             "furnace" => BlockEntity::load_container(
                 nbt_unwrap_val!(&nbt["Items"], Value::List),
                 ContainerType::Furnace,
@@ -476,6 +597,24 @@ impl BlockEntity {
                     .to_owned()
                 )
             })),
+            // Clients don't need the book, the state of the block shows whether there is one
+            BlockEntity::Lectern { .. } if sign_only => None,
+            BlockEntity::Lectern { book, page, .. } => {
+                let mut content = map! {
+                    "Page" => Value::Int(*page),
+                    "id" => Value::String("minecraft:lectern".to_owned())
+                };
+                if let Some(book) = book {
+                    content.insert(
+                        "Book".to_owned(),
+                        Value::Compound(map! {
+                            "count" => Value::Int(book.count as i32),
+                            "id" => Value::String(Item::from_id(book.id).get_name().to_owned())
+                        }),
+                    );
+                }
+                Some(nbt::Blob::with_content(content))
+            }
             BlockEntity::Sign(sign) => Some({
                 // Text components are sent as NBT over the network, while they are saved as JSON
                 let text = |row: &String| {
@@ -559,5 +698,93 @@ fn nbt_get_int(compound: &HashMap<String, nbt::Value>, name: &str) -> Option<i32
         nbt::Value::Byte(val) => Some(*val as i32),
         nbt::Value::Int(val) => Some(*val),
         _ => None,
+    }
+}
+
+/// The block entity the client needs to render the block, for blocks that have no block entity
+/// of their own on the server until they hold something. Returns the protocol id of the type and
+/// its name. Chests are only drawn by the client when it has a block entity for them.
+pub fn render_block_entity(state: u32) -> Option<(i32, nbt::Blob)> {
+    use std::ops::Range;
+    use std::sync::OnceLock;
+    static RANGES: OnceLock<[(Range<u32>, i32, &'static str); 3]> = OnceLock::new();
+    let ranges = RANGES.get_or_init(|| {
+        let range = |name| generic::state_range(name).unwrap();
+        [
+            (
+                range("minecraft:chest"),
+                protocol_id!("minecraft:block_entity_type", "minecraft:chest"),
+                "minecraft:chest",
+            ),
+            (
+                range("minecraft:trapped_chest"),
+                protocol_id!("minecraft:block_entity_type", "minecraft:trapped_chest"),
+                "minecraft:trapped_chest",
+            ),
+            (
+                range("minecraft:ender_chest"),
+                protocol_id!("minecraft:block_entity_type", "minecraft:ender_chest"),
+                "minecraft:ender_chest",
+            ),
+        ]
+    });
+    ranges
+        .iter()
+        .find(|(range, ..)| range.contains(&state))
+        .map(|(_, ty, name)| {
+            (
+                *ty,
+                nbt::Blob::with_content(map! {
+                    "id" => nbt::Value::String((*name).to_owned())
+                }),
+            )
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn book_with(component: &str, data: Vec<i8>) -> InventoryEntry {
+        let mut components = HashMap::new();
+        components.insert(component.to_owned(), nbt::Value::ByteArray(data));
+        let mut blob = nbt::Blob::new();
+        blob.insert("Components", nbt::Value::Compound(components))
+            .unwrap();
+        let mut bytes = Vec::new();
+        blob.to_writer(&mut bytes).unwrap();
+        InventoryEntry {
+            id: 0,
+            slot: 0,
+            count: 1,
+            nbt: Some(bytes),
+        }
+    }
+
+    #[test]
+    fn page_count_of_a_writable_book() {
+        // Three pages, the first one with a filtered version
+        let data = vec![3, 1, b'a' as i8, 1, 1, b'b' as i8, 0, 1, b'c' as i8, 0];
+        let entry = book_with(WRITABLE_BOOK_COMPONENT, data);
+        assert_eq!(book_page_count(&entry), 3);
+    }
+
+    #[test]
+    fn page_count_of_a_written_book() {
+        // Title "ab" without a filtered version, author "c", generation 1 and two pages
+        let data = vec![2, b'a' as i8, b'b' as i8, 0, 1, b'c' as i8, 1, 2, 8, 0, 0];
+        let entry = book_with(WRITTEN_BOOK_COMPONENT, data);
+        assert_eq!(book_page_count(&entry), 2);
+    }
+
+    #[test]
+    fn page_count_without_book_components() {
+        let entry = InventoryEntry {
+            id: 0,
+            slot: 0,
+            count: 1,
+            nbt: None,
+        };
+        assert_eq!(book_page_count(&entry), 0);
     }
 }

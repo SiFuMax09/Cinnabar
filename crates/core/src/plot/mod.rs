@@ -891,7 +891,8 @@ impl Plot {
 
         if use_item_on.hand == 0
             && let Some(item) = &item_in_hand
-            && self.try_use_brush(player, item.item_type.get_id(), Some(block_pos))
+            && (self.try_use_brush(player, item.item_type.get_id(), Some(block_pos))
+                || self.try_use_tool(player, item.item_type.get_id(), Some(block_pos), false))
         {
             cancel(self);
             return;
@@ -987,6 +988,18 @@ impl Plot {
             return;
         }
 
+        if let Some(item) = &item_in_hand
+            && !self.players[player].crouching
+            && let Block::Generic(id) = self.world.get_block(block_pos)
+            && cinnabar_redstone::lectern::is_lectern(id)
+            && !cinnabar_redstone::lectern::has_book(id)
+            && cinnabar_redstone::lectern::is_lectern_book(item.item_type.get_name())
+        {
+            self.place_lectern_book(player, use_item_on.hand, block_pos, item);
+            self.world.flush_block_changes();
+            return;
+        }
+
         if let Some(item) = item_in_hand {
             let cancelled = interaction::use_item_on_block(
                 &item,
@@ -1033,6 +1046,39 @@ impl Plot {
             );
             self.world.flush_block_changes();
         }
+    }
+
+    /// Puts one of the books in the hand of the player on the lectern
+    fn place_lectern_book(&mut self, player: usize, hand: i32, pos: BlockPos, item: &ItemStack) {
+        let mut entry = crate::menu::stack_to_entry(item, 0);
+        entry.count = 1;
+        if !cinnabar_redstone::lectern::place_book(&mut self.world, pos, entry) {
+            return;
+        }
+        self.world.play_sound(
+            pos,
+            protocol_id!("minecraft:sound_event", "minecraft:item.book.put"),
+            4,
+            1.0,
+            1.0,
+        );
+        if matches!(self.players[player].gamemode, Gamemode::Creative) {
+            return;
+        }
+        let slot = if hand == 0 {
+            self.players[player].selected_slot as usize + 36
+        } else {
+            45
+        };
+        let mut stack = self.players[player].inventory[slot].clone();
+        if let Some(held) = &mut stack {
+            held.count = held.count.saturating_sub(1);
+            if held.count == 0 {
+                stack = None;
+            }
+        }
+        self.players[player].set_inventory_slot(slot as u32, stack);
+        self.after_player_inventory_changed(player, &[slot]);
     }
 
     /// Tells the player why an edit in a neighbouring plot was not forwarded. With plot borders
@@ -1221,6 +1267,7 @@ impl Plot {
         let item_in_hand = self.players[player].inventory
             [self.players[player].selected_slot as usize + 36]
             .clone();
+        let held_item_id = item_in_hand.as_ref().map(|item| item.item_type.get_id());
         let holding_wand = item_in_hand.as_ref().is_some_and(|item| {
             item.item_type == Item::WoodenAxe
                 && self.players[player].has_permission("worldedit.selection.pos")
@@ -1260,6 +1307,19 @@ impl Plot {
         ) {
             self.players[player].send_no_permission_message();
             self.send_block_corrections(&[block_pos]);
+            return;
+        }
+
+        // Brushes and tools of the left click
+        if let Some(id) = held_item_id
+            && (self.try_use_brush_primary(player, id, Some(block_pos))
+                || self.try_use_tool(player, id, Some(block_pos), true))
+        {
+            self.send_block_corrections(&[block_pos]);
+            return;
+        }
+
+        if worldedit::super_pickaxe_click(self, player, block_pos) {
             return;
         }
 

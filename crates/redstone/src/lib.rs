@@ -2,8 +2,10 @@
 //! This is the implementation that is used by default in low-performance
 //! scenerio (i.e. regular buiding)
 
+pub mod bulb;
 pub mod button;
 pub mod comparator;
+pub mod lectern;
 pub mod noteblock;
 pub mod piston;
 pub mod rail;
@@ -60,6 +62,7 @@ fn get_weak_power(
             }
         }
         Block::Generic(id) if sculk::is_sensor(id) => sculk::weak_power(id, side),
+        Block::Generic(id) if lectern::is_lectern(id) => lectern::weak_power(id),
         Block::Generic(id) if rail::is_detector_powered(id) && side == BlockFace::Bottom => 15,
         Block::RedstoneWire(wire) if dust_power => match side {
             BlockFace::Top => wire.power,
@@ -124,6 +127,7 @@ fn get_strong_power(
             } && powered,
         ),
         Block::Generic(id) if sculk::is_sensor(id) => sculk::strong_power(id, side),
+        Block::Generic(id) if lectern::is_lectern(id) => lectern::strong_power(id, side),
         Block::Generic(id) if button::is_button(id) => button::strong_power(id, side),
         Block::Generic(id) if rail::is_detector_powered(id) && side == BlockFace::Bottom => 15,
         Block::RedstoneWire { .. } => get_weak_power(block, world, pos, side, dust_power),
@@ -227,6 +231,11 @@ fn update_generic(id: u32, world: &mut impl World, pos: BlockPos) {
     }
     if piston::piston_base(id).is_some() {
         piston::check_if_extend(world, pos);
+        return;
+    }
+
+    if bulb::is_bulb(id) {
+        bulb::check_and_flip(world, pos, id);
         return;
     }
 
@@ -381,6 +390,7 @@ pub fn tick(block: Block, world: &mut impl World, pos: BlockPos) {
                 transport::dispense(world, pos);
             }
             button::release(world, pos, id);
+            lectern::tick(world, pos, id);
         }
         Block::Repeater(repeater) => {
             repeater::tick(repeater, world, pos);

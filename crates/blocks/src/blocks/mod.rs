@@ -134,6 +134,11 @@ impl Block {
             )
             || self.is_chiseled_bookshelf()
             || self.is_sculk_sensor()
+            || self.is_lectern()
+    }
+
+    pub fn is_lectern(self) -> bool {
+        matches!(self, Block::Generic(id) if crate::generic::state_name(id) == "minecraft:lectern")
     }
 
     /// Whether the block is a sculk sensor or a calibrated sculk sensor

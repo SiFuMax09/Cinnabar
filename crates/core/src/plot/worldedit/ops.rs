@@ -2,7 +2,7 @@
 
 use super::history::HistoryEntry;
 use super::job::*;
-use super::pattern::{Mask, Pattern, PatternEnv};
+use super::pattern::{BlockView, Mask, Pattern, PatternEnv, Snapshot};
 use super::session::{apply_entities, apply_section_changes, clamp_to_plot, read_box, EditSession};
 use super::shapes;
 use crate::plot::PlotWorld;
@@ -20,6 +20,26 @@ pub fn combine_masks(a: Option<Mask>, b: Option<Mask>) -> Option<Mask> {
     }
 }
 
+/// A copy of the blocks around the box for the patterns that look at the world, if there are any
+fn snapshot_for(
+    session: &EditSession<'_>,
+    pattern: &Pattern,
+    min: BlockPos,
+    max: BlockPos,
+) -> Option<Snapshot> {
+    let reach = pattern.reach();
+    if reach == 0 {
+        return None;
+    }
+    let (min, max) = (
+        BlockPos::new(min.x - reach, min.y - reach, min.z - reach),
+        BlockPos::new(max.x + reach, max.y + reach, max.z + reach),
+    );
+    let volume =
+        (max.x - min.x + 1) as i64 * (max.y - min.y + 1) as i64 * (max.z - min.z + 1) as i64;
+    (volume <= 16_000_000).then(|| Snapshot::new(min, max, session.read_box(min, max)))
+}
+
 /// Only the blocks for which `shape` is true are placed
 type Shape = Box<dyn Fn(BlockPos) -> bool>;
 
@@ -34,7 +54,9 @@ fn pattern_run(
         let WorkItem::Box(min, max) = item else {
             return 0;
         };
-        let mut env = PatternEnv::new(clipboard.as_ref(), origin);
+        let snapshot = snapshot_for(session, &pattern, *min, *max);
+        let mut env = PatternEnv::new(clipboard.as_ref(), origin)
+            .with_view(snapshot.as_ref().map(|s| s as &dyn BlockView));
         if let Some(id) = pattern.as_single() {
             match &shape {
                 Some(shape) => session.edit_box(*min, *max, |pos, _| shape(pos).then_some(id)),
@@ -149,6 +171,188 @@ pub fn cylinder_job(
     )
 }
 
+/// //sphere and //hsphere with one radius per axis
+pub fn ellipsoid_job(
+    world: &PlotWorld,
+    owner: u128,
+    gmask: Option<Mask>,
+    center: BlockPos,
+    radii: (f64, f64, f64),
+    hollow: bool,
+    pattern: Pattern,
+    clipboard: Option<WorldEditClipboard>,
+) -> EditJob {
+    let ext = |r: f64| r.ceil() as i32;
+    let (ex, ey, ez) = (ext(radii.0), ext(radii.1), ext(radii.2));
+    let shape: Shape = Box::new(move |p| {
+        let (dx, dy, dz) = (p.x - center.x, p.y - center.y, p.z - center.z);
+        if hollow {
+            shapes::in_ellipsoid_shell(dx, dy, dz, radii)
+        } else {
+            shapes::in_ellipsoid(dx, dy, dz, radii)
+        }
+    });
+    region_job(
+        world,
+        owner,
+        gmask,
+        None,
+        BlockPos::new(center.x - ex, center.y - ey, center.z - ez),
+        BlockPos::new(center.x + ex, center.y + ey, center.z + ez),
+        pattern,
+        clipboard,
+        Some(shape),
+    )
+}
+
+/// //cyl and //hcyl with an elliptic base (`rx`, `rz`), `height` blocks up from `base`
+pub fn elliptic_cylinder_job(
+    world: &PlotWorld,
+    owner: u128,
+    gmask: Option<Mask>,
+    base: BlockPos,
+    radii: (f64, f64),
+    height: i32,
+    hollow: bool,
+    pattern: Pattern,
+    clipboard: Option<WorldEditClipboard>,
+) -> EditJob {
+    let (ex, ez) = (radii.0.ceil() as i32, radii.1.ceil() as i32);
+    let r3 = (radii.0, 0.0, radii.1);
+    let shape: Shape = Box::new(move |p| {
+        let (dx, dz) = (p.x - base.x, p.z - base.z);
+        if hollow {
+            shapes::in_ellipsoid(dx, 0, dz, r3)
+                && [(1, 0), (-1, 0), (0, 1), (0, -1)]
+                    .iter()
+                    .any(|(x, z)| !shapes::in_ellipsoid(dx + x, 0, dz + z, r3))
+        } else {
+            shapes::in_ellipsoid(dx, 0, dz, r3)
+        }
+    });
+    region_job(
+        world,
+        owner,
+        gmask,
+        None,
+        BlockPos::new(base.x - ex, base.y, base.z - ez),
+        BlockPos::new(base.x + ex, base.y + height.max(1) - 1, base.z + ez),
+        pattern,
+        clipboard,
+        Some(shape),
+    )
+}
+
+/// //pyramid and //hpyramid: `size` layers that stand on `base`
+pub fn pyramid_job(
+    world: &PlotWorld,
+    owner: u128,
+    gmask: Option<Mask>,
+    base: BlockPos,
+    size: i32,
+    hollow: bool,
+    pattern: Pattern,
+    clipboard: Option<WorldEditClipboard>,
+) -> EditJob {
+    let shape: Shape = Box::new(move |p| {
+        shapes::in_pyramid(p.x - base.x, p.y - base.y, p.z - base.z, size, hollow)
+    });
+    region_job(
+        world,
+        owner,
+        gmask,
+        None,
+        BlockPos::new(base.x - size + 1, base.y, base.z - size + 1),
+        BlockPos::new(base.x + size - 1, base.y + size - 1, base.z + size - 1),
+        pattern,
+        clipboard,
+        Some(shape),
+    )
+}
+
+/// //lay: replaces the highest block of every column with the pattern
+pub fn lay_job(
+    world: &PlotWorld,
+    owner: u128,
+    gmask: Option<Mask>,
+    min: BlockPos,
+    max: BlockPos,
+    pattern: Pattern,
+    clipboard: Option<WorldEditClipboard>,
+) -> EditJob {
+    let items = column_items(world, min, max);
+    let run: RunFn = Box::new(move |session, item| {
+        let WorkItem::Box(lo, hi) = item else {
+            return 0;
+        };
+        let snapshot = snapshot_for(session, &pattern, *lo, BlockPos::new(hi.x, hi.y + 1, hi.z));
+        let mut env = PatternEnv::new(clipboard.as_ref(), min)
+            .with_view(snapshot.as_ref().map(|s| s as &dyn BlockView));
+        let mut count = 0;
+        for x in lo.x..=hi.x {
+            for z in lo.z..=hi.z {
+                for y in (lo.y..=hi.y).rev() {
+                    let pos = BlockPos::new(x, y, z);
+                    let old = session.get(pos);
+                    if old != 0 {
+                        let new = pattern.pick(pos, old, &mut env);
+                        count += session.set(pos, new) as usize;
+                        break;
+                    }
+                }
+            }
+        }
+        count
+    });
+    EditJob::single(owner, gmask, items, run)
+}
+
+/// //naturalize: grass on top of three layers of dirt on top of stone
+pub fn naturalize_job(
+    world: &PlotWorld,
+    owner: u128,
+    gmask: Option<Mask>,
+    min: BlockPos,
+    max: BlockPos,
+) -> EditJob {
+    let id = |text: &str| {
+        Pattern::parse(text)
+            .ok()
+            .and_then(|p| p.as_single())
+            .unwrap_or(0)
+    };
+    let (grass, dirt, stone) = (id("grass_block"), id("dirt"), id("stone"));
+    let items = column_items(world, min, max);
+    let run: RunFn = Box::new(move |session, item| {
+        let WorkItem::Box(lo, hi) = item else {
+            return 0;
+        };
+        let mut count = 0;
+        for x in lo.x..=hi.x {
+            for z in lo.z..=hi.z {
+                let mut depth = None::<u32>;
+                for y in (lo.y..=hi.y).rev() {
+                    let pos = BlockPos::new(x, y, z);
+                    if session.get(pos) == 0 {
+                        depth = None;
+                        continue;
+                    }
+                    let level = depth.map_or(0, |d| d + 1);
+                    depth = Some(level);
+                    let new = match level {
+                        0 => grass,
+                        1..=3 => dirt,
+                        _ => stone,
+                    };
+                    count += session.set(pos, new) as usize;
+                }
+            }
+        }
+        count
+    });
+    EditJob::single(owner, gmask, items, run)
+}
+
 /// //walls and //faces
 pub fn shell_job(
     world: &PlotWorld,
@@ -178,9 +382,21 @@ fn positions_run(
 ) -> RunFn {
     Box::new(move |session, item| {
         let WorkItem::Index(i) = item else { return 0 };
-        let mut env = PatternEnv::new(clipboard.as_ref(), origin);
         let start = i * POSITIONS_PER_ITEM;
         let end = (start + POSITIONS_PER_ITEM).min(positions.len());
+        let snapshot = positions[start..end]
+            .iter()
+            .copied()
+            .reduce(|a, b| a.min(b))
+            .and_then(|lo| {
+                let hi = positions[start..end]
+                    .iter()
+                    .copied()
+                    .reduce(|a, b| a.max(b))?;
+                snapshot_for(session, &pattern, lo, hi)
+            });
+        let mut env = PatternEnv::new(clipboard.as_ref(), origin)
+            .with_view(snapshot.as_ref().map(|s| s as &dyn BlockView));
         let mut count = 0;
         for pos in &positions[start..end] {
             let old = session.get(*pos);
@@ -215,6 +431,7 @@ pub fn line_job(
     a: BlockPos,
     b: BlockPos,
     thickness: u32,
+    hollow: bool,
     pattern: Pattern,
     clipboard: Option<WorldEditClipboard>,
 ) -> EditJob {
@@ -239,6 +456,22 @@ pub fn line_job(
             }
         }
     }
+    if hollow && thickness > 0 {
+        // Only the surface of the thick line stays
+        let all: FxHashSet<BlockPos> = positions.iter().copied().collect();
+        positions.retain(|p| {
+            [
+                (1, 0, 0),
+                (-1, 0, 0),
+                (0, 1, 0),
+                (0, -1, 0),
+                (0, 0, 1),
+                (0, 0, -1),
+            ]
+            .iter()
+            .any(|(x, y, z)| !all.contains(&BlockPos::new(p.x + x, p.y + y, p.z + z)))
+        });
+    }
     positions_job(owner, gmask, positions, pattern, clipboard, a.min(b))
 }
 
@@ -257,7 +490,9 @@ pub fn overlay_job(
         let WorkItem::Box(lo, hi) = item else {
             return 0;
         };
-        let mut env = PatternEnv::new(clipboard.as_ref(), min);
+        let snapshot = snapshot_for(session, &pattern, *lo, BlockPos::new(hi.x, hi.y + 1, hi.z));
+        let mut env = PatternEnv::new(clipboard.as_ref(), min)
+            .with_view(snapshot.as_ref().map(|s| s as &dyn BlockView));
         let mut count = 0;
         for x in lo.x..=hi.x {
             for z in lo.z..=hi.z {
@@ -305,7 +540,9 @@ pub fn hollow_job(
             let WorkItem::Box(lo, hi) = item else {
                 return 0;
             };
-            let mut pick_env = PatternEnv::new(clipboard.as_ref(), min);
+            let snapshot = snapshot_for(session, &pattern, *lo, *hi);
+            let mut pick_env = PatternEnv::new(clipboard.as_ref(), min)
+                .with_view(snapshot.as_ref().map(|s| s as &dyn BlockView));
             session.edit_box(*lo, *hi, |pos, old| {
                 let i = (((pos.y - min.y) as usize * size.2 + (pos.z - min.z) as usize) * size.0)
                     + (pos.x - min.x) as usize;
@@ -502,7 +739,7 @@ pub fn history_job(owner: u128, count: u32, undo: bool) -> EditJob {
             } else {
                 player.worldedit_history.pop_redo()
             }
-            .ok_or_else(|| format!("There is nothing left to {plot_what}."))?;
+            .ok_or_else(|| format!("Nothing left to {plot_what}."))?;
             if entry.plot_x != env.world.x || entry.plot_z != env.world.z {
                 // Put it back, it belongs to another plot
                 if undo {
@@ -518,11 +755,11 @@ pub fn history_job(owner: u128, count: u32, undo: bool) -> EditJob {
         job = job.stage(stage);
     }
     job.on_finish(move |player, stats| {
+        let _ = stats;
         player.send_worldedit_message(&format!(
-            "{} complete: {} block(s) restored ({:?})",
-            if undo { "Undo" } else { "Redo" },
-            stats.blocks,
-            stats.elapsed
+            "{} {} available edits.",
+            if undo { "Undid" } else { "Redid" },
+            count
         ));
     })
 }
@@ -650,6 +887,7 @@ mod tests {
             BlockPos::new(1, 20, 1),
             BlockPos::new(8, 20, 1),
             0,
+            false,
             Pattern::parse("dirt").unwrap(),
             None,
         );
@@ -756,6 +994,64 @@ mod tests {
         assert_eq!(entry.blocks, 27 * 3);
         assert_eq!(world.get_block_raw(BlockPos::new(2, 2, 11)), 1);
         assert_eq!(world.get_block_raw(BlockPos::new(2, 2, 12)), 0);
+    }
+
+    #[test]
+    fn new_shapes_and_layers() {
+        let mut world = PlotWorld::empty_for_test(0, 0);
+        let stone = Pattern::parse("stone").unwrap();
+        let center = BlockPos::new(20, 20, 20);
+        let job = ellipsoid_job(
+            &world,
+            0,
+            None,
+            center,
+            (6.0, 2.0, 3.0),
+            false,
+            stone.clone(),
+            None,
+        );
+        run_job!(world, job);
+        assert_ne!(world.get_block_raw(BlockPos::new(26, 20, 20)), 0);
+        assert_eq!(world.get_block_raw(BlockPos::new(20, 24, 20)), 0);
+        assert_eq!(world.get_block_raw(BlockPos::new(20, 20, 24)), 0);
+
+        let base = BlockPos::new(60, 5, 60);
+        let job = pyramid_job(&world, 0, None, base, 3, false, stone.clone(), None);
+        let entry = run_job!(world, job);
+        assert_eq!(entry.blocks, 35);
+        let job = elliptic_cylinder_job(
+            &world,
+            0,
+            None,
+            BlockPos::new(100, 5, 100),
+            (3.0, 3.0),
+            4,
+            true,
+            stone.clone(),
+            None,
+        );
+        run_job!(world, job);
+        assert_eq!(world.get_block_raw(BlockPos::new(100, 6, 100)), 0);
+        assert_ne!(world.get_block_raw(BlockPos::new(103, 6, 100)), 0);
+
+        // //naturalize on a stone column
+        let (min, max) = (BlockPos::new(0, 0, 0), BlockPos::new(3, 9, 3));
+        run_job!(
+            world,
+            region_job(&world, 0, None, None, min, max, stone, None, None)
+        );
+        run_job!(world, naturalize_job(&world, 0, None, min, max));
+        let grass = Pattern::parse("grass_block").unwrap().as_single().unwrap();
+        let dirt = Pattern::parse("dirt").unwrap().as_single().unwrap();
+        assert_eq!(world.get_block_raw(BlockPos::new(1, 9, 1)), grass);
+        assert_eq!(world.get_block_raw(BlockPos::new(1, 6, 1)), dirt);
+        assert_eq!(world.get_block_raw(BlockPos::new(1, 5, 1)), 1);
+        // //lay replaces only the top block
+        let glass = Pattern::parse("glass").unwrap();
+        run_job!(world, lay_job(&world, 0, None, min, max, glass, None));
+        assert_ne!(world.get_block_raw(BlockPos::new(1, 9, 1)), grass);
+        assert_eq!(world.get_block_raw(BlockPos::new(1, 8, 1)), dirt);
     }
 
     /// Runs a job to the end and returns its history entry

@@ -28,6 +28,8 @@ fn get_power_on_sides(comp: Comparator, world: &impl World, pos: BlockPos) -> u8
 pub fn has_override(block: Block) -> bool {
     block.is_chiseled_bookshelf()
         || block.is_sculk_sensor()
+        || block.is_lectern()
+        || matches!(block, Block::Generic(id) if super::bulb::is_bulb(id))
         || matches!(
             block,
             Block::Barrel { .. }
@@ -43,6 +45,11 @@ pub fn has_override(block: Block) -> bool {
 pub fn get_override(block: Block, world: &impl World, pos: BlockPos) -> u8 {
     match block {
         _ if ContainerType::for_block(block).is_some() => {
+            // Both halves of a double chest are read as one container
+            if super::transport::chest_partner(world, pos).is_some() {
+                return super::transport::read_inventory(world, pos)
+                    .map_or(0, |(_, inventory)| inventory.comparator_signal());
+            }
             match world.get_block_entity(pos) {
                 Some(BlockEntity::Container {
                     comparator_override,
@@ -65,6 +72,8 @@ pub fn get_override(block: Block, world: &impl World, pos: BlockPos) -> u8 {
                 _ => 0,
             }
         }
+        Block::Generic(id) if super::bulb::is_bulb(id) => super::bulb::analog_output(id),
+        Block::Generic(id) if block.is_lectern() => super::lectern::analog_output(world, pos, id),
         Block::Generic(id) if block.is_sculk_sensor() => {
             super::sculk::analog_output(world, pos, id)
         }

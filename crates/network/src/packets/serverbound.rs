@@ -51,6 +51,12 @@ pub trait ServerBoundPacketHandler {
     fn handle_set_held_item(&mut self, _packet: SSetHeldItem, _player_idx: usize) {}
     fn handle_set_creative_mode_slot(&mut self, _packet: SSetCreativeModeSlot, _player_idx: usize) {
     }
+    fn handle_container_button_click(
+        &mut self,
+        _packet: SContainerButtonClick,
+        _player_idx: usize,
+    ) {
+    }
     fn handle_container_click(&mut self, _packet: SContainerClick, _player_idx: usize) {}
     fn handle_container_close(&mut self, _packet: SContainerClose, _player_idx: usize) {}
     fn handle_update_sign(&mut self, _packet: SUpdateSign, _player_idx: usize) {}
@@ -765,6 +771,26 @@ impl ServerBoundPacket for SUpdateSign {
 
     fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
         handler.handle_update_sign(*self, player_idx);
+    }
+}
+
+/// A click on a button of a menu, like the page buttons of a lectern
+#[derive(Debug)]
+pub struct SContainerButtonClick {
+    pub window_id: i32,
+    pub button_id: i32,
+}
+
+impl ServerBoundPacket for SContainerButtonClick {
+    fn decode<T: PacketDecoderExt>(decoder: &mut T) -> DecodeResult<Self> {
+        Ok(SContainerButtonClick {
+            window_id: decoder.read_varint()?,
+            button_id: decoder.read_varint()?,
+        })
+    }
+
+    fn handle(self: Box<Self>, handler: &mut dyn ServerBoundPacketHandler, player_idx: usize) {
+        handler.handle_container_button_click(*self, player_idx);
     }
 }
 

@@ -104,6 +104,19 @@ pub fn on_use(
             }
             ActionResult::Pass
         }
+        Block::Generic(id) if redstone::lectern::is_lectern(id) => {
+            // A lectern with a book opens its screen, putting a book on it is up to the plot
+            // where the stack in the hand is known
+            if redstone::lectern::has_book(id)
+                && let Some(book) = redstone::lectern::book(world, pos)
+                && let Some((page, _)) = redstone::lectern::page_info(world, pos)
+            {
+                player.open_lectern(pos, &book, page);
+                ActionResult::Success
+            } else {
+                ActionResult::Pass
+            }
+        }
         Block::Generic(id) => {
             if generic_placement::use_block(world, pos, id, item_in_hand, hit) {
                 ActionResult::Success
@@ -126,11 +139,9 @@ fn open_container(block: Block, world: &impl World, player: &mut Player, pos: Bl
     let Some(ty) = ContainerType::for_block(block) else {
         return false;
     };
-    let inventory = match world.get_block_entity(pos) {
-        Some(BlockEntity::Container { inventory, .. }) => {
-            Inventory::from_entries(inventory, ty.num_slots() as usize)
-        }
-        _ => Inventory::new(ty.num_slots() as usize),
+    let inventory = match cinnabar_redstone::transport::read_inventory(world, pos) {
+        Some((_, inventory)) => inventory,
+        None => Inventory::new(ty.num_slots() as usize),
     };
     player.open_container(pos, &inventory, ty);
     true
@@ -382,6 +393,12 @@ pub fn place_in_world(
     if let Block::Hopper { .. } = block {
         redstone::update(block, world, pos);
     }
+    // Copper bulbs check for power when they are placed
+    if let Block::Generic(id) = block
+        && redstone::bulb::is_bulb(id)
+    {
+        redstone::bulb::check_and_flip(world, pos, id);
+    }
     change_surrounding_blocks(world, pos);
     if let Block::RedstoneWire { .. } = block {
         redstone::update_wire_neighbors(world, pos);
@@ -446,6 +463,9 @@ pub fn destroy(block: Block, world: &mut impl World, pos: BlockPos) {
             if block.is_sculk_sensor() {
                 // The block below could have been powered strongly by the sensor
                 redstone::sculk::on_removed(world, pos);
+            }
+            if block.is_lectern() {
+                redstone::lectern::on_removed(world, pos);
             }
             generic_placement::after_remove(world, pos);
         }
